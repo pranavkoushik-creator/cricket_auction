@@ -12,9 +12,27 @@ import { FranchiseManagementView } from './views/FranchiseManagementView';
 import { LiveScorerConsoleView } from './views/LiveScorerConsoleView';
 import { MatchSchedulerView } from './views/MatchSchedulerView';
 import { AnalyticsReportsView } from './views/AnalyticsReportsView';
+import { LoginView } from './views/LoginView';
 
 const MainContent: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+
+  // Show login page first
+  if (!isLoggedIn) {
+    return (
+      <LoginView
+        onLogin={() => {
+          setActiveTab('dashboard');
+          setIsLoggedIn(true);
+        }}
+        onViewLiveAuction={() => {
+          setActiveTab('auction-spectator');
+          setIsLoggedIn(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cricket-dark flex flex-col font-sans text-gray-100 selection:bg-yellow-500 selection:text-black">
