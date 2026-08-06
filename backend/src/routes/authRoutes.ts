@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { registerUser, loginUser, getAllUsers, setUserTournamentRole } from '../services/authService';
+import { registerUser, loginUser, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole } from '../services/authService';
 
 const router = Router();
 
@@ -24,6 +24,20 @@ router.post('/login', (req: Request, res: Response) => {
     }
     const result = loginUser(email, password);
     res.json(result);
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+router.get('/me', (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header missing or invalid.' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = verifyTokenAndGetUser(token);
+    res.json(user);
   } catch (err: any) {
     res.status(401).json({ error: err.message });
   }

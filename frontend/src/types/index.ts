@@ -1,12 +1,7 @@
 export type UserRole = 
   | 'Super Admin'
-  | 'Tournament Admin'
-  | 'Auction Operator'
   | 'Franchise Owner'
-  | 'Franchise Manager'
-  | 'Player'
-  | 'Scorer'
-  | 'Spectator';
+  | 'Player';
 
 export interface User {
   id: string;
@@ -14,6 +9,10 @@ export interface User {
   email: string;
   phone?: string;
   avatar_url?: string;
+  role?: UserRole;
+  franchise_id?: string;
+  franchise_name?: string;
+  franchise_short?: string;
   roles?: { tournament_id: string; role: UserRole }[];
 }
 

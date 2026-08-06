@@ -19,17 +19,16 @@ export function registerUser(name: string, email: string, password: string, phon
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(id, name, email, phone || null, password_hash, avatar_url);
 
-  // Assign default Spectator role for active tournaments
+  // Default role for self-registered user is 'Player'
   const tournaments = db.prepare('SELECT id FROM tournaments').all() as { id: string }[];
   for (const t of tournaments) {
     db.prepare(`
       INSERT OR IGNORE INTO user_roles (id, user_id, tournament_id, role)
-      VALUES (?, ?, ?, 'Spectator')
+      VALUES (?, ?, ?, 'Player')
     `).run(uuidv4(), id, t.id);
   }
 
-  const token = jwt.sign({ userId: id, email }, JWT_SECRET, { expiresIn: '7d' });
-  return { user: { id, name, email, phone, avatar_url }, token };
+  return loginUser(email, password);
 }
 
 export function loginUser(email: string, password: string) {
@@ -43,9 +42,28 @@ export function loginUser(email: string, password: string) {
     throw new Error('Invalid email or password.');
   }
 
-  const roles = db.prepare('SELECT tournament_id, role FROM user_roles WHERE user_id = ?').all(user.id) as any[];
+  // Fetch user role for tournament
+  const roleRecord = db.prepare('SELECT role FROM user_roles WHERE user_id = ? ORDER BY id ASC LIMIT 1').get(user.id) as any;
+  const role = roleRecord?.role || 'Player';
 
-  const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  // If role is Franchise Owner, fetch associated franchise
+  let franchise: any = null;
+  if (role === 'Franchise Owner') {
+    franchise = db.prepare('SELECT id, name, short_name FROM franchises WHERE owner_id = ? LIMIT 1').get(user.id) as any;
+  }
+
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role,
+    franchise_id: franchise?.id || null,
+    franchise_name: franchise?.name || null,
+    franchise_short: franchise?.short_name || null
+  };
+
+  const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
+
   return {
     user: {
       id: user.id,
@@ -53,10 +71,35 @@ export function loginUser(email: string, password: string) {
       email: user.email,
       phone: user.phone,
       avatar_url: user.avatar_url,
-      roles
+      role,
+      franchise_id: franchise?.id || null,
+      franchise_name: franchise?.name || null,
+      franchise_short: franchise?.short_name || null
     },
     token
   };
+}
+
+export function verifyTokenAndGetUser(token: string) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const user = db.prepare('SELECT id, name, email, phone, avatar_url FROM users WHERE id = ?').get(decoded.userId) as any;
+    if (!user) throw new Error('User not found');
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      avatar_url: user.avatar_url,
+      role: decoded.role,
+      franchise_id: decoded.franchise_id,
+      franchise_name: decoded.franchise_name,
+      franchise_short: decoded.franchise_short
+    };
+  } catch (err) {
+    throw new Error('Invalid or expired authentication token');
+  }
 }
 
 export function getAllUsers() {

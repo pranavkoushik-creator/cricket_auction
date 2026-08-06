@@ -5,55 +5,44 @@ import { v4 as uuidv4 } from 'uuid';
 export function seedData() {
   initDatabase();
 
-  // Check if seeded already
-  const userCount = db.prepare('SELECT count(*) as count FROM users').get() as { count: number };
-  if (userCount.count > 0) {
-    console.log('Database already seeded.');
-    return;
-  }
-
-  console.log('Seeding initial IPL Tournament, Roles, Franchises, Players, and Fixtures...');
-
   const passwordHash = bcrypt.hashSync('password123', 10);
+  const tId = 'tour-ipl-2026';
 
-  // 1. Create Core Users
+  // 1. Create Core Users (3 Core Roles: Super Admin, Franchise Owners, Player)
   const users = [
     { id: 'usr-admin', name: 'Pranav Koushik (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
-    { id: 'usr-organizer', name: 'Rajesh Sharma (Organizer)', email: 'organizer@t20.com', role: 'Tournament Admin' },
-    { id: 'usr-operator', name: 'Richard Madley (Auctioneer)', email: 'operator@t20.com', role: 'Auction Operator' },
     { id: 'usr-owner-mi', name: 'Nita Ambani (MI Owner)', email: 'mi@franchise.com', role: 'Franchise Owner' },
     { id: 'usr-owner-csk', name: 'N. Srinivasan (CSK Owner)', email: 'csk@franchise.com', role: 'Franchise Owner' },
     { id: 'usr-owner-rcb', name: 'Anand K. (RCB Owner)', email: 'rcb@franchise.com', role: 'Franchise Owner' },
     { id: 'usr-owner-dc', name: 'Parth Jindal (DC Owner)', email: 'dc@franchise.com', role: 'Franchise Owner' },
-    { id: 'usr-scorer', name: 'Nitin Menon (Official Scorer)', email: 'scorer@t20.com', role: 'Scorer' },
-    { id: 'usr-spectator', name: 'Cricket Fan (Public)', email: 'fan@cricket.com', role: 'Spectator' }
+    { id: 'usr-player', name: 'Virat Kohli (Registered Player)', email: 'player@cricket.com', role: 'Player' }
   ];
 
   const insertUser = db.prepare(`
     INSERT INTO users (id, name, email, password_hash, status, avatar_url)
     VALUES (?, ?, ?, ?, 'active', ?)
+    ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash, name = excluded.name
+  `);
+
+  const insertRole = db.prepare(`
+    INSERT INTO user_roles (id, user_id, tournament_id, role)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, tournament_id, role) DO NOTHING
   `);
 
   for (const u of users) {
     insertUser.run(u.id, u.name, u.email, passwordHash, `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`);
-  }
-
-  // 2. Create Tournament
-  const tId = 'tour-ipl-2026';
-  db.prepare(`
-    INSERT INTO tournaments (id, name, sport, format, dates, status, logo_url)
-    VALUES (?, 'IPL 2026 Mega Auction & T20 League', 'Cricket', 'T20', 'Aug 10 - Sep 20, 2026', 'active', 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=200&auto=format&fit=crop&q=80')
-  `).run(tId);
-
-  // Assign user roles for this tournament
-  const insertRole = db.prepare(`
-    INSERT INTO user_roles (id, user_id, tournament_id, role)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  for (const u of users) {
     insertRole.run(uuidv4(), u.id, tId, u.role);
   }
+
+  // Check if main tournament data seeded already
+  const tCount = db.prepare('SELECT count(*) as count FROM tournaments').get() as { count: number };
+  if (tCount.count > 0) {
+    console.log('Database tournament structure already seeded.');
+    return;
+  }
+
+  console.log('Seeding initial IPL Tournament, Roles, Franchises, Players, and Fixtures...');
 
   // 3. Create Tournament Rules
   const incrementLadder = JSON.stringify([

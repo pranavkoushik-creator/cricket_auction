@@ -7,7 +7,8 @@ import { Clock, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight } from '
 import confetti from 'canvas-confetti';
 
 export const LiveAuctionBiddingView: React.FC = () => {
-  const { currentTournamentId, selectedFranchiseId, setSelectedFranchiseId } = useAuth();
+  const { currentTournamentId, selectedFranchiseId, setSelectedFranchiseId, currentRole, user } = useAuth();
+  const isFranchiseOwner = currentRole === 'Franchise Owner';
   const { auctionState, bidError, placeBid } = useAuctionSocket();
 
   const [franchises, setFranchises] = useState<any[]>([]);
@@ -17,10 +18,12 @@ export const LiveAuctionBiddingView: React.FC = () => {
     apiRequest(`/franchises?tournamentId=${currentTournamentId}`)
       .then(res => {
         setFranchises(res);
-        const active = res.find((f: any) => f.id === selectedFranchiseId) || res[0];
+        // If Franchise Owner, strictly pick their assigned franchise
+        const ownerFranchiseId = isFranchiseOwner && user?.franchise_id ? user.franchise_id : selectedFranchiseId;
+        const active = res.find((f: any) => f.id === ownerFranchiseId) || res[0];
         if (active) {
           setCurrentFranchise(active);
-          if (!selectedFranchiseId) setSelectedFranchiseId(active.id);
+          if (selectedFranchiseId !== active.id) setSelectedFranchiseId(active.id);
         }
       })
       .catch(console.error);
@@ -28,7 +31,7 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
   useEffect(() => {
     fetchFranchiseData();
-  }, [currentTournamentId, selectedFranchiseId, auctionState?.currentBid, auctionState?.status]);
+  }, [currentTournamentId, selectedFranchiseId, auctionState?.currentBid, auctionState?.status, user?.franchise_id]);
 
   // Trigger confetti on winning sale
   useEffect(() => {
@@ -55,15 +58,22 @@ export const LiveAuctionBiddingView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-gray-400">Bidding as Franchise:</span>
-              <select
-                value={currentFranchise.id}
-                onChange={e => setSelectedFranchiseId(e.target.value)}
-                className="bg-gray-900 text-xs font-bold text-yellow-400 border border-gray-700 rounded-lg px-2.5 py-1 focus:outline-none focus:border-yellow-500"
-              >
-                {franchises.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.short_name})</option>
-                ))}
-              </select>
+              {isFranchiseOwner ? (
+                <span className="bg-blue-900/60 text-xs font-black text-yellow-400 border border-blue-500/40 rounded-lg px-3 py-1 flex items-center gap-1.5">
+                  <span>{currentFranchise.name} ({currentFranchise.short_name})</span>
+                  <span className="text-[10px] text-blue-300 font-bold bg-blue-500/30 px-1.5 py-0.5 rounded uppercase">Verified Owner</span>
+                </span>
+              ) : (
+                <select
+                  value={currentFranchise.id}
+                  onChange={e => setSelectedFranchiseId(e.target.value)}
+                  className="bg-gray-900 text-xs font-bold text-yellow-400 border border-gray-700 rounded-lg px-2.5 py-1 focus:outline-none focus:border-yellow-500"
+                >
+                  {franchises.map(f => (
+                    <option key={f.id} value={f.id}>{f.name} ({f.short_name})</option>
+                  ))}
+                </select>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white mt-0.5">{currentFranchise.name}</h2>
           </div>
