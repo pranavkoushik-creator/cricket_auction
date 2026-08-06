@@ -1,0 +1,58 @@
+# ==============================================================================
+# SPORTS TOURNAMENT & PLAYER AUCTION PLATFORM - SYSTEM REQUIREMENTS & DEPENDENCIES
+# ==============================================================================
+# Node.js Environment Requirements:
+# - Node.js >= v18.0.0 (Recommended Node.js v20.x or v22.x LTS)
+# - npm >= v9.0.0
+# ==============================================================================
+
+# --- QUICK ONE-COMMAND INSTALLATION FOR BOTH FRONTEND & BACKEND ---
+# Run in project root terminal:
+# npm run install:all   (or run: cd backend && npm install && cd ../frontend && npm install)
+
+# ------------------------------------------------------------------------------
+# 1. BACKEND DEPENDENCIES (backend/package.json)
+# ------------------------------------------------------------------------------
+# Core Backend Framework & Database:
+express>=5.2.1
+better-sqlite3>=13.0.3
+socket.io>=4.8.3
+cors>=2.8.6
+dotenv>=17.4.2
+jsonwebtoken>=9.0.3
+bcryptjs>=3.0.3
+uuid>=14.0.1
+
+# Backend Development Dependencies:
+typescript>=5.0.0
+tsx>=4.23.7
+@types/express>=5.0.6
+@types/better-sqlite3>=9.6.0
+@types/cors>=2.8.19
+@types/jsonwebtoken>=9.0.10
+@types/bcryptjs>=2.4.6
+@types/uuid>=10.0.0
+@types/node>=20.0.0
+
+# ------------------------------------------------------------------------------
+# 2. FRONTEND DEPENDENCIES (frontend/package.json)
+# ------------------------------------------------------------------------------
+# Core Frontend Libraries & UI Components:
+react>=19.0.0
+react-dom>=19.0.0
+socket.io-client>=4.8.3
+lucide-react>=1.28.0
+canvas-confetti>=1.9.4
+clsx>=2.1.1
+
+# Frontend Development Tools & Bundlers:
+vite>=6.0.0
+@vitejs/plugin-react>=6.0.4
+tailwindcss>=3.4.19
+postcss>=8.5.25
+autoprefixer>=10.5.4
+typescript>=5.0.0
+@types/react>=19.0.0
+@types/react-dom>=19.0.0
+@types/canvas-confetti>=1.9.0
+@types/node>=20.0.0

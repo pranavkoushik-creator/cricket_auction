@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -76,4 +76,81 @@ body {
   animation: goldShimmer 3s infinite linear;
   color: #000;
   font-weight: 700;
+}
+
+/* --- BROADCAST STYLES & STAMP ANIMATIONS --- */
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: scale(2.5) rotate(-15deg);
+  }
+  70% {
+    opacity: 0.9;
+    transform: scale(0.95) rotate(-15deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+
+.stamp-sold {
+  border: 6px solid #ef4444;
+  color: #ef4444;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 0.25rem 1.25rem;
+  border-radius: 0.75rem;
+  display: inline-block;
+  transform: rotate(-12deg);
+  animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 15px rgba(239, 68, 68, 0.2);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+  user-select: none;
+}
+
+.stamp-unsold {
+  border: 6px solid #6b7280;
+  color: #9ca3af;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 0.25rem 1.25rem;
+  border-radius: 0.75rem;
+  display: inline-block;
+  transform: rotate(-12deg);
+  animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
+  user-select: none;
+}
+
+.auction-banner-header {
+  background: linear-gradient(135deg, #FFB800 0%, #D49A00 100%);
+  color: #0B0F19;
+}
+
+/* Activity Center Cards */
+.activity-sold-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%);
+  border: 1.5px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+}
+
+.activity-unsold-card {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(127, 29, 29, 0.2) 100%);
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+}
+
+.activity-event-pill {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* High impact broadcast font helper */
+.font-broadcast {
+  font-family: 'Outfit', sans-serif;
+  font-style: italic;
+  font-weight: 900;
 }
