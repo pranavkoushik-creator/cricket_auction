@@ -1,0 +1,10 @@
+{
+  "name": "cricket-auction-platform",
+  "version": "1.0.0",
+  "description": "Sports Tournament & Player Auction Management Platform",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build"
+  }
+}
