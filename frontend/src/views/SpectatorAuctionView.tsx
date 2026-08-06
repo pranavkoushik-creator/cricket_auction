@@ -1,91 +1,356 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
+import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Radio, Eye, Flame, Trophy } from 'lucide-react';
+import { Radio, Eye, Flame, Trophy, Clock, Gavel, Sparkles, TrendingUp, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export const SpectatorAuctionView: React.FC = () => {
+  const { currentTournamentId } = useAuth();
   const { auctionState, eventsLog } = useAuctionSocket();
+
+  const [summaryReport, setSummaryReport] = useState<any>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'sales' | 'bids'>('all');
+
+  const fetchSummary = () => {
+    if (!currentTournamentId) return;
+    apiRequest(`/reports/auction?tournamentId=${currentTournamentId}`)
+      .then(res => setSummaryReport(res.summary))
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchSummary();
+  }, [currentTournamentId, auctionState?.status]);
+
+  // Trigger confetti when a lot is marked SOLD
+  useEffect(() => {
+    if (auctionState?.status === 'sold') {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.5 },
+        colors: ['#FFB800', '#10B981', '#3B82F6', '#F43F5E']
+      });
+    }
+  }, [auctionState?.status]);
+
+  // Filter events log for Activity Center
+  const filteredEvents = eventsLog.filter(ev => {
+    if (activeFilter === 'sales') return ev.type === 'sold' || ev.type === 'unsold';
+    if (activeFilter === 'bids') return ev.type === 'new_bid';
+    return true;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-6 rounded-2xl border border-yellow-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center border border-yellow-500/40">
-            <Eye className="w-6 h-6 animate-pulse" />
+      {/* Broadcast Header & Tournament Metric Ticker */}
+      <div className="glass-panel p-5 rounded-2xl border border-yellow-500/30 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center border border-yellow-500/40 shadow-lg shadow-yellow-500/10">
+              <Eye className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white flex items-center gap-2 tracking-wide font-broadcast">
+                LIVE AUCTION BROADCAST TRACKER
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold flex items-center gap-1.5 animate-pulse shadow-md">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                  LIVE STREAM
+                </span>
+              </h2>
+              <p className="text-xs text-gray-400">Official IPL-Style Live Broadcast Console & Realtime Ticker</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-              PUBLIC SPECTATOR LIVE TICKER
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                Live Broadcast
-              </span>
-            </h2>
-            <p className="text-xs text-gray-400">Zero-authentication live streaming bid ticker and real-time auction updates</p>
-          </div>
+
+          {/* Quick Metrics Bar */}
+          {summaryReport && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="bg-gray-900/80 p-2.5 rounded-xl border border-gray-800 text-center">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Total Spent</span>
+                <span className="font-black text-emerald-400 text-sm">{formatCurrency(summaryReport.total_spend_inr || 0)}</span>
+              </div>
+              <div className="bg-gray-900/80 p-2.5 rounded-xl border border-gray-800 text-center">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Players Sold</span>
+                <span className="font-black text-yellow-400 text-sm">{summaryReport.total_players_sold || 0} Players</span>
+              </div>
+              <div className="bg-gray-900/80 p-2.5 rounded-xl border border-gray-800 text-center">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Unsold</span>
+                <span className="font-black text-gray-300 text-sm">{summaryReport.total_players_unsold || 0}</span>
+              </div>
+              <div className="bg-gray-900/80 p-2.5 rounded-xl border border-gray-800 text-center col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Top Purchase</span>
+                <span className="font-black text-blue-400 text-xs truncate block">
+                  {summaryReport.highest_bid ? `${summaryReport.highest_bid.player_name} (${formatCurrency(summaryReport.highest_bid.sold_price)})` : 'None'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Live Card */}
-        <div className="lg:col-span-2">
+        {/* Main Featured Block (Left 2 Cols) */}
+        <div className="lg:col-span-2 space-y-6">
           {auctionState && auctionState.status === 'live' ? (
-            <div className="glass-panel p-8 rounded-2xl border-2 border-yellow-500/40 space-y-6 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-yellow-500/20 text-yellow-300 font-bold text-xs border border-yellow-500/40 uppercase">
-                Currently On The Block: {auctionState.category} Set
+            /* CASE 1: ACTIVE LIVE BIDDING CARD */
+            <div className="glass-panel p-6 rounded-2xl border-2 border-yellow-500/50 relative overflow-hidden space-y-6 shadow-2xl">
+              {/* Header Badges */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black px-3.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 uppercase tracking-wider">
+                  SET {auctionState.category?.toUpperCase()} · {auctionState.role?.toUpperCase()}
+                </span>
+
+                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${
+                  auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                }`}>
+                  <Clock className="w-4 h-4 animate-spin" />
+                  <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                </div>
               </div>
 
-              <div className="max-w-md mx-auto space-y-3">
-                <img
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
-                  alt={auctionState.playerName}
-                  className="w-40 h-40 mx-auto rounded-3xl object-cover border-4 border-yellow-500/50 shadow-2xl"
-                />
-                <h3 className="text-4xl font-black text-white">{auctionState.playerName}</h3>
-                <p className="text-sm font-semibold text-gray-400">{auctionState.role} · {auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</p>
+              {/* Featured Player Cutout & Bio */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
+                <div className="relative shrink-0">
+                  <img
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                    alt={auctionState.playerName}
+                    className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl"
+                  />
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black px-3 py-0.5 rounded-full bg-black/80 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
+                    {auctionState.isForeign ? '🌍 FOREIGN' : '🇮🇳 INDIA'}
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-center sm:text-left flex-1">
+                  <div>
+                    <span className="text-xs text-yellow-400 font-bold uppercase tracking-widest block">FEATURED PLAYER</span>
+                    <h3 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight font-broadcast">
+                      {auctionState.playerName}
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs font-semibold text-gray-300">
+                    <span className="bg-gray-800/80 px-3 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
+                    <span className="bg-gray-800/80 px-3 py-1 rounded-lg border border-gray-700">Base: {formatCurrency(auctionState.basePrice)}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="glass-card p-6 rounded-2xl border border-gray-800 max-w-lg mx-auto space-y-2">
-                <p className="text-xs text-gray-400 font-semibold uppercase">Current Highest Bid</p>
-                <p className="text-5xl font-black text-yellow-400">{formatCurrency(auctionState.currentBid || auctionState.basePrice)}</p>
+              {/* Current Highest Bid Highlight */}
+              <div className="glass-card p-6 rounded-2xl border border-amber-500/40 text-center space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-400 font-bold text-[10px] uppercase border-b border-l border-amber-500/20">
+                  Live Bidding Active
+                </div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Current Highest Bid</p>
+                <p className="text-5xl font-black text-emerald-400 tracking-tight font-broadcast">
+                  {formatCurrency(auctionState.currentBid || auctionState.basePrice)}
+                </p>
 
                 {auctionState.highestBidderName ? (
-                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full gold-badge text-sm mt-2">
-                    <Flame className="w-4 h-4 text-black" />
-                    <span>Highest Bidder: {auctionState.highestBidderName} ({auctionState.highestBidderShort})</span>
+                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full gold-badge text-sm shadow-xl">
+                    <Flame className="w-5 h-5 text-black" />
+                    <span>Leading: {auctionState.highestBidderName} ({auctionState.highestBidderShort})</span>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500">Base Price: {formatCurrency(auctionState.basePrice)}</p>
+                  <p className="text-xs text-gray-400">Waiting for opening bid at base price of {formatCurrency(auctionState.basePrice)}</p>
                 )}
               </div>
             </div>
+          ) : auctionState && (auctionState.status === 'sold' || auctionState.status === 'unsold') ? (
+            /* CASE 2: AUCTION UPDATE CARD WITH REALISTIC ROTATED "SOLD" / "UNSOLD" STAMP (Inspired by Screenshot 1!) */
+            <div className="glass-panel rounded-2xl border-2 border-yellow-500/50 overflow-hidden shadow-2xl relative">
+              {/* Vibrant Gold Header Banner */}
+              <div className="auction-banner-header py-3.5 px-6 text-center border-b border-yellow-600/30 flex items-center justify-center gap-2">
+                <Sparkles className="w-5 h-5 text-black" />
+                <h3 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-black font-broadcast">
+                  AUCTION UPDATE
+                </h3>
+              </div>
+
+              <div className="p-6 sm:p-8 relative">
+                {/* STAMP OVERLAY */}
+                <div className="absolute right-8 top-12 z-20 pointer-events-none">
+                  {auctionState.status === 'sold' ? (
+                    <div className="stamp-sold text-2xl sm:text-4xl">SOLD</div>
+                  ) : (
+                    <div className="stamp-unsold text-2xl sm:text-4xl">UNSOLD</div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                  {/* Left: Player Portrait */}
+                  <div className="flex items-center gap-4 bg-gray-900/60 p-4 rounded-2xl border border-gray-800">
+                    <img
+                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                      alt={auctionState.playerName}
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-lg"
+                    />
+                    <div>
+                      <span className="text-[10px] text-yellow-400 font-extrabold uppercase tracking-wider block">
+                        {auctionState.category} · {auctionState.role}
+                      </span>
+                      <h4 className="text-xl font-black text-white font-broadcast">{auctionState.playerName}</h4>
+                      <span className="text-xs text-gray-400">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Sold To Team & Price Details */}
+                  {auctionState.status === 'sold' ? (
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block">SOLD TO</span>
+                        <div className="flex items-center space-x-3 bg-gray-900/80 p-3 rounded-xl border border-gray-800">
+                          <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm border border-blue-400">
+                            {auctionState.highestBidderShort || 'CSK'}
+                          </div>
+                          <div>
+                            <p className="text-base font-extrabold text-white">{auctionState.highestBidderName}</p>
+                            <p className="text-xs text-gray-400 font-bold">{auctionState.highestBidderShort}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-900/90 p-4 rounded-xl border border-emerald-500/40 text-left">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">FINAL PRICE</span>
+                        <span className="text-3xl font-black text-emerald-400 font-broadcast">
+                          {formatCurrency(auctionState.currentBid)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block">LOT STATUS</span>
+                      <div className="bg-gray-900/90 p-5 rounded-xl border border-red-500/30 text-center space-y-1">
+                        <p className="text-xl font-bold text-gray-300">Unsold (No Bids)</p>
+                        <p className="text-xs text-gray-500">Base Price: {formatCurrency(auctionState.basePrice)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="glass-panel p-16 rounded-2xl text-center space-y-4 border border-gray-800">
-              <Trophy className="w-16 h-16 text-yellow-400 mx-auto opacity-80" />
-              <h3 className="text-2xl font-bold text-white">Live Auction Ticker Ready</h3>
-              <p className="text-xs text-gray-400 max-w-md mx-auto">
-                No active lot on the block right now. Bids will stream live to your screen instantly when the operator starts the lot.
-              </p>
+            /* CASE 3: IDLE / STANDBY CARD */
+            <div className="glass-panel p-16 rounded-2xl text-center space-y-5 border border-gray-800 shadow-xl">
+              <div className="w-20 h-20 rounded-full bg-gray-900 text-yellow-400 mx-auto flex items-center justify-center border border-gray-700 shadow-inner">
+                <Trophy className="w-10 h-10 animate-bounce" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-2xl font-black text-white font-broadcast">LIVE BROADCAST STANDBY</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  The Auctioneer is preparing the next player set. Live bids and sale announcements will stream here automatically.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Live Ticker Feed */}
+        {/* Activity Center Stream (Right Col - Inspired by Screenshot 2!) */}
         <div className="glass-panel p-5 rounded-2xl border border-gray-800 space-y-4">
-          <h4 className="text-sm font-bold text-white flex items-center gap-2 border-b border-gray-800 pb-3">
-            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span>Real-time Public Bid Feed</span>
-          </h4>
+          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+            <h4 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wide font-broadcast">
+              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+              <span>ACTIVITY CENTER</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            </h4>
+          </div>
 
-          <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
-            {eventsLog.length > 0 ? (
-              eventsLog.map((ev, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-gray-900/80 border border-gray-800 text-xs space-y-1">
-                  <span className="text-[10px] text-gray-500 font-semibold">{ev.timestamp}</span>
-                  <p className="text-gray-200 font-medium">{ev.message}</p>
-                </div>
-              ))
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 text-[11px] font-bold">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-3 py-1 rounded-lg border transition ${
+                activeFilter === 'all' ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+              }`}
+            >
+              ALL FEED
+            </button>
+            <button
+              onClick={() => setActiveFilter('sales')}
+              className={`px-3 py-1 rounded-lg border transition ${
+                activeFilter === 'sales' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+              }`}
+            >
+              SALES
+            </button>
+            <button
+              onClick={() => setActiveFilter('bids')}
+              className={`px-3 py-1 rounded-lg border transition ${
+                activeFilter === 'bids' ? 'bg-blue-600 text-white border-blue-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+              }`}
+            >
+              BIDS
+            </button>
+          </div>
+
+          {/* Activity Cards List */}
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {filteredEvents.length > 0 ? (
+              filteredEvents.map((ev, idx) => {
+                const isSold = ev.type === 'sold';
+                const isUnsold = ev.type === 'unsold';
+                const isBid = ev.type === 'new_bid';
+                const isLotStart = ev.type === 'lot_started';
+
+                if (isSold) {
+                  return (
+                    <div key={idx} className="activity-sold-card p-4 rounded-xl text-xs space-y-2">
+                      <div className="flex items-center justify-between text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                        <span className="flex items-center gap-1">
+                          <Gavel className="w-3.5 h-3.5" />
+                          <span>OFFICIAL SALE ANNOUNCEMENT</span>
+                        </span>
+                        <span>{ev.timestamp}</span>
+                      </div>
+                      <p className="text-white font-black text-sm tracking-wide font-broadcast">{ev.message}</p>
+                    </div>
+                  );
+                }
+
+                if (isUnsold) {
+                  return (
+                    <div key={idx} className="activity-unsold-card p-3.5 rounded-xl text-xs space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-red-400 font-bold uppercase tracking-wider">
+                        <span className="flex items-center gap-1">
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>UNSOLD LOT</span>
+                        </span>
+                        <span>{ev.timestamp}</span>
+                      </div>
+                      <p className="text-gray-300 font-bold">{ev.message}</p>
+                    </div>
+                  );
+                }
+
+                if (isBid) {
+                  return (
+                    <div key={idx} className="glass-card p-3 rounded-xl border border-yellow-500/20 text-xs space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-yellow-400 font-bold">
+                        <span className="flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5" />
+                          <span>NEW HIGHEST BID</span>
+                        </span>
+                        <span>{ev.timestamp}</span>
+                      </div>
+                      <p className="text-white font-bold">{ev.message}</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={idx} className="activity-event-pill p-3 rounded-xl text-xs space-y-1 text-center">
+                    <span className="text-[10px] text-gray-500 font-semibold block">{ev.timestamp}</span>
+                    <p className="text-gray-300 font-medium">{ev.message}</p>
+                  </div>
+                );
+              })
             ) : (
-              <p className="text-xs text-gray-500 text-center py-10">Live bids will stream here as they happen!</p>
+              <div className="text-center py-12 space-y-2">
+                <Radio className="w-8 h-8 text-gray-600 mx-auto animate-pulse" />
+                <p className="text-xs text-gray-500">Activity Center listening for live auction stream...</p>
+              </div>
             )}
           </div>
         </div>
