@@ -1,4 +1,10 @@
-const BASE_URL = 'http://localhost:4000/api';
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const host = window.location.hostname;
+    return `http://${host}:4000/api`;
+  }
+  return 'http://localhost:4000/api';
+};
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers = {
@@ -6,7 +12,8 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
     headers
   });

@@ -30,7 +30,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Create socket once on mount
   useEffect(() => {
-    const s = io('http://localhost:4000', {
+    const socketHost = typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:4000` : 'http://localhost:4000';
+    console.log('[Socket] Connecting to auction engine at:', socketHost);
+    const s = io(socketHost, {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

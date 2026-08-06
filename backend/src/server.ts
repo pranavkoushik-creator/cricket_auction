@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import os from 'os';
 import { PORT } from './config';
 import { seedData } from './db/seed';
 
@@ -30,7 +31,6 @@ app.use(express.json());
 seedData();
 
 // On startup: reset any stale 'live' auction lots and sessions back to queued/scheduled
-// (in-memory auction state is lost on server restart, so we must clean up)
 import { db } from './db/database';
 (function cleanupStaleLots() {
   const staleLots = db.prepare("UPDATE auction_lots SET status = 'queued', current_highest_bid = 0, current_bidder_id = null WHERE status = 'live'").run();
@@ -55,10 +55,30 @@ app.get('/api/health', (req, res) => {
 // Realtime Auction WebSocket
 setupAuctionSocket(io);
 
-server.listen(PORT, () => {
+// Function to find local network IP addresses
+function getLocalNetworkIps(): string[] {
+  const interfaces = os.networkInterfaces();
+  const ips: string[] = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        ips.push(net.address);
+      }
+    }
+  }
+  return ips;
+}
+
+const numPort = Number(PORT) || 4000;
+server.listen(numPort, '0.0.0.0', () => {
+  const ips = getLocalNetworkIps();
   console.log(`====================================================`);
   console.log(` 🏏 SPORTS TOURNAMENT & AUCTION BACKEND SERVER`);
-  console.log(` 🚀 Running on: http://localhost:${PORT}`);
-  console.log(` ⚡ WebSocket Realtime Engine: ACTIVE`);
+  console.log(` 🚀 Local:   http://localhost:${PORT}`);
+  ips.forEach(ip => {
+    console.log(` 🌐 Network: http://${ip}:${PORT}`);
+    console.log(` 📱 Client App (LAN): http://${ip}:5173`);
+  });
+  console.log(` ⚡ Realtime WebSocket Engine: ACTIVE (Bound to 0.0.0.0)`);
   console.log(`====================================================`);
 });
