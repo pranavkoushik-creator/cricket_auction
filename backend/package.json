@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx src/server.ts",
+    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
     "start": "tsx src/server.ts"
   },
   "keywords": [],
@@ -29,6 +28,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.2",
     "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.14",
     "tsx": "^4.23.7",
     "typescript": "^7.0.2"
   }
