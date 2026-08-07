@@ -145,7 +145,7 @@ export function setupAuctionSocket(io: Server) {
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,
-      timer: 30,
+      timer: 15,
       isPaused: false,
       status: lot.status
     };
@@ -204,7 +204,7 @@ export function setupAuctionSocket(io: Server) {
         }
 
         state.status = 'live';
-        state.timer = 30;
+        state.timer = 15;
         state.isPaused = false;
         state.currentBid = 0;
         state.highestBidderId = null;
@@ -243,10 +243,18 @@ export function setupAuctionSocket(io: Server) {
       }
 
       // Check min required increment
-      const minRequired = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
-      if (bidAmount < minRequired) {
-        return socket.emit('bid:rejected', { reason: `Bid must be at least ₹${(minRequired / 10000000).toFixed(2)} Cr` });
+      // const minRequired = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
+      // if (bidAmount < minRequired) {
+      //   return socket.emit('bid:rejected', { reason: `Bid must be at least ₹${(minRequired / 10000000).toFixed(2)} Cr` });
+
+      if (activeAuctionState.currentBid === 0) {
+        if (bidAmount < activeAuctionState.basePrice) {
+          return socket.emit('bid:rejected', { reason: `Opening bid must be at least base price of ₹${(activeAuctionState.basePrice / 10000000).toFixed(2)} Cr` });
+        }
+      } else if (bidAmount <= activeAuctionState.currentBid) {
+        return socket.emit('bid:rejected', { reason: 'Bid must be higher than the current bid!' });
       }
+      // }
 
       // Check franchise purse availability & squad rules
       const franchise = db.prepare('SELECT * FROM franchises WHERE id = ?').get(franchiseId) as any;
@@ -296,7 +304,7 @@ export function setupAuctionSocket(io: Server) {
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = franchise.name;
       activeAuctionState.highestBidderShort = franchise.short_name;
-      activeAuctionState.timer = 30; // Reset timer on active bid
+      activeAuctionState.timer = 15; // Reset timer on active bid
 
       socket.emit('bid:accepted', { amount: bidAmount });
       broadcastState();

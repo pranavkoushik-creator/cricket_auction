@@ -57,7 +57,7 @@ export const SpectatorAuctionView: React.FC = () => {
                 LIVE AUCTION BROADCAST TRACKER
                 <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold flex items-center gap-1.5 animate-pulse shadow-md">
                   <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                  LIVE STREAM
+                  LIVE
                 </span>
               </h2>
               <p className="text-xs text-gray-400">Official IPL-Style Live Broadcast Console & Realtime Ticker</p>
@@ -102,9 +102,8 @@ export const SpectatorAuctionView: React.FC = () => {
                   SET {auctionState.category?.toUpperCase()} · {auctionState.role?.toUpperCase()}
                 </span>
 
-                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${
-                  auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
-                }`}>
+                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                  }`}>
                   <Clock className="w-4 h-4 animate-spin" />
                   <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                 </div>
@@ -261,25 +260,22 @@ export const SpectatorAuctionView: React.FC = () => {
           <div className="flex items-center gap-1.5 text-[11px] font-bold">
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-3 py-1 rounded-lg border transition ${
-                activeFilter === 'all' ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-gray-900 text-gray-400 border-gray-800'
-              }`}
+              className={`px-3 py-1 rounded-lg border transition ${activeFilter === 'all' ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+                }`}
             >
               ALL FEED
             </button>
             <button
               onClick={() => setActiveFilter('sales')}
-              className={`px-3 py-1 rounded-lg border transition ${
-                activeFilter === 'sales' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-gray-900 text-gray-400 border-gray-800'
-              }`}
+              className={`px-3 py-1 rounded-lg border transition ${activeFilter === 'sales' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+                }`}
             >
               SALES
             </button>
             <button
               onClick={() => setActiveFilter('bids')}
-              className={`px-3 py-1 rounded-lg border transition ${
-                activeFilter === 'bids' ? 'bg-blue-600 text-white border-blue-500' : 'bg-gray-900 text-gray-400 border-gray-800'
-              }`}
+              className={`px-3 py-1 rounded-lg border transition ${activeFilter === 'bids' ? 'bg-blue-600 text-white border-blue-500' : 'bg-gray-900 text-gray-400 border-gray-800'
+                }`}
             >
               BIDS
             </button>
