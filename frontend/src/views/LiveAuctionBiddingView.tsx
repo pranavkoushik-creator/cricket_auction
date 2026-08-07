@@ -44,6 +44,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
   const isLeading = auctionState?.highestBidderId === currentFranchise.id;
   const minNextBid = auctionState ? (auctionState.minNextBid || auctionState.basePrice) : 0;
+  // Base amount to use for manual increment buttons — the actual current bid (not the engine's pre-bumped minNextBid)
+  const currentBidBase = auctionState ? (auctionState.currentBid || auctionState.basePrice) : 0;
 
   return (
     <div className="space-y-6">
@@ -111,18 +113,16 @@ export const LiveAuctionBiddingView: React.FC = () => {
         {/* Left 2 Cols: Active Lot Card & Bidding Controls */}
         <div className="lg:col-span-2 space-y-6">
           {auctionState && auctionState.status === 'live' ? (
-            <div className={`glass-panel p-6 rounded-2xl border-2 transition-all ${
-              isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
-            } space-y-6`}>
+            <div className={`glass-panel p-6 rounded-2xl border-2 transition-all ${isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
+              } space-y-6`}>
               {/* Header Badge */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   {auctionState.category} Set · {auctionState.role}
                 </span>
 
-                <div className={`flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm ${
-                  auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500' : 'bg-gray-900 text-yellow-400 border-gray-700'
-                }`}>
+                <div className={`flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500' : 'bg-gray-900 text-yellow-400 border-gray-700'
+                  }`}>
                   <Clock className="w-4 h-4 animate-spin" />
                   <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                 </div>
@@ -151,9 +151,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
                 <p className="text-4xl font-black text-yellow-400">{formatCurrency(auctionState.currentBid || auctionState.basePrice)}</p>
 
                 {auctionState.highestBidderName ? (
-                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold ${
-                    isLeading ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'bg-gray-800 text-amber-300 border border-gray-700'
-                  }`}>
+                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold ${isLeading ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'bg-gray-800 text-amber-300 border border-gray-700'
+                    }`}>
                     {isLeading ? <CheckCircle2 className="w-4 h-4" /> : <Flame className="w-4 h-4 text-amber-400" />}
                     <span>{isLeading ? 'YOUR FRANCHISE IS LEADING!' : `Leading: ${auctionState.highestBidderName} (${auctionState.highestBidderShort})`}</span>
                   </div>
@@ -187,18 +186,18 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => placeBid(currentFranchise.id, minNextBid + 5000000)}
+                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 5000000)}
                     disabled={isLeading}
                     className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
                   >
-                    + ₹50 LAKHS ({formatCurrency(minNextBid + 5000000)})
+                    + ₹50 LAKHS ({formatCurrency(currentBidBase + 5000000)})
                   </button>
                   <button
-                    onClick={() => placeBid(currentFranchise.id, minNextBid + 10000000)}
+                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 10000000)}
                     disabled={isLeading}
                     className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
                   >
-                    + ₹1 CRORE ({formatCurrency(minNextBid + 10000000)})
+                    + ₹1 CRORE ({formatCurrency(currentBidBase + 10000000)})
                   </button>
                 </div>
               </div>
