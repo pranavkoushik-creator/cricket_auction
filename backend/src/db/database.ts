@@ -10,7 +10,7 @@ if (!fs.existsSync(dir)) {
 }
 
 export const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+// db.pragma('journal_mode = WAL'); // Disabled to prevent .sqlite-wal caching confusion during dev
 db.pragma('foreign_keys = ON');
 
 export function initDatabase() {
