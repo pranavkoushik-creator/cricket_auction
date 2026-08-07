@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Users, User, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Shield, Users, User, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const LoginView: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
   const { login } = useAuth();
@@ -47,13 +47,13 @@ export const LoginView: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4">
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-6 glass-panel p-6 sm:p-8 rounded-3xl border border-gray-800 shadow-2xl relative overflow-hidden">
-        
+
         {/* Left Side: Standard Login Form */}
         <div className="space-y-6 flex flex-col justify-center">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-black border border-yellow-500/30 uppercase">
+            {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-black border border-yellow-500/30 uppercase">
               🔐 JWT SECURE AUTHENTICATION
-            </div>
+            </div> */}
             <h1 className="text-3xl font-black text-white tracking-wide font-broadcast">
               SIGN IN TO PLATFORM
             </h1>
@@ -77,7 +77,7 @@ export const LoginView: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                 <input
                   type="email"
                   required
-                  placeholder="admin@platform.com"
+                  placeholder="Enter Your Email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/30 font-medium"
@@ -119,9 +119,6 @@ export const LoginView: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
             </button>
           </form>
 
-          <p className="text-[11px] text-gray-500 text-center">
-            Default demo password for all accounts: <span className="text-gray-300 font-mono">password123</span>
-          </p>
         </div>
 
         {/* Right Side: Quick 1-Click Role Login Cards */}
@@ -156,7 +153,7 @@ export const LoginView: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
             {/* Franchise Owners Header */}
             <div className="pt-1">
               <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1.5">FRANCHISE OWNERS (DEDICATED TEAM ACCOUNTS)</span>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 {/* MI Owner */}
                 <button
