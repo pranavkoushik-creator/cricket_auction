@@ -243,10 +243,18 @@ export function setupAuctionSocket(io: Server) {
       }
 
       // Check min required increment
-      const minRequired = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
-      if (bidAmount < minRequired) {
-        return socket.emit('bid:rejected', { reason: `Bid must be at least ₹${(minRequired / 10000000).toFixed(2)} Cr` });
+      // const minRequired = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
+      // if (bidAmount < minRequired) {
+      //   return socket.emit('bid:rejected', { reason: `Bid must be at least ₹${(minRequired / 10000000).toFixed(2)} Cr` });
+
+      if (activeAuctionState.currentBid === 0) {
+        if (bidAmount < activeAuctionState.basePrice) {
+          return socket.emit('bid:rejected', { reason: `Opening bid must be at least base price of ₹${(activeAuctionState.basePrice / 10000000).toFixed(2)} Cr` });
+        }
+      } else if (bidAmount <= activeAuctionState.currentBid) {
+        return socket.emit('bid:rejected', { reason: 'Bid must be higher than the current bid!' });
       }
+      // }
 
       // Check franchise purse availability & squad rules
       const franchise = db.prepare('SELECT * FROM franchises WHERE id = ?').get(franchiseId) as any;
