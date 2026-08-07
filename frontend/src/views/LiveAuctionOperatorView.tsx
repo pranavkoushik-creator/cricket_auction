@@ -47,9 +47,11 @@ export const LiveAuctionOperatorView: React.FC = () => {
       .catch(console.error);
   }, [currentTournamentId]);
 
+  const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
+
   useEffect(() => {
     fetchLots();
-  }, [fetchLots, auctionState?.status]);
+  }, [fetchLots, auctionState?.status, lastRollbackTime]);
 
   const handleStartLot = () => {
     if (!selectedQueueLotId) {
@@ -88,11 +90,10 @@ export const LiveAuctionOperatorView: React.FC = () => {
         {/* Global Controls */}
         <div className="flex items-center gap-3">
           {/* Connection Status */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${
-            isConnected
-              ? 'bg-emerald-900/40 text-emerald-300 border-emerald-500/30'
-              : 'bg-red-900/40 text-red-300 border-red-500/30 animate-pulse'
-          }`}>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${isConnected
+            ? 'bg-emerald-900/40 text-emerald-300 border-emerald-500/30'
+            : 'bg-red-900/40 text-red-300 border-red-500/30 animate-pulse'
+            }`}>
             {isConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             <span>{isConnected ? 'LIVE' : 'OFFLINE'}</span>
           </div>
@@ -100,11 +101,10 @@ export const LiveAuctionOperatorView: React.FC = () => {
           <button
             onClick={operatorTogglePause}
             disabled={!auctionState || auctionState.status !== 'live'}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-              auctionState?.isPaused
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400'
-                : 'bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border-amber-500/40'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs border transition disabled:opacity-40 disabled:cursor-not-allowed ${auctionState?.isPaused
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400'
+              : 'bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border-amber-500/40'
+              }`}
           >
             {auctionState?.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
             <span>{auctionState?.isPaused ? 'RESUME AUCTION' : 'PAUSE AUCTION'}</span>
@@ -124,11 +124,10 @@ export const LiveAuctionOperatorView: React.FC = () => {
                 </span>
 
                 {/* Countdown Timer Badge */}
-                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-base font-extrabold ${
-                  auctionState.timer <= 5
-                    ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger'
-                    : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
-                }`}>
+                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-base font-extrabold ${auctionState.timer <= 5
+                  ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger'
+                  : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                  }`}>
                   <Clock className="w-5 h-5" />
                   <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                 </div>
@@ -227,9 +226,9 @@ export const LiveAuctionOperatorView: React.FC = () => {
                     onChange={e => setSelectedQueueLotId(e.target.value)}
                     className="w-full bg-gray-900 text-white text-sm border border-gray-700 rounded-xl p-3 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/30"
                   >
-                    {queuedLots.map((p, idx) => (
+                    {queuedLots.map((p) => (
                       <option key={p.id} value={p.lot_id || p.id}>
-                        #{idx + 1} — {p.name} ({p.role} · {p.category} · Base: {formatCurrency(p.base_price)})
+                        {p.name} ({p.role} · {p.category} · Base: {formatCurrency(p.base_price)})
                       </option>
                     ))}
                   </select>
@@ -307,13 +306,12 @@ export const LiveAuctionOperatorView: React.FC = () => {
               eventsLog.map((ev, idx) => (
                 <div key={idx} className="p-2.5 rounded-lg bg-gray-900/80 border border-gray-800 text-xs space-y-1">
                   <div className="flex items-center justify-between text-[10px] text-gray-500">
-                    <span className={`uppercase font-semibold ${
-                      ev.type === 'sold' ? 'text-emerald-400' :
+                    <span className={`uppercase font-semibold ${ev.type === 'sold' ? 'text-emerald-400' :
                       ev.type === 'unsold' ? 'text-red-400' :
-                      ev.type === 'new_bid' ? 'text-yellow-400' :
-                      ev.type === 'lot_started' ? 'text-blue-400' :
-                      'text-gray-400'
-                    }`}>{ev.type}</span>
+                        ev.type === 'new_bid' ? 'text-yellow-400' :
+                          ev.type === 'lot_started' ? 'text-blue-400' :
+                            'text-gray-400'
+                      }`}>{ev.type}</span>
                     <span>{ev.timestamp}</span>
                   </div>
                   <p className="text-gray-200 font-medium">{ev.message}</p>

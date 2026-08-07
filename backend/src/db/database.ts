@@ -10,7 +10,7 @@ if (!fs.existsSync(dir)) {
 }
 
 export const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+db.pragma('journal_mode = WAL'); // Disabled to prevent .sqlite-wal caching confusion during dev
 db.pragma('foreign_keys = ON');
 
 export function initDatabase() {
@@ -111,7 +111,7 @@ export function initDatabase() {
       status TEXT DEFAULT 'scheduled', -- scheduled, live, paused, completed
       current_lot_id TEXT,
       current_round INTEGER DEFAULT 1,
-      timer_seconds INTEGER DEFAULT 30,
+      timer_seconds INTEGER DEFAULT 15,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
     );

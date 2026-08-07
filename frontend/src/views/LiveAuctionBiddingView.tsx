@@ -9,7 +9,7 @@ import confetti from 'canvas-confetti';
 export const LiveAuctionBiddingView: React.FC = () => {
   const { currentTournamentId, selectedFranchiseId, setSelectedFranchiseId, currentRole, user } = useAuth();
   const isFranchiseOwner = currentRole === 'Franchise Owner';
-  const { auctionState, bidError, placeBid } = useAuctionSocket();
+  const { auctionState, bidError, placeBid, eventsLog } = useAuctionSocket();
 
   const [franchises, setFranchises] = useState<any[]>([]);
   const [currentFranchise, setCurrentFranchise] = useState<any>(null);
@@ -29,9 +29,11 @@ export const LiveAuctionBiddingView: React.FC = () => {
       .catch(console.error);
   };
 
+  const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
+
   useEffect(() => {
     fetchFranchiseData();
-  }, [currentTournamentId, selectedFranchiseId, auctionState?.currentBid, auctionState?.status, user?.franchise_id]);
+  }, [currentTournamentId, selectedFranchiseId, auctionState?.currentBid, auctionState?.status, user?.franchise_id, lastRollbackTime]);
 
   // Trigger confetti on winning sale
   useEffect(() => {
@@ -176,11 +178,11 @@ export const LiveAuctionBiddingView: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => placeBid(currentFranchise.id, minNextBid + 2500000)}
+                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 2500000)}
                     disabled={isLeading}
                     className="py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
-                    + ₹25 LAKHS ({formatCurrency(minNextBid + 2500000)})
+                    + ₹25 LAKHS ({formatCurrency(currentBidBase + 2500000)})
                   </button>
                 </div>
 
