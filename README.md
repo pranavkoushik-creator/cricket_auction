@@ -48,7 +48,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## 📌 Main Modules & Features
 
-1. **Live Auction Engine (IPL-Style)**: Real-time Socket.IO bid validation, 30s lot timer, duplicate bid prevention, squad limits, and foreign player enforcement.
+1. **Live Auction Engine (IPL-Style)**: Real-time Socket.IO bid validation, 15s lot timer, duplicate bid prevention, squad limits, and foreign player enforcement.
 2. **Spectator Live Tracker**: IPL broadcast visual theme with `AUCTION UPDATE` cards, rotated `SOLD`/`UNSOLD` rubber stamps, and real-time Activity Center stream.
 3. **Super Admin Franchise Console**: Full CRUD management of franchise teams, purse budgets, owner assignments, and immutable purse ledger tracking.
 4. **Player Registration & Approval Queue**: Self-registration portal and admin review queue with status state machine (Approved, Rejected, Suspended).

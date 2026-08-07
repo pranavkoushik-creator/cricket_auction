@@ -145,7 +145,7 @@ export function setupAuctionSocket(io: Server) {
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,
-      timer: 30,
+      timer: 15,
       isPaused: false,
       status: lot.status
     };
@@ -204,7 +204,7 @@ export function setupAuctionSocket(io: Server) {
         }
 
         state.status = 'live';
-        state.timer = 30;
+        state.timer = 15;
         state.isPaused = false;
         state.currentBid = 0;
         state.highestBidderId = null;
@@ -304,7 +304,7 @@ export function setupAuctionSocket(io: Server) {
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = franchise.name;
       activeAuctionState.highestBidderShort = franchise.short_name;
-      activeAuctionState.timer = 30; // Reset timer on active bid
+      activeAuctionState.timer = 15; // Reset timer on active bid
 
       socket.emit('bid:accepted', { amount: bidAmount });
       broadcastState();
