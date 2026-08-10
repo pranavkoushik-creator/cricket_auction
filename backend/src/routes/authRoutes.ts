@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { registerUser, loginUser, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole } from '../services/authService';
+import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole } from '../services/authService';
 
 const router = Router();
 
@@ -10,6 +10,19 @@ router.post('/register', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Name, email, and password are required.' });
     }
     const result = registerUser(name, email, password, phone);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/create-owner', (req: Request, res: Response) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Owner name and email are required.' });
+    }
+    const result = createFranchiseOwner(name, email, password, phone);
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });

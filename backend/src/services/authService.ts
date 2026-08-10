@@ -31,6 +31,33 @@ export function registerUser(name: string, email: string, password: string, phon
   return loginUser(email, password);
 }
 
+export function createFranchiseOwner(name: string, email: string, password?: string, phone?: string) {
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (existing) {
+    throw new Error('User with this email already exists.');
+  }
+
+  const id = `usr-owner-${uuidv4().substring(0, 8)}`;
+  const password_hash = bcrypt.hashSync(password || 'password123', 10);
+  const avatar_url = `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`;
+
+  db.prepare(`
+    INSERT INTO users (id, name, email, phone, password_hash, avatar_url)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, name, email, phone || null, password_hash, avatar_url);
+
+  // Assign Franchise Owner role for active tournaments
+  const tournaments = db.prepare('SELECT id FROM tournaments').all() as { id: string }[];
+  for (const t of tournaments) {
+    db.prepare(`
+      INSERT OR IGNORE INTO user_roles (id, user_id, tournament_id, role)
+      VALUES (?, ?, ?, 'Franchise Owner')
+    `).run(uuidv4(), id, t.id);
+  }
+
+  return { id, name, email, phone, role: 'Franchise Owner' };
+}
+
 export function loginUser(email: string, password: string) {
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
   if (!user) {
