@@ -15,6 +15,7 @@ interface SocketContextType {
   operatorMarkUnsold: () => void;
   operatorTogglePause: () => void;
   operatorToggleTimer: () => void;
+  operatorUpdateTimerSeconds: (seconds: number) => Promise<void>;   // ← add
   operatorRollbackSale: (lotId: string) => void;
 }
 
@@ -151,6 +152,32 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const operatorUpdateTimerSeconds = (seconds: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const s = socketRef.current;
+      if (!s?.connected || !currentTournamentId) {
+        return reject(new Error('Not connected.'));
+      }
+
+      const cleanup = () => {
+        s.off('auction:timer_seconds_updated', onUpdated);
+        s.off('auction:error', onError);
+      };
+      const onUpdated = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = ({ message }: { message: string }) => {
+        cleanup();
+        reject(new Error(message));
+      };
+
+      s.once('auction:timer_seconds_updated', onUpdated);
+      s.once('auction:error', onError);
+      s.emit('operator:update_timer_seconds', { tournamentId: currentTournamentId, seconds });
+    });
+  };
+
   const operatorRollbackSale = (lotId: string) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit('operator:rollback_sale', { lotId });
@@ -171,6 +198,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         operatorMarkUnsold,
         operatorTogglePause,
         operatorToggleTimer,
+        operatorUpdateTimerSeconds,   // ← add
         operatorRollbackSale
       }}
     >

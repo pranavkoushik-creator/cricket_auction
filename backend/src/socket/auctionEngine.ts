@@ -496,7 +496,38 @@ export function setupAuctionSocket(io: Server) {
       }
     });
 
-    // 7. Operator: Sale Rollback
+    // 7. Operator: Update Timer Duration (persists to DB, syncs in-memory state)
+    socket.on('operator:update_timer_seconds', ({ tournamentId, seconds }: { tournamentId: string; seconds: number }) => {
+      try {
+        if (!seconds || seconds <= 0) {
+          return socket.emit('auction:error', { message: 'Invalid timer duration.' });
+        }
+
+        const session = db.prepare('SELECT id FROM auction_sessions WHERE tournament_id = ?').get(tournamentId) as any;
+        if (!session) {
+          return socket.emit('auction:error', { message: 'No active auction session found for this tournament.' });
+        }
+
+        db.prepare('UPDATE auction_sessions SET timer_seconds = ? WHERE id = ?').run(seconds, session.id);
+
+        // Keep in-memory state in sync — covers both a currently-loaded lot
+        // (not yet live, waiting to start) and a lot that's already live.
+        if (activeAuctionState && activeAuctionState.sessionId === session.id) {
+          activeAuctionState.timerDuration = seconds;
+          if (activeAuctionState.status !== 'live') {
+            activeAuctionState.timer = seconds;
+          }
+          broadcastState();
+        }
+
+        socket.emit('auction:timer_seconds_updated', { seconds });
+      } catch (err: any) {
+        console.error('[AuctionEngine] Error in operator:update_timer_seconds:', err.message);
+        socket.emit('auction:error', { message: err.message });
+      }
+    });
+
+    // 8. Operator: Sale Rollback
     socket.on('operator:rollback_sale', ({ lotId }: { lotId: string }) => {
       try {
         const lot = db.prepare('SELECT * FROM auction_lots WHERE id = ?').get(lotId) as any;

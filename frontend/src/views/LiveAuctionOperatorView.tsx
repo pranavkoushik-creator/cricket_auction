@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import { Radio, Play, Pause, CheckCircle, XCircle, RotateCcw, SkipForward, Flame, Clock, Timer, TimerOff, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+import { AuctionTimerUpdateModal } from './AuctionTimerUpdateModal';
 
 // A small labeled switch matching the console's existing badge/button styling.
 // Kept local to this file since it's only ever used by the operator console.
@@ -47,6 +48,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
     operatorMarkUnsold,
     operatorTogglePause,
     operatorToggleTimer,
+    operatorUpdateTimerSeconds,
     operatorRollbackSale
   } = useAuctionSocket();
 
@@ -54,6 +56,9 @@ export const LiveAuctionOperatorView: React.FC = () => {
   const [soldLots, setSoldLots] = useState<any[]>([]);
   const [selectedQueueLotId, setSelectedQueueLotId] = useState<string>('');
   const [startingLot, setStartingLot] = useState(false);
+
+  const [sessionTimerSeconds, setSessionTimerSeconds] = useState<number>(15);
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
 
   const fetchLots = useCallback(() => {
     if (!currentTournamentId) return;
@@ -79,6 +84,22 @@ export const LiveAuctionOperatorView: React.FC = () => {
       .catch(console.error);
   }, [currentTournamentId]);
 
+  const fetchSessionConfig = useCallback(() => {
+    if (!currentTournamentId) return;
+    apiRequest(`/sessions?tournamentId=${currentTournamentId}`)
+      .then(res => {
+        const session = Array.isArray(res) ? res[0] : res;
+        if (session) {
+          setSessionTimerSeconds(session.timer_seconds ?? 15);
+        }
+      })
+      .catch(console.error);
+  }, [currentTournamentId]);
+
+  useEffect(() => {
+    fetchSessionConfig();
+  }, [fetchSessionConfig]);
+
   const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
 
   useEffect(() => {
@@ -97,6 +118,30 @@ export const LiveAuctionOperatorView: React.FC = () => {
     setStartingLot(true);
     operatorStartLot(selectedQueueLotId);
     // Reset the starting state after a short delay
+    setTimeout(() => setStartingLot(false), 2000);
+  };
+
+  const openTimerModal = () => {
+    if (!selectedQueueLotId) {
+      alert('Please select a player lot from the dropdown first!');
+      return;
+    }
+    if (!isConnected) {
+      alert('WebSocket not connected. Please wait for connection...');
+      return;
+    }
+    setIsTimerModalOpen(true);
+  };
+
+  const handleUpdateTimer = async (newSeconds: number) => {
+    await operatorUpdateTimerSeconds(newSeconds);
+    setSessionTimerSeconds(newSeconds);
+  };
+
+  const beginAuctionAfterTimerUpdate = () => {
+    setIsTimerModalOpen(false);
+    setStartingLot(true);
+    operatorStartLot(selectedQueueLotId);
     setTimeout(() => setStartingLot(false), 2000);
   };
 
@@ -279,7 +324,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
                   </select>
 
                   <button
-                    onClick={handleStartLot}
+                    onClick={openTimerModal}
                     disabled={!selectedQueueLotId || !isConnected || startingLot}
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-sm shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                   >
@@ -373,6 +418,14 @@ export const LiveAuctionOperatorView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <AuctionTimerUpdateModal
+        isOpen={isTimerModalOpen}
+        defaultSeconds={sessionTimerSeconds}
+        onClose={() => setIsTimerModalOpen(false)}
+        onUpdateTimer={handleUpdateTimer}
+        onAuctionStart={beginAuctionAfterTimerUpdate}
+      />
     </div>
   );
 };
