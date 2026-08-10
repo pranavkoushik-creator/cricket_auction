@@ -16,6 +16,7 @@ import { LoginView } from './views/LoginView';
 const MainContent: React.FC = () => {
   const { isAuthenticated, currentRole } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [showSpectatorView, setShowSpectatorView] = useState(false);
 
   // Set default tab based on authenticated role
   useEffect(() => {
@@ -24,15 +25,37 @@ const MainContent: React.FC = () => {
         setActiveTab('dashboard');
       } else if (currentRole === 'Franchise Owner') {
         setActiveTab('auction-bidding');
-      } else if (currentRole === 'Player') {
-        setActiveTab('player-register');
       }
+      // else if (currentRole === 'Player') {
+      //   setActiveTab('player-register');
+      // }
     }
   }, [isAuthenticated, currentRole]);
 
-  // Render Login Screen if not authenticated
+  // Render Login Screen (or the public spectator view) if not authenticated
   if (!isAuthenticated) {
-    return <LoginView />;
+    if (showSpectatorView) {
+      return (
+        <div className="min-h-screen bg-cricket-dark flex flex-col font-sans text-gray-100">
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8">
+            <button
+              onClick={() => setShowSpectatorView(false)}
+              className="mb-4 text-xs font-bold text-gray-400 hover:text-cricket-gold transition"
+            >
+              ← Back to Login
+            </button>
+            <SpectatorAuctionView />
+          </main>
+        </div>
+      );
+    }
+
+    return (
+      <LoginView
+        onLogin={() => setShowSpectatorView(false)}
+        onViewLiveAuction={() => setShowSpectatorView(true)}
+      />
+    );
   }
 
   return (
