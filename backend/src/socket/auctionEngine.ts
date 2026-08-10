@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ActiveLotState {
   lotId: string;
+  sessionId: string;
   tournamentId: string;
   playerId: string;
   playerName: string;
@@ -17,6 +18,8 @@ interface ActiveLotState {
   highestBidderName: string | null;
   highestBidderShort: string | null;
   timer: number;
+  timerDuration: number; // full countdown length in seconds; restored to this value on toggle-on / new bid
+  timerEnabled: boolean; // when false, no countdown runs and lots must be closed manually by the operator
   isPaused: boolean;
   status: 'queued' | 'live' | 'sold' | 'unsold';
 }
@@ -54,6 +57,30 @@ export function setupAuctionSocket(io: Server) {
     }
   }
 
+  // Whenever a lot closes (sold or unsold, whether by timer or by operator),
+  // reset the session's timer back to ON. This is a fresh default for the NEXT
+  // lot only — it does not affect the lot that just closed, and the operator
+  // can still turn it back off for the new lot if they want to.
+  function resetTimerEnabledForNextLot(sessionId: string | undefined) {
+    if (!sessionId) {
+      console.warn('[AuctionEngine] Cannot reset timer_enabled — sessionId missing on activeAuctionState.');
+      return;
+    }
+    try {
+      db.prepare('UPDATE auction_sessions SET timer_enabled = 1 WHERE id = ?').run(sessionId);
+
+      // Keep in-memory state in sync with the DB write so broadcastState()
+      // and any client that (re)joins before the next lot starts see the
+      // correct value immediately, instead of a stale value until a
+      // fresh loadLotState() or a server restart.
+      if (activeAuctionState) {
+        activeAuctionState.timerEnabled = true;
+      }
+    } catch (err: any) {
+      console.error('[AuctionEngine] Failed to reset timer_enabled for next lot:', err.message);
+    }
+  }
+
   function autoCloseLot() {
     if (!activeAuctionState || activeAuctionState.status !== 'live') return;
 
@@ -78,6 +105,7 @@ export function setupAuctionSocket(io: Server) {
       );
 
       activeAuctionState.status = 'sold';
+      resetTimerEnabledForNextLot(activeAuctionState.sessionId);
       broadcastState();
 
       io.to(auctionRoom).emit('auction:event', {
@@ -90,6 +118,12 @@ export function setupAuctionSocket(io: Server) {
       db.prepare("UPDATE auction_lots SET status = 'unsold' WHERE id = ?").run(lotId);
 
       activeAuctionState.status = 'unsold';
+      activeAuctionState.currentBid = 0;
+      activeAuctionState.highestBidderId = null;
+      activeAuctionState.highestBidderName = null;
+      activeAuctionState.highestBidderShort = null;
+
+      resetTimerEnabledForNextLot(activeAuctionState.sessionId);
       broadcastState();
 
       io.to(auctionRoom).emit('auction:event', {
@@ -101,6 +135,13 @@ export function setupAuctionSocket(io: Server) {
 
   function startTimer() {
     stopTimer();
+
+    // Timer is OFF — do not start a countdown at all. Lots stay live indefinitely
+    // until the operator manually marks them sold/unsold.
+    if (!activeAuctionState || !activeAuctionState.timerEnabled) {
+      return;
+    }
+
     timerInterval = setInterval(() => {
       if (!activeAuctionState || activeAuctionState.status !== 'live' || activeAuctionState.isPaused) {
         return;
@@ -122,18 +163,27 @@ export function setupAuctionSocket(io: Server) {
     console.log('[AuctionEngine] Loading lot state for:', lotIdOrPlayerId);
     const lot = db.prepare(`
       SELECT al.*, p.name as player_name, p.category, p.role, p.is_foreign, p.base_price, p.photo_url,
-             f.name as bidder_name, f.short_name as bidder_short
+             f.name as bidder_name, f.short_name as bidder_short,
+             ases.timer_seconds as session_timer_seconds, ases.timer_enabled as session_timer_enabled
       FROM auction_lots al
       JOIN players p ON al.player_id = p.id
       LEFT JOIN franchises f ON al.current_bidder_id = f.id
+      JOIN auction_sessions ases ON ases.id = al.session_id
       WHERE al.id = ? OR al.player_id = ?
       LIMIT 1
     `).get(lotIdOrPlayerId, lotIdOrPlayerId) as any;
 
     if (!lot) throw new Error(`Lot not found for identifier: ${lotIdOrPlayerId}`);
 
+    const timerDuration = lot.session_timer_seconds || 15;
+    // session_timer_enabled is null on rows created before the migration — default to ON
+    const timerEnabled = lot.session_timer_enabled === null || lot.session_timer_enabled === undefined
+      ? true
+      : Boolean(lot.session_timer_enabled);
+
     return {
       lotId: lot.id,
+      sessionId: lot.session_id,
       tournamentId: lot.tournament_id,
       playerId: lot.player_id,
       playerName: lot.player_name,
@@ -145,7 +195,9 @@ export function setupAuctionSocket(io: Server) {
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,
-      timer: 15,
+      timer: timerDuration,
+      timerDuration,
+      timerEnabled,
       isPaused: false,
       status: lot.status
     };
@@ -197,14 +249,14 @@ export function setupAuctionSocket(io: Server) {
 
         const state = loadLotState(lotId);
 
-        if (state.status === 'sold' || state.status === 'unsold') {
+        if (state.status === 'sold') {
           return socket.emit('auction:error', {
             message: `Cannot restart a lot that is already ${state.status}.`
           });
         }
 
         state.status = 'live';
-        state.timer = 15;
+        state.timer = state.timerDuration;
         state.isPaused = false;
         state.currentBid = 0;
         state.highestBidderId = null;
@@ -304,7 +356,9 @@ export function setupAuctionSocket(io: Server) {
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = franchise.name;
       activeAuctionState.highestBidderShort = franchise.short_name;
-      activeAuctionState.timer = 15; // Reset timer on active bid
+      if (activeAuctionState.timerEnabled) {
+        activeAuctionState.timer = activeAuctionState.timerDuration; // Reset timer on active bid
+      }
 
       socket.emit('bid:accepted', { amount: bidAmount });
       broadcastState();
@@ -345,6 +399,7 @@ export function setupAuctionSocket(io: Server) {
       );
 
       activeAuctionState.status = 'sold';
+      resetTimerEnabledForNextLot(activeAuctionState.sessionId);
       broadcastState();
 
       io.to(auctionRoom).emit('auction:event', {
@@ -360,9 +415,17 @@ export function setupAuctionSocket(io: Server) {
       stopTimer();
 
       const lotId = activeAuctionState.lotId;
-      db.prepare("UPDATE auction_lots SET status = 'unsold' WHERE id = ?").run(lotId);
+      db.prepare(
+        "UPDATE auction_lots SET status = 'unsold', current_highest_bid = 0, current_bidder_id = null WHERE id = ?"
+      ).run(lotId);
 
       activeAuctionState.status = 'unsold';
+      activeAuctionState.currentBid = 0;
+      activeAuctionState.highestBidderId = null;
+      activeAuctionState.highestBidderName = null;
+      activeAuctionState.highestBidderShort = null;
+
+      resetTimerEnabledForNextLot(activeAuctionState.sessionId);
       broadcastState();
 
       io.to(auctionRoom).emit('auction:event', {
@@ -382,7 +445,58 @@ export function setupAuctionSocket(io: Server) {
       });
     });
 
-    // 6. Operator: Sale Rollback
+    // 6. Operator: Toggle Auction Timer ON/OFF
+    socket.on('operator:toggle_timer', () => {
+      console.log('[AuctionEngine] operator:toggle_timer received. Current state:', {
+        hasActiveState: !!activeAuctionState,
+        status: activeAuctionState?.status,
+        sessionId: activeAuctionState?.sessionId,
+        timerEnabledBefore: activeAuctionState?.timerEnabled
+      });
+
+      if (!activeAuctionState || activeAuctionState.status !== 'live') {
+        console.warn('[AuctionEngine] toggle_timer ignored — no live lot in memory.');
+        return;
+      }
+
+      try {
+        activeAuctionState.timerEnabled = !activeAuctionState.timerEnabled;
+
+        // Persist the preference on the session so it carries over to the next lot / server restart
+        if (activeAuctionState.sessionId) {
+          db.prepare('UPDATE auction_sessions SET timer_enabled = ? WHERE id = ?')
+            .run(activeAuctionState.timerEnabled ? 1 : 0, activeAuctionState.sessionId);
+        } else {
+          console.warn('[AuctionEngine] activeAuctionState.sessionId is missing — skipping DB persist. This usually means the server is running stale in-memory state from before a restart.');
+        }
+
+        if (activeAuctionState.timerEnabled) {
+          // Resume with a fresh full countdown rather than whatever stale value was left over
+          activeAuctionState.timer = activeAuctionState.timerDuration;
+          startTimer();
+        } else {
+          // Fully OFF: no interval runs, no timer_expired event, no auto-close.
+          // The lot stays live until the operator manually marks it sold/unsold.
+          stopTimer();
+        }
+
+        broadcastState();
+
+        io.to(auctionRoom).emit('auction:event', {
+          type: 'timer_toggled',
+          message: activeAuctionState.timerEnabled
+            ? '⏱ Auction TIMER ENABLED by Operator'
+            : '🚫 Auction TIMER DISABLED by Operator — lots must be closed manually'
+        });
+
+        console.log('[AuctionEngine] Timer toggled. New timerEnabled:', activeAuctionState.timerEnabled);
+      } catch (err: any) {
+        console.error('[AuctionEngine] Error in operator:toggle_timer:', err.message);
+        socket.emit('auction:error', { message: `Failed to toggle timer: ${err.message}` });
+      }
+    });
+
+    // 7. Operator: Sale Rollback
     socket.on('operator:rollback_sale', ({ lotId }: { lotId: string }) => {
       try {
         const lot = db.prepare('SELECT * FROM auction_lots WHERE id = ?').get(lotId) as any;

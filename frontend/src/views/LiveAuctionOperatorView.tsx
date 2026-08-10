@@ -3,7 +3,38 @@ import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Radio, Play, Pause, CheckCircle, XCircle, RotateCcw, SkipForward, Flame, Clock, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+import { Radio, Play, Pause, CheckCircle, XCircle, RotateCcw, SkipForward, Flame, Clock, Timer, TimerOff, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+
+// A small labeled switch matching the console's existing badge/button styling.
+// Kept local to this file since it's only ever used by the operator console.
+interface TimerToggleSwitchProps {
+  enabled: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}
+
+const TimerToggleSwitch: React.FC<TimerToggleSwitchProps> = ({ enabled, disabled, onToggle }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={enabled}
+    onClick={onToggle}
+    disabled={disabled}
+    title={enabled ? 'Timer is ON — lot auto-closes when it hits 00:00' : 'Timer is OFF — lot must be closed manually'}
+    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs border transition disabled:opacity-40 disabled:cursor-not-allowed ${enabled
+      ? 'bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border-blue-500/40'
+      : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+      }`}
+  >
+    {enabled ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4" />}
+    <span>{enabled ? 'TIMER ON' : 'TIMER OFF'}</span>
+    <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-gray-600'
+      }`}>
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-1'
+        }`} />
+    </span>
+  </button>
+);
 
 export const LiveAuctionOperatorView: React.FC = () => {
   const { currentTournamentId } = useAuth();
@@ -15,6 +46,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
     operatorMarkSold,
     operatorMarkUnsold,
     operatorTogglePause,
+    operatorToggleTimer,
     operatorRollbackSale
   } = useAuctionSocket();
 
@@ -28,7 +60,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
     apiRequest(`/players?tournamentId=${currentTournamentId}&status=approved`)
       .then(res => {
         // Queued: not yet sold/unsold/live
-        const queued = res.filter((p: any) => !p.lot_status || p.lot_status === 'queued');
+        const queued = res.filter((p: any) => !p.lot_status || p.lot_status === 'queued' || p.lot_status === 'unsold');
         const sold = res.filter((p: any) => p.lot_status === 'sold');
         setQueuedLots(queued);
         setSoldLots(sold);
@@ -83,7 +115,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
                 Broadcasting
               </span>
             </h2>
-            <p className="text-xs text-gray-400">Strict real-time bid validation, 30s lot timer, and purse ledger locking</p>
+            <p className="text-xs text-gray-400">Strict real-time bid validation, configurable lot timer, and purse ledger locking</p>
           </div>
         </div>
 
@@ -97,6 +129,12 @@ export const LiveAuctionOperatorView: React.FC = () => {
             {isConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             <span>{isConnected ? 'LIVE' : 'OFFLINE'}</span>
           </div>
+
+          <TimerToggleSwitch
+            enabled={auctionState?.timerEnabled !== false}
+            disabled={!auctionState || auctionState.status !== 'live'}
+            onToggle={operatorToggleTimer}
+          />
 
           <button
             onClick={operatorTogglePause}
@@ -124,13 +162,20 @@ export const LiveAuctionOperatorView: React.FC = () => {
                 </span>
 
                 {/* Countdown Timer Badge */}
-                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-base font-extrabold ${auctionState.timer <= 5
-                  ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger'
-                  : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                  <Clock className="w-5 h-5" />
-                  <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
-                </div>
+                {auctionState.timerEnabled === false ? (
+                  <div className="flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-xs font-extrabold bg-gray-900 text-gray-400 border-gray-700 uppercase tracking-wider">
+                    <TimerOff className="w-4 h-4" />
+                    <span>Timer Off · Close Manually</span>
+                  </div>
+                ) : (
+                  <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-base font-extrabold ${auctionState.timer <= 5
+                    ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger'
+                    : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                    }`}>
+                    <Clock className="w-5 h-5" />
+                    <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                  </div>
+                )}
               </div>
 
               {/* Player Card Big Display */}

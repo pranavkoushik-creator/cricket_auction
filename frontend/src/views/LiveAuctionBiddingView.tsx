@@ -3,7 +3,7 @@ import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Clock, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight } from 'lucide-react';
+import { Clock, TimerOff, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const LiveAuctionBiddingView: React.FC = () => {
@@ -123,11 +123,18 @@ export const LiveAuctionBiddingView: React.FC = () => {
                   {auctionState.category} Set · {auctionState.role}
                 </span>
 
-                <div className={`flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500' : 'bg-gray-900 text-yellow-400 border-gray-700'
-                  }`}>
-                  <Clock className="w-4 h-4 animate-spin" />
-                  <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
-                </div>
+                {auctionState.timerEnabled === false ? (
+                  <div className="flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm bg-gray-900 text-gray-400 border-gray-700">
+                    <TimerOff className="w-4 h-4" />
+                    <span>No Timer — Operator Closes Manually</span>
+                  </div>
+                ) : (
+                  <div className={`flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500' : 'bg-gray-900 text-yellow-400 border-gray-700'
+                    }`}>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                  </div>
+                )}
               </div>
 
               {/* Player Image & Bio */}

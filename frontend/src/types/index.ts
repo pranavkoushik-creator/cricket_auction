@@ -1,4 +1,4 @@
-export type UserRole = 
+export type UserRole =
   | 'Super Admin'
   | 'Franchise Owner'
   | 'Player';
@@ -113,6 +113,7 @@ export interface Player {
 
 export interface ActiveAuctionState {
   lotId: string;
+  sessionId: string;
   tournamentId: string;
   playerId: string;
   playerName: string;
@@ -126,6 +127,8 @@ export interface ActiveAuctionState {
   highestBidderName: string | null;
   highestBidderShort: string | null;
   timer: number;
+  timerDuration: number;
+  timerEnabled: boolean;
   isPaused: boolean;
   status: 'queued' | 'live' | 'sold' | 'unsold';
 }

@@ -112,6 +112,7 @@ export function initDatabase() {
       current_lot_id TEXT,
       current_round INTEGER DEFAULT 1,
       timer_seconds INTEGER DEFAULT 15,
+      timer_enabled INTEGER DEFAULT 1, -- 1 means timer is enabled, 0 means timer is disabled
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
     );
