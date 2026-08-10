@@ -14,6 +14,7 @@ interface SocketContextType {
   operatorMarkSold: () => void;
   operatorMarkUnsold: () => void;
   operatorTogglePause: () => void;
+  operatorToggleTimer: () => void;
   operatorRollbackSale: (lotId: string) => void;
 }
 
@@ -144,6 +145,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const operatorToggleTimer = () => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('operator:toggle_timer');
+    }
+  };
+
   const operatorRollbackSale = (lotId: string) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit('operator:rollback_sale', { lotId });
@@ -163,6 +170,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         operatorMarkSold,
         operatorMarkUnsold,
         operatorTogglePause,
+        operatorToggleTimer,
         operatorRollbackSale
       }}
     >

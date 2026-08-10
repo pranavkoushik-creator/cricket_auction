@@ -146,8 +146,8 @@ export function seedData() {
   // 6. Create Auction Session and Lots
   const sessionId = 'ses-ipl-2026';
   db.prepare(`
-    INSERT INTO auction_sessions (id, tournament_id, status, current_lot_id, timer_seconds)
-    VALUES (?, ?, 'scheduled', null, 15)
+    INSERT INTO auction_sessions (id, tournament_id, status, current_lot_id, timer_seconds, timer_enabled)
+    VALUES (?, ?, 'scheduled', null, 15, 1)
   `).run(sessionId, tId);
 
   const insertLot = db.prepare(`
