@@ -25,7 +25,7 @@ router.post('/', (req: Request, res: Response) => {
 
 router.patch('/:id/approve', (req: Request, res: Response) => {
   try {
-    const player = updatePlayerApprovalStatus(req.params.id, 'approved', req.body.reason);
+    const player = updatePlayerApprovalStatus(req.params.id as string, 'approved', req.body.reason);
     res.json(player);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -34,7 +34,7 @@ router.patch('/:id/approve', (req: Request, res: Response) => {
 
 router.patch('/:id/reject', (req: Request, res: Response) => {
   try {
-    const player = updatePlayerApprovalStatus(req.params.id, 'rejected', req.body.reason);
+    const player = updatePlayerApprovalStatus(req.params.id as string, 'rejected', req.body.reason);
     res.json(player);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -43,7 +43,7 @@ router.patch('/:id/reject', (req: Request, res: Response) => {
 
 router.patch('/:id/request-changes', (req: Request, res: Response) => {
   try {
-    const player = updatePlayerApprovalStatus(req.params.id, 'changes_requested', req.body.reason);
+    const player = updatePlayerApprovalStatus(req.params.id as string, 'changes_requested', req.body.reason);
     res.json(player);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -52,7 +52,7 @@ router.patch('/:id/request-changes', (req: Request, res: Response) => {
 
 router.patch('/:id/suspend', (req: Request, res: Response) => {
   try {
-    const player = updatePlayerApprovalStatus(req.params.id, 'suspended', req.body.reason);
+    const player = updatePlayerApprovalStatus(req.params.id as string, 'suspended', req.body.reason);
     res.json(player);
   } catch (err: any) {
     res.status(400).json({ error: err.message });

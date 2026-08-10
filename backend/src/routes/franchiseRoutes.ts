@@ -16,7 +16,7 @@ router.get('/', (req: Request, res: Response) => {
 
 router.get('/:id', (req: Request, res: Response) => {
   try {
-    const item = getFranchiseById(req.params.id);
+    const item = getFranchiseById(req.params.id as string);
     res.json(item);
   } catch (err: any) {
     res.status(404).json({ error: err.message });
@@ -34,7 +34,7 @@ router.post('/', (req: Request, res: Response) => {
 
 router.put('/:id', (req: Request, res: Response) => {
   try {
-    const item = updateFranchise(req.params.id, req.body);
+    const item = updateFranchise(req.params.id as string, req.body);
     res.json(item);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -43,7 +43,7 @@ router.put('/:id', (req: Request, res: Response) => {
 
 router.delete('/:id', (req: Request, res: Response) => {
   try {
-    const result = deleteFranchise(req.params.id);
+    const result = deleteFranchise(req.params.id as string);
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -52,7 +52,7 @@ router.delete('/:id', (req: Request, res: Response) => {
 
 router.get('/:id/purse', (req: Request, res: Response) => {
   try {
-    const purse = getFranchisePurse(req.params.id);
+    const purse = getFranchisePurse(req.params.id as string);
     res.json(purse);
   } catch (err: any) {
     res.status(404).json({ error: err.message });

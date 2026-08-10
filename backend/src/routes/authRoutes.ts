@@ -58,7 +58,7 @@ router.patch('/users/:id/roles', (req: Request, res: Response) => {
     if (!tournamentId || !role) {
       return res.status(400).json({ error: 'tournamentId and role are required.' });
     }
-    const result = setUserTournamentRole(req.params.id, tournamentId, role);
+    const result = setUserTournamentRole(req.params.id as string, tournamentId, role);
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });

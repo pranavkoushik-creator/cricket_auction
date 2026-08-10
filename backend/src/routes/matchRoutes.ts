@@ -25,7 +25,7 @@ router.get('/standings', (req: Request, res: Response) => {
 
 router.get('/:id', (req: Request, res: Response) => {
   try {
-    const match = getMatchById(req.params.id);
+    const match = getMatchById(req.params.id as string);
     res.json(match);
   } catch (err: any) {
     res.status(404).json({ error: err.message });
@@ -45,7 +45,7 @@ router.post('/generate', (req: Request, res: Response) => {
 router.post('/:id/event', (req: Request, res: Response) => {
   try {
     const { innings, eventType, payload } = req.body;
-    const match = addMatchEvent(req.params.id, innings || 1, eventType || 'ball', payload || {});
+    const match = addMatchEvent(req.params.id as string, innings || 1, eventType || 'ball', payload || {});
     res.json(match);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -55,7 +55,7 @@ router.post('/:id/event', (req: Request, res: Response) => {
 router.post('/:id/complete', (req: Request, res: Response) => {
   try {
     const { winnerTeamId, resultSummary, homeScore, awayScore } = req.body;
-    const match = completeMatch(req.params.id, winnerTeamId, resultSummary, homeScore, awayScore);
+    const match = completeMatch(req.params.id as string, winnerTeamId, resultSummary, homeScore, awayScore);
     res.json(match);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
