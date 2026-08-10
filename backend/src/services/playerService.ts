@@ -98,3 +98,104 @@ export function updatePlayerApprovalStatus(playerId: string, status: 'approved' 
 
   return db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
 }
+
+export function createSinglePlayer(data: {
+  tournament_id: string;
+  name: string;
+  category: string;
+  role: string;
+  is_foreign?: number | boolean;
+  country?: string;
+  base_price: number;
+  photo_url?: string;
+  approval_status?: 'approved' | 'pending';
+}) {
+  const id = `ply-${uuidv4().substring(0, 8)}`;
+  const status = data.approval_status || 'approved';
+  const isForeign = data.is_foreign ? 1 : 0;
+  const country = data.country || (isForeign ? 'Foreign' : 'India');
+  const photoUrl = data.photo_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80';
+  const statsStr = JSON.stringify({ matches: 0, runs: 0, wickets: 0 });
+
+  db.prepare(`
+    INSERT INTO players (id, tournament_id, name, category, role, is_foreign, country, base_price, approval_status, stats_json, photo_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, data.tournament_id, data.name, data.category, data.role, isForeign, country, data.base_price, status, statsStr, photoUrl);
+
+  if (status === 'approved') {
+    let session = db.prepare('SELECT id FROM auction_sessions WHERE tournament_id = ?').get(data.tournament_id) as any;
+    if (!session) {
+      const sesId = `ses-${uuidv4().substring(0, 8)}`;
+      db.prepare('INSERT INTO auction_sessions (id, tournament_id, status) VALUES (?, ?, "scheduled")').run(sesId, data.tournament_id);
+      session = { id: sesId };
+    }
+
+    const lastSeq = db.prepare('SELECT MAX(sequence_number) as max_seq FROM auction_lots WHERE tournament_id = ?').get(data.tournament_id) as any;
+    const nextSeq = (lastSeq?.max_seq || 0) + 1;
+    const lotId = `lot-${uuidv4().substring(0, 8)}`;
+
+    db.prepare(`
+      INSERT INTO auction_lots (id, session_id, tournament_id, player_id, sequence_number, set_name, status, current_highest_bid)
+      VALUES (?, ?, ?, ?, ?, ?, 'queued', 0)
+    `).run(lotId, session.id, data.tournament_id, id, nextSeq, `Set ${Math.floor(nextSeq / 5) + 1} - ${data.category}`);
+  }
+
+  return db.prepare('SELECT * FROM players WHERE id = ?').get(id);
+}
+
+export function bulkImportPlayers(tournamentId: string, playersList: any[]) {
+  if (!Array.isArray(playersList) || playersList.length === 0) {
+    throw new Error('No valid players provided for bulk import.');
+  }
+
+  let session = db.prepare('SELECT id FROM auction_sessions WHERE tournament_id = ?').get(tournamentId) as any;
+  if (!session) {
+    const sesId = `ses-${uuidv4().substring(0, 8)}`;
+    db.prepare('INSERT INTO auction_sessions (id, tournament_id, status) VALUES (?, ?, "scheduled")').run(sesId, tournamentId);
+    session = { id: sesId };
+  }
+
+  const lastSeqRecord = db.prepare('SELECT MAX(sequence_number) as max_seq FROM auction_lots WHERE tournament_id = ?').get(tournamentId) as any;
+  let nextSeq = (lastSeqRecord?.max_seq || 0) + 1;
+
+  const insertPlayerStmt = db.prepare(`
+    INSERT INTO players (id, tournament_id, name, category, role, is_foreign, country, base_price, approval_status, stats_json, photo_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
+  `);
+
+  const insertLotStmt = db.prepare(`
+    INSERT INTO auction_lots (id, session_id, tournament_id, player_id, sequence_number, set_name, status, current_highest_bid)
+    VALUES (?, ?, ?, ?, ?, ?, 'queued', 0)
+  `);
+
+  const createdPlayers: any[] = [];
+
+  const runBulk = db.transaction(() => {
+    for (const p of playersList) {
+      const pid = `ply-${uuidv4().substring(0, 8)}`;
+      const isForeign = p.is_foreign ? 1 : 0;
+      const country = p.country || (isForeign ? 'Foreign' : 'India');
+      const photoUrl = p.photo_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80';
+      const statsStr = JSON.stringify({ matches: 0, runs: 0, wickets: 0 });
+      const basePrice = Number(p.base_price) || 20000000;
+      const role = p.role || 'Batsman';
+      const category = p.category || 'Tier-1';
+
+      insertPlayerStmt.run(pid, tournamentId, p.name, category, role, isForeign, country, basePrice, statsStr, photoUrl);
+
+      const lotId = `lot-${uuidv4().substring(0, 8)}`;
+      insertLotStmt.run(lotId, session.id, tournamentId, pid, nextSeq, `Set ${Math.floor(nextSeq / 5) + 1} - ${category}`);
+      nextSeq++;
+
+      createdPlayers.push({ id: pid, name: p.name, role, category, base_price: basePrice });
+    }
+  });
+
+  runBulk();
+
+  return {
+    importedCount: createdPlayers.length,
+    players: createdPlayers
+  };
+}
+

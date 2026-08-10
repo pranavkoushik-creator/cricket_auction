@@ -248,4 +248,12 @@ export function initDatabase() {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Safe migrations for existing databases created before new columns were added
+  try {
+    db.exec("ALTER TABLE auction_sessions ADD COLUMN timer_enabled INTEGER DEFAULT 1");
+  } catch (e) {
+    // Column already exists
+  }
 }
+

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck } from 'lucide-react';
+import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck, UserPlus, CheckCircle2 } from 'lucide-react';
 
 interface FranchiseFormData {
   name: string;
@@ -15,6 +15,13 @@ interface FranchiseFormData {
   remaining_purse?: number;
 }
 
+interface OwnerFormData {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+}
+
 const DEFAULT_FORM: FranchiseFormData = {
   name: '',
   short_name: '',
@@ -25,6 +32,13 @@ const DEFAULT_FORM: FranchiseFormData = {
   initial_purse: 1000000000 // 100 Crore
 };
 
+const DEFAULT_OWNER_FORM: OwnerFormData = {
+  name: '',
+  email: '',
+  password: 'password123',
+  phone: ''
+};
+
 export const FranchiseManagementView: React.FC = () => {
   const { currentTournamentId, currentRole } = useAuth();
   const isAdmin = currentRole === 'Super Admin' || currentRole === 'Tournament Admin';
@@ -33,11 +47,18 @@ export const FranchiseManagementView: React.FC = () => {
   const [selectedFranchise, setSelectedFranchise] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
 
-  // Modal States
+  // Franchise Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [formData, setFormData] = useState<FranchiseFormData>(DEFAULT_FORM);
   const [editingFranchiseId, setEditingFranchiseId] = useState<string | null>(null);
+
+  // Owner Creation Modal States
+  const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
+  const [ownerFormData, setOwnerFormData] = useState<OwnerFormData>(DEFAULT_OWNER_FORM);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [isSubmittingOwner, setIsSubmittingOwner] = useState(false);
+  const [ownerSuccessToast, setOwnerSuccessToast] = useState<string | null>(null);
 
   // Delete Confirm State
   const [deletingFranchiseId, setDeletingFranchiseId] = useState<string | null>(null);
@@ -68,7 +89,7 @@ export const FranchiseManagementView: React.FC = () => {
   };
 
   const loadUsers = () => {
-    apiRequest('/auth/users')
+    return apiRequest('/auth/users')
       .then(setUsers)
       .catch(console.error);
   };
@@ -83,6 +104,7 @@ export const FranchiseManagementView: React.FC = () => {
     setEditingFranchiseId(null);
     setFormData(DEFAULT_FORM);
     setFormError(null);
+    setOwnerSuccessToast(null);
     setIsModalOpen(true);
   };
 
@@ -100,7 +122,38 @@ export const FranchiseManagementView: React.FC = () => {
       remaining_purse: franchise.remaining_purse
     });
     setFormError(null);
+    setOwnerSuccessToast(null);
     setIsModalOpen(true);
+  };
+
+  const handleCreateOwner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ownerFormData.name.trim() || !ownerFormData.email.trim()) {
+      setOwnerError('Owner Name and Email are required.');
+      return;
+    }
+
+    setIsSubmittingOwner(true);
+    setOwnerError(null);
+
+    apiRequest('/auth/create-owner', {
+      method: 'POST',
+      body: JSON.stringify(ownerFormData)
+    })
+      .then(async (newOwner) => {
+        setIsSubmittingOwner(false);
+        setIsOwnerModalOpen(false);
+        setOwnerFormData(DEFAULT_OWNER_FORM);
+        
+        // Refresh users list and automatically select the newly created owner!
+        await loadUsers();
+        setFormData(prev => ({ ...prev, owner_id: newOwner.id }));
+        setOwnerSuccessToast(`Owner "${newOwner.name}" created and automatically selected!`);
+      })
+      .catch(err => {
+        setOwnerError(err.message || 'Failed to create franchise owner');
+        setIsSubmittingOwner(false);
+      });
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -383,6 +436,13 @@ export const FranchiseManagementView: React.FC = () => {
               </div>
             )}
 
+            {ownerSuccessToast && (
+              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{ownerSuccessToast}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmitForm} className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1">
@@ -448,12 +508,26 @@ export const FranchiseManagementView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Franchise Owner Selector with inline + Add New Owner button */}
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-gray-400">Franchise Owner / Manager User</label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-gray-400">Franchise Owner / Manager User</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOwnerError(null);
+                      setIsOwnerModalOpen(true);
+                    }}
+                    className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/30 transition"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>+ Add New Owner</span>
+                  </button>
+                </div>
                 <select
                   value={formData.owner_id}
                   onChange={e => setFormData({ ...formData, owner_id: e.target.value })}
-                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-medium"
                 >
                   <option value="">-- Unassigned (Assign Later) --</option>
                   {users.map(u => (
@@ -531,6 +605,94 @@ export const FranchiseManagementView: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold shadow-lg shadow-blue-500/20 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : modalMode === 'create' ? 'Create Franchise' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE FRANCHISE OWNER SUB-MODAL */}
+      {isOwnerModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-panel max-w-md w-full rounded-2xl border border-blue-500/40 p-6 space-y-4 relative shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-400" />
+                <span>Create & Register Franchise Owner</span>
+              </h3>
+              <button onClick={() => setIsOwnerModalOpen(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {ownerError && (
+              <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs font-semibold">
+                {ownerError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateOwner} className="space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-gray-400">Owner Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Preity Zinta"
+                  value={ownerFormData.name}
+                  onChange={e => setOwnerFormData({ ...ownerFormData, name: e.target.value })}
+                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-gray-400">Owner Login Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. preity@pbks.com"
+                  value={ownerFormData.email}
+                  onChange={e => setOwnerFormData({ ...ownerFormData, email: e.target.value })}
+                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-gray-400">Default Password</label>
+                <input
+                  type="text"
+                  value={ownerFormData.password}
+                  onChange={e => setOwnerFormData({ ...ownerFormData, password: e.target.value })}
+                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-mono"
+                />
+                <p className="text-[10px] text-gray-500">Default: password123 (Owner can log in with this email & password)</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-gray-400">Phone Number (Optional)</label>
+                <input
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={ownerFormData.phone}
+                  onChange={e => setOwnerFormData({ ...ownerFormData, phone: e.target.value })}
+                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsOwnerModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingOwner}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {isSubmittingOwner ? 'Creating Owner...' : 'Create & Select Owner'}
                 </button>
               </div>
             </form>

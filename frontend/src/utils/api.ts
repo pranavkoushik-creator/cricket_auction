@@ -18,6 +18,19 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers
   });
 
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(`Server endpoint error (${response.status}). Please verify the backend server is running and restarted.`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Invalid non-JSON server response (${response.status}).`);
+    }
+  }
+
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || 'API Request failed');
