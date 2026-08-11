@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { getFranchises, getFranchiseById, createFranchise, updateFranchise, deleteFranchise } from '../services/franchiseService';
 import { getFranchisePurse } from '../services/purseLedgerService';
+import { authenticate } from '../middleware/authMiddleware';
+import { authorize, guardFranchiseOwnership } from '../middleware/roleMiddleware';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.use(authenticate);
+
+router.get('/', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const tournamentId = (req.query.tournamentId as string) || 'tour-ipl-2026';
     const list = getFranchises(tournamentId);
@@ -14,7 +18,7 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const item = getFranchiseById(req.params.id as string);
     res.json(item);
@@ -23,7 +27,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const item = createFranchise(req.body);
     res.json(item);
@@ -32,7 +36,7 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', authorize('Super Admin', 'Franchise Owner'), guardFranchiseOwnership, (req: Request, res: Response) => {
   try {
     const item = updateFranchise(req.params.id as string, req.body);
     res.json(item);
@@ -41,7 +45,7 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const result = deleteFranchise(req.params.id as string);
     res.json(result);
@@ -50,7 +54,7 @@ router.delete('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/purse', (req: Request, res: Response) => {
+router.get('/:id/purse', authorize('Super Admin', 'Franchise Owner', 'Player'), guardFranchiseOwnership, (req: Request, res: Response) => {
   try {
     const purse = getFranchisePurse(req.params.id as string);
     res.json(purse);

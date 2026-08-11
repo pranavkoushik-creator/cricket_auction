@@ -44,11 +44,9 @@ export const PlayerRegistrationView: React.FC = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="glass-panel p-6 rounded-2xl border border-cyan-500/30 flex items-center space-x-4">
-        <div className="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
-          <UserCheck className="w-6 h-6" />
-        </div>
+        <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
         <div>
-          <h2 className="text-xl font-extrabold text-white">PLAYER SELF-REGISTRATION PORTAL</h2>
+          <h2 className="text-xl font-extrabold text-white">SAKHA PLAYER SELF-REGISTRATION PORTAL</h2>
           <p className="text-xs text-gray-400">Register to participate in the IPL 2026 Mega Auction lot queue</p>
         </div>
       </div>

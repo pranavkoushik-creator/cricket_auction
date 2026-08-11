@@ -150,12 +150,10 @@ export const LiveAuctionOperatorView: React.FC = () => {
       {/* Operator Header Bar */}
       <div className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-amber-500/30">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40">
-            <Radio className="w-6 h-6 animate-pulse" />
-          </div>
+          <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
           <div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-              LIVE AUCTION OPERATOR CONSOLE
+              SAKHA LIVE AUCTION OPERATOR CONSOLE
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                 Broadcasting
               </span>

@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { db } from '../db/database';
 import { recordPurseTransaction, getFranchisePurse } from '../services/purseLedgerService';
+import { verifyTokenAndGetUser } from '../services/authService';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ActiveLotState {
@@ -29,6 +30,39 @@ let timerInterval: NodeJS.Timeout | null = null;
 
 export function setupAuctionSocket(io: Server) {
   const auctionRoom = 'auction_room';
+
+  // Socket Handshake Authentication Middleware
+  io.use((socket: Socket, next) => {
+    try {
+      const rawToken = socket.handshake.auth?.token ||
+                       socket.handshake.headers?.authorization?.replace('Bearer ', '') ||
+                       socket.handshake.query?.token;
+
+      if (!rawToken) {
+        // Unauthenticated spectator mode
+        (socket as any).user = { role: 'Spectator', id: 'public', name: 'Public Spectator' };
+        return next();
+      }
+
+      const user = verifyTokenAndGetUser(rawToken as string);
+      (socket as any).user = user;
+      next();
+    } catch (err: any) {
+      console.warn(`[AuctionEngine] Socket auth error for socket ${socket.id}: ${err.message}`);
+      next(new Error('Authentication failed: Invalid or expired token'));
+    }
+  });
+
+  function requireRole(socket: Socket, allowedRoles: string[]): boolean {
+    const user = (socket as any).user;
+    if (!user || !allowedRoles.includes(user.role)) {
+      socket.emit('auction:error', {
+        message: `403 Forbidden: Access denied. Required role: [${allowedRoles.join(', ')}]. Your role: '${user?.role || 'Guest'}'.`
+      });
+      return false;
+    }
+    return true;
+  }
 
   function calculateMinNextBid(currentBid: number, basePrice: number): number {
     if (currentBid === 0) return basePrice;
@@ -241,6 +275,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 1. Operator: Start Lot Bidding
     socket.on('operator:start_lot', ({ lotId }: { lotId: string }) => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       console.log(`[AuctionEngine] operator:start_lot called for lotId: ${lotId}`);
       try {
         if (!lotId) {
@@ -281,6 +316,14 @@ export function setupAuctionSocket(io: Server) {
 
     // 2. Franchise: Place Bid
     socket.on('bid:place', ({ franchiseId, bidAmount }: { franchiseId: string; bidAmount: number }) => {
+      if (!requireRole(socket, ['Super Admin', 'Franchise Owner'])) return;
+
+      const socketUser = (socket as any).user;
+      if (socketUser.role === 'Franchise Owner' && socketUser.franchise_id && socketUser.franchise_id !== franchiseId) {
+        return socket.emit('bid:rejected', {
+          reason: `403 Forbidden: You can only place bids on behalf of your assigned franchise (${socketUser.franchise_short || socketUser.franchise_id}).`
+        });
+      }
       if (!activeAuctionState || activeAuctionState.status !== 'live') {
         return socket.emit('bid:rejected', { reason: 'No active lot currently accepting bids.' });
       }
@@ -371,6 +414,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 3. Operator: Mark Lot SOLD
     socket.on('operator:mark_sold', () => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       if (!activeAuctionState || activeAuctionState.status !== 'live') return;
 
       if (!activeAuctionState.highestBidderId || activeAuctionState.currentBid === 0) {
@@ -410,6 +454,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 4. Operator: Mark Lot UNSOLD
     socket.on('operator:mark_unsold', () => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       if (!activeAuctionState || activeAuctionState.status !== 'live') return;
 
       stopTimer();
@@ -436,6 +481,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 5. Operator: Pause / Resume Auction
     socket.on('operator:toggle_pause', () => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       if (!activeAuctionState || activeAuctionState.status !== 'live') return;
       activeAuctionState.isPaused = !activeAuctionState.isPaused;
       broadcastState();
@@ -447,6 +493,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 6. Operator: Toggle Auction Timer ON/OFF
     socket.on('operator:toggle_timer', () => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       console.log('[AuctionEngine] operator:toggle_timer received. Current state:', {
         hasActiveState: !!activeAuctionState,
         status: activeAuctionState?.status,
@@ -498,6 +545,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 7. Operator: Update Timer Duration (persists to DB, syncs in-memory state)
     socket.on('operator:update_timer_seconds', ({ tournamentId, seconds }: { tournamentId: string; seconds: number }) => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       try {
         if (!seconds || seconds <= 0) {
           return socket.emit('auction:error', { message: 'Invalid timer duration.' });
@@ -529,6 +577,7 @@ export function setupAuctionSocket(io: Server) {
 
     // 8. Operator: Sale Rollback
     socket.on('operator:rollback_sale', ({ lotId }: { lotId: string }) => {
+      if (!requireRole(socket, ['Super Admin'])) return;
       try {
         const lot = db.prepare('SELECT * FROM auction_lots WHERE id = ?').get(lotId) as any;
         if (!lot || lot.status !== 'sold') {

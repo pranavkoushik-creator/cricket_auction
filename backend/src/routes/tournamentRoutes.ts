@@ -1,9 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { getTournaments, getTournamentById, createTournament, updateTournamentRules, updateTournamentStatus } from '../services/tournamentService';
+import { authenticate } from '../middleware/authMiddleware';
+import { authorize } from '../middleware/roleMiddleware';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.use(authenticate);
+
+router.get('/', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const list = getTournaments();
     res.json(list);
@@ -12,7 +16,7 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const item = getTournamentById(req.params.id as string);
     res.json(item);
@@ -21,7 +25,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const item = createTournament(req.body);
     res.json(item);
@@ -30,7 +34,7 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id/rules', (req: Request, res: Response) => {
+router.put('/:id/rules', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const item = updateTournamentRules(req.params.id as string, req.body);
     res.json(item);
@@ -39,7 +43,7 @@ router.put('/:id/rules', (req: Request, res: Response) => {
   }
 });
 
-router.patch('/:id/status', (req: Request, res: Response) => {
+router.patch('/:id/status', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     const item = updateTournamentStatus(req.params.id as string, status);

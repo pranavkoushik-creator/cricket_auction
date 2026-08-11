@@ -28,9 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Brand Logo & Tournament Selector */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-yellow-500 via-amber-400 to-yellow-300 flex items-center justify-center shadow-lg shadow-yellow-500/20">
-            <Trophy className="w-6 h-6 text-black stroke-[2.5]" />
-          </div>
+          <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
           <div>
             <h1 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2 font-broadcast">
               SAKHA SPORTS LEAGUE <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">v1.0 Pro</span>

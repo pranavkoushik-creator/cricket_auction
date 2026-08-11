@@ -56,10 +56,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
 
         {/* ── League Heading ── */}
         <div className="flex items-center gap-4">
-          {/* Gold shimmer trophy badge */}
-          <div className="w-[60px] h-[60px] shrink-0 rounded-[18px] gold-badge flex items-center justify-center shadow-[0_0_24px_rgba(255,184,0,0.4),0_8px_24px_rgba(0,0,0,0.4)]">
-            <Trophy className="w-8 h-8 text-black stroke-[2.5]" />
-          </div>
+          <img src="/sakha_logo.png" alt="Sakha Logo" className="h-14 sm:h-16 w-auto object-contain bg-white px-3 py-1.5 rounded-xl shadow-xl shrink-0" />
           <div>
             <h1 className="text-[1.7rem] font-black text-white tracking-tight leading-tight m-0"
               style={{ textShadow: '0 0 32px rgba(255,184,0,0.25)' }}>

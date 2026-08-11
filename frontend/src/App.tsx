@@ -75,8 +75,11 @@ const MainContent: React.FC = () => {
       </main>
 
       <footer className="glass-panel border-t border-cricket-border/40 py-4 text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between px-4 gap-2">
-          <p>© 2026 Sports Tournament & Player Auction Management Platform · Role-Based JWT Secure Portal</p>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between px-4 gap-3">
+          <div className="flex items-center gap-2">
+            <img src="/sakha_logo.png" alt="Sakha Logo" className="h-6 w-auto object-contain bg-white px-1.5 py-0.5 rounded shadow-sm opacity-90" />
+            <p>© 2026 Sakha Sports Tournament &amp; Player Auction Platform</p>
+          </div>
           <p className="text-gray-400 font-medium">Real-Time WebSocket Engine · Immutable Purse Ledger Enabled</p>
         </div>
       </footer>

@@ -33,11 +33,9 @@ export const AnalyticsReportsView: React.FC = () => {
     <div className="space-y-6">
       <div className="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-blue-500/30">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/40">
-            <BarChart3 className="w-6 h-6" />
-          </div>
+          <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
           <div>
-            <h2 className="text-xl font-extrabold text-white">AUCTION ANALYTICS & EXPORT REPORTS</h2>
+            <h2 className="text-xl font-extrabold text-white">SAKHA AUCTION ANALYTICS &amp; EXPORT REPORTS</h2>
             <p className="text-xs text-gray-400">Comprehensive spend breakdown, bid leaderboards, and auditable data exports</p>
           </div>
         </div>

@@ -12,6 +12,7 @@ import playerRoutes from './routes/playerRoutes';
 import franchiseRoutes from './routes/franchiseRoutes';
 import matchRoutes from './routes/matchRoutes';
 import reportRoutes from './routes/reportRoutes';
+import sessionRoutes from './routes/sessionRoutes';
 import { setupAuctionSocket } from './socket/auctionEngine';
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/players', playerRoutes);
 app.use('/api/franchises', franchiseRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), system: 'Sports Auction & Tournament Platform Engine' });

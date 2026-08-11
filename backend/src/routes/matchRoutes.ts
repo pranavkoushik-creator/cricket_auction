@@ -1,9 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { getMatches, getMatchById, generateFixtures, addMatchEvent, completeMatch, getStandings } from '../services/matchService';
+import { authenticate } from '../middleware/authMiddleware';
+import { authorize } from '../middleware/roleMiddleware';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.use(authenticate);
+
+router.get('/', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const tournamentId = (req.query.tournamentId as string) || 'tour-ipl-2026';
     const matches = getMatches(tournamentId);
@@ -13,7 +17,7 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/standings', (req: Request, res: Response) => {
+router.get('/standings', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const tournamentId = (req.query.tournamentId as string) || 'tour-ipl-2026';
     const standings = getStandings(tournamentId);
@@ -23,7 +27,7 @@ router.get('/standings', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: Request, res: Response) => {
   try {
     const match = getMatchById(req.params.id as string);
     res.json(match);
@@ -32,7 +36,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.post('/generate', (req: Request, res: Response) => {
+router.post('/generate', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const tournamentId = req.body.tournamentId || 'tour-ipl-2026';
     const matches = generateFixtures(tournamentId);
@@ -42,7 +46,7 @@ router.post('/generate', (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/event', (req: Request, res: Response) => {
+router.post('/:id/event', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const { innings, eventType, payload } = req.body;
     const match = addMatchEvent(req.params.id as string, innings || 1, eventType || 'ball', payload || {});
@@ -52,7 +56,7 @@ router.post('/:id/event', (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/complete', (req: Request, res: Response) => {
+router.post('/:id/complete', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const { winnerTeamId, resultSummary, homeScore, awayScore } = req.body;
     const match = completeMatch(req.params.id as string, winnerTeamId, resultSummary, homeScore, awayScore);

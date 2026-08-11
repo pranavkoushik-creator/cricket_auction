@@ -37,11 +37,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/20">
-              <div className="w-full h-full bg-gray-900 rounded-[14px] flex items-center justify-center">
-                <Trophy className="w-8 h-8 text-yellow-400" />
-              </div>
-            </div>
+            <img src="/sakha_logo.png" alt="Sakha Logo" className="h-14 sm:h-16 w-auto object-contain bg-white px-3 py-1.5 rounded-xl shadow-lg shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase font-semibold">

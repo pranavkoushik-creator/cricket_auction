@@ -3,6 +3,7 @@ import { getAuctionReport } from '../services/reportService';
 
 const router = Router();
 
+// Public / Spectator accessible report route
 router.get('/auction', (req: Request, res: Response) => {
   try {
     const tournamentId = (req.query.tournamentId as string) || 'tour-ipl-2026';

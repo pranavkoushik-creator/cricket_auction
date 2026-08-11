@@ -1,8 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole } from '../services/authService';
+import { authenticate } from '../middleware/authMiddleware';
+import { authorize } from '../middleware/roleMiddleware';
 
 const router = Router();
 
+// Public Authentication Endpoints
 router.post('/register', (req: Request, res: Response) => {
   try {
     const { name, email, password, phone } = req.body;
@@ -10,19 +13,6 @@ router.post('/register', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Name, email, and password are required.' });
     }
     const result = registerUser(name, email, password, phone);
-    res.json(result);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-router.post('/create-owner', (req: Request, res: Response) => {
-  try {
-    const { name, email, password, phone } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Owner name and email are required.' });
-    }
-    const result = createFranchiseOwner(name, email, password, phone);
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -42,21 +32,26 @@ router.post('/login', (req: Request, res: Response) => {
   }
 });
 
-router.get('/me', (req: Request, res: Response) => {
+// Protected Endpoints
+router.get('/me', authenticate, (req: Request, res: Response) => {
+  res.json(req.user);
+});
+
+// Admin-Only Endpoints
+router.post('/create-owner', authenticate, authorize('Super Admin'), (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authorization header missing or invalid.' });
+    const { name, email, password, phone } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Owner name and email are required.' });
     }
-    const token = authHeader.split(' ')[1];
-    const user = verifyTokenAndGetUser(token);
-    res.json(user);
+    const result = createFranchiseOwner(name, email, password, phone);
+    res.json(result);
   } catch (err: any) {
-    res.status(401).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 });
 
-router.get('/users', (req: Request, res: Response) => {
+router.get('/users', authenticate, authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const users = getAllUsers();
     res.json(users);
@@ -65,7 +60,7 @@ router.get('/users', (req: Request, res: Response) => {
   }
 });
 
-router.patch('/users/:id/roles', (req: Request, res: Response) => {
+router.patch('/users/:id/roles', authenticate, authorize('Super Admin'), (req: Request, res: Response) => {
   try {
     const { tournamentId, role } = req.body;
     if (!tournamentId || !role) {

@@ -7,8 +7,10 @@ const getBaseUrl = () => {
 };
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
@@ -18,11 +20,18 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers
   });
 
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  }
+
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
     if (!response.ok) {
-      throw new Error(`Server endpoint error (${response.status}). Please verify the backend server is running and restarted.`);
+      throw new Error(`Server error (${response.status}): ${text || 'Authentication required or invalid request.'}`);
     }
     try {
       return JSON.parse(text);

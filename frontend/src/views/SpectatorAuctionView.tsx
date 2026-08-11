@@ -49,12 +49,10 @@ export const SpectatorAuctionView: React.FC = () => {
       <div className="glass-panel p-5 rounded-2xl border border-yellow-500/30 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center border border-yellow-500/40 shadow-lg shadow-yellow-500/10">
-              <Eye className="w-6 h-6 animate-pulse" />
-            </div>
+            <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
             <div>
               <h2 className="text-xl font-black text-white flex items-center gap-2 tracking-wide font-broadcast">
-                LIVE AUCTION BROADCAST TRACKER
+                SAKHA LIVE AUCTION BROADCAST TRACKER
                 <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold flex items-center gap-1.5 animate-pulse shadow-md">
                   <span className="w-2 h-2 rounded-full bg-white animate-ping" />
                   LIVE

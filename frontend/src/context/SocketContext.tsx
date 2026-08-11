@@ -22,7 +22,7 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentTournamentId } = useAuth();
+  const { currentTournamentId, user } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -30,11 +30,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [eventsLog, setEventsLog] = useState<{ type: string; message: string; timestamp: string }[]>([]);
   const [bidError, setBidError] = useState<string | null>(null);
 
-  // Create socket once on mount
+  // Create socket once on mount or when auth state changes
   useEffect(() => {
     const socketHost = typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:4000` : 'http://localhost:4000';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     console.log('[Socket] Connecting to auction engine at:', socketHost);
+    
     const s = io(socketHost, {
+      auth: { token },
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
