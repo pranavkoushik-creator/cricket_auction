@@ -8,7 +8,21 @@ export function seedData() {
   const passwordHash = bcrypt.hashSync('password123', 10);
   const tId = 'tour-ipl-2026';
 
-  // 1. Create Core Users (3 Core Roles: Super Admin, Franchise Owners, Player)
+  // 1. Create Main Tournament Record if not exists
+  db.prepare(`
+    INSERT INTO tournaments (id, name, sport, format, dates, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO NOTHING
+  `).run(
+    tId,
+    'TATA IPL 2026 Mega Auction',
+    'Cricket',
+    'T20',
+    '2026-08-15 to 2026-10-15',
+    'active'
+  );
+
+  // 2. Create Core Users (3 Core Roles: Super Admin, Franchise Owners, Player)
   const users = [
     { id: 'usr-admin', name: 'Pranav Koushik (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
     { id: 'usr-owner-mi', name: 'Nita Ambani (MI Owner)', email: 'mi@franchise.com', role: 'Franchise Owner' },
@@ -35,9 +49,9 @@ export function seedData() {
     insertRole.run(uuidv4(), u.id, tId, u.role);
   }
 
-  // Check if main tournament data seeded already
-  const tCount = db.prepare('SELECT count(*) as count FROM tournaments').get() as { count: number };
-  if (tCount.count > 0) {
+  // Check if main tournament data (franchises, players, etc.) seeded already
+  const fCount = db.prepare('SELECT count(*) as count FROM franchises').get() as { count: number };
+  if (fCount.count > 0) {
     console.log('Database tournament structure already seeded.');
     return;
   }
