@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8f3b2c1a-9e8d-4f7b-9c0a-1b2c3d4e5f6a",
     "name": "Cricket Auction & Tournament Platform API",
-    "description": "Comprehensive Postman Collection for testing all backend REST API endpoints of the Cricket Auction & Tournament Platform.",
+    "description": "Comprehensive, 100% accurate Postman Collection for testing all REST API endpoints of the Cricket Auction Platform with JWT authentication.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,7 +23,7 @@
     },
     {
       "key": "userId",
-      "value": "usr-1",
+      "value": "usr-admin",
       "type": "string"
     },
     {
@@ -33,18 +33,18 @@
     },
     {
       "key": "franchiseId",
-      "value": "frc-csk",
+      "value": "fran-csk",
       "type": "string"
     },
     {
       "key": "matchId",
-      "value": "mtc-1",
+      "value": "match-1",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "System Health",
+      "name": "1. System Health",
       "item": [
         {
           "name": "Health Check",
@@ -56,45 +56,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "health"]
             },
-            "description": "Check status, current time, and backend system health."
+            "description": "Check backend system status and server time."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Authentication & Users",
+      "name": "2. Authentication & Users",
       "item": [
         {
-          "name": "Register User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "register"]
-            },
-            "description": "Register a new user in the system."
-          },
-          "response": []
-        },
-        {
-          "name": "Login User",
+          "name": "Login User (Super Admin)",
           "event": [
             {
               "listen": "test",
@@ -120,7 +92,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ipl.com\",\n  \"password\": \"adminpassword\"\n}",
+              "raw": "{\n  \"email\": \"admin@platform.com\",\n  \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -132,12 +104,12 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "login"]
             },
-            "description": "Authenticate user and automatically save JWT token to collection variable."
+            "description": "Log in as Super Admin to automatically capture JWT token into {{token}} variable."
           },
           "response": []
         },
         {
-          "name": "Create Franchise Owner",
+          "name": "Login User (Franchise Owner)",
           "request": {
             "method": "POST",
             "header": [
@@ -148,7 +120,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Franchise Owner\",\n  \"email\": \"owner@csk.com\",\n  \"password\": \"ownerpassword\",\n  \"phone\": \"9988776655\"\n}",
+              "raw": "{\n  \"email\": \"mi@franchise.com\",\n  \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -156,16 +128,44 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/auth/create-owner",
+              "raw": "{{baseUrl}}/api/auth/login",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "create-owner"]
+              "path": ["api", "auth", "login"]
             },
-            "description": "Create a new franchise owner account."
+            "description": "Log in as MI Franchise Owner."
           },
           "response": []
         },
         {
-          "name": "Get Current User Profile (/me)",
+          "name": "Register User (Player)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rishabh Pant\",\n  \"email\": \"pant@cricket.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Profile (/me)",
           "request": {
             "method": "GET",
             "header": [
@@ -179,29 +179,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "me"]
             },
-            "description": "Fetch user profile using Bearer JWT authentication."
+            "description": "Retrieve current authenticated user's profile and scoped tournament roles."
           },
           "response": []
         },
         {
-          "name": "Get All Users",
+          "name": "Create Franchise Owner (Admin Only)",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "users"]
-            },
-            "description": "Retrieve list of all registered users."
-          },
-          "response": []
-        },
-        {
-          "name": "Update User Tournament Role",
-          "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -209,7 +199,58 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tournamentId\": \"{{tournamentId}}\",\n  \"role\": \"organizer\"\n}",
+              "raw": "{\n  \"name\": \"Kalanithi Maran (SRH Owner)\",\n  \"email\": \"srh@franchise.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9988776655\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/create-owner",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "create-owner"]
+            },
+            "description": "Super Admin creates a new franchise owner account."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users"]
+            },
+            "description": "Retrieve all registered users and assigned tournament roles."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role (Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tournamentId\": \"{{tournamentId}}\",\n  \"role\": \"Franchise Owner\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -228,19 +269,24 @@
       ]
     },
     {
-      "name": "Tournaments",
+      "name": "3. Tournaments",
       "item": [
         {
           "name": "Get All Tournaments",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/tournaments",
               "host": ["{{baseUrl}}"],
               "path": ["api", "tournaments"]
             },
-            "description": "Get a list of all tournaments."
+            "description": "Fetch all tournaments."
           },
           "response": []
         },
@@ -248,21 +294,30 @@
           "name": "Get Tournament Details",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/tournaments/{{tournamentId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "tournaments", "{{tournamentId}}"]
             },
-            "description": "Get details of a specific tournament by ID."
+            "description": "Get detailed metadata and rules for a single tournament."
           },
           "response": []
         },
         {
-          "name": "Create Tournament",
+          "name": "Create Tournament (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -270,7 +325,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"IPL 2026\",\n  \"sport\": \"cricket\",\n  \"start_date\": \"2026-03-20\",\n  \"end_date\": \"2026-05-25\",\n  \"rules\": {\n    \"squad_min\": 15,\n    \"squad_max\": 25,\n    \"total_purse\": 100000000,\n    \"max_overseas_players\": 8\n  }\n}",
+              "raw": "{\n  \"name\": \"TATA IPL 2027 Mega Auction\",\n  \"sport\": \"Cricket\",\n  \"format\": \"T20\",\n  \"dates\": \"2027-03-20 to 2027-05-25\",\n  \"logo_url\": \"https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=200\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -282,15 +337,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "tournaments"]
             },
-            "description": "Create a new tournament with rules."
+            "description": "Create a new tournament with default rules."
           },
           "response": []
         },
         {
-          "name": "Update Tournament Rules",
+          "name": "Update Tournament Rules (Admin Only)",
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -298,7 +357,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"squad_min\": 16,\n  \"squad_max\": 25,\n  \"total_purse\": 120000000,\n  \"max_overseas_players\": 8\n}",
+              "raw": "{\n  \"purse_budget\": 1200000000,\n  \"min_squad\": 18,\n  \"max_squad\": 25,\n  \"foreign_player_limit\": 8,\n  \"rtm_count_per_team\": 2,\n  \"base_price_tiers\": [20000000, 15000000, 10000000, 5000000, 2000000],\n  \"increment_ladder\": [\n    { \"upto\": 10000000, \"increment\": 1000000 },\n    { \"upto\": 50000000, \"increment\": 2500000 },\n    { \"upto\": 100000000, \"increment\": 5000000 },\n    { \"upto\": 9999999999, \"increment\": 10000000 }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -310,15 +369,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "tournaments", "{{tournamentId}}", "rules"]
             },
-            "description": "Update tournament rules and squad constraints."
+            "description": "Update squad constraints, purse budget, and bidding ladders."
           },
           "response": []
         },
         {
-          "name": "Update Tournament Status",
+          "name": "Update Tournament Status (Admin Only)",
           "request": {
             "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -326,7 +389,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"ongoing\"\n}",
+              "raw": "{\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -338,20 +401,176 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "tournaments", "{{tournamentId}}", "status"]
             },
-            "description": "Change tournament status (e.g. draft, upcoming, ongoing, completed)."
+            "description": "Update tournament lifecycle status (draft, active, in_progress, completed, archived)."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Players & Approvals",
+      "name": "4. Franchises & Purse Ledger",
+      "item": [
+        {
+          "name": "Get Franchises List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises?tournamentId={{tournamentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises"],
+              "query": [
+                {
+                  "key": "tournamentId",
+                  "value": "{{tournamentId}}"
+                }
+              ]
+            },
+            "description": "Fetch all franchises and squad rosters for a tournament."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Franchise Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises", "{{franchiseId}}"]
+            },
+            "description": "Fetch detailed information for a single franchise."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Franchise Purse & Ledger",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}/purse",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises", "{{franchiseId}}", "purse"]
+            },
+            "description": "Fetch remaining purse balance, total spent, and immutable transaction ledger."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Franchise (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Sunrisers Hyderabad\",\n  \"short_name\": \"SRH\",\n  \"logo_url\": \"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=150\",\n  \"primary_color\": \"#FF8200\",\n  \"secondary_color\": \"#000000\",\n  \"owner_id\": \"usr-owner-mi\",\n  \"initial_purse\": 1000000000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises"]
+            },
+            "description": "Create a new franchise team. Correct schema uses 'short_name' (not 'code') and 'initial_purse' (not 'allocated_purse')."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Franchise",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chennai Super Kings\",\n  \"short_name\": \"CSK\",\n  \"primary_color\": \"#FCCA06\",\n  \"secondary_color\": \"#00529C\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises", "{{franchiseId}}"]
+            },
+            "description": "Update franchise name, short name, or colors."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Franchise (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "franchises", "{{franchiseId}}"]
+            },
+            "description": "Delete a franchise team."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Players & Approvals",
       "item": [
         {
           "name": "Get Players List",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/players?tournamentId={{tournamentId}}&status=approved",
               "host": ["{{baseUrl}}"],
@@ -367,7 +586,7 @@
                 }
               ]
             },
-            "description": "Retrieve list of players filtered by tournament ID and approval status."
+            "description": "Retrieve players filtered by tournament and status."
           },
           "response": []
         },
@@ -377,13 +596,17 @@
             "method": "POST",
             "header": [
               {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Virat Kohli\",\n  \"role\": \"batsman\",\n  \"category\": \"marquee\",\n  \"base_price\": 20000000,\n  \"user_id\": \"{{userId}}\"\n}",
+              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Sanju Samson\",\n  \"role\": \"Wicket-Keeper\",\n  \"category\": \"Marquee\",\n  \"country\": \"India\",\n  \"is_foreign\": 0,\n  \"base_price\": 20000000,\n  \"user_id\": \"usr-player\",\n  \"matches\": 150,\n  \"runs\": 3884,\n  \"wickets\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -395,15 +618,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "players"]
             },
-            "description": "Submit player registration request."
+            "description": "Self-register player for auction pool. Role: [Batsman, Bowler, All-Rounder, Wicket-Keeper]. Category: [Marquee, Tier-1, Tier-2, Tier-3]."
           },
           "response": []
         },
         {
-          "name": "Create Single Player (Admin)",
+          "name": "Create Single Player (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -411,7 +638,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Jasprit Bumrah\",\n  \"role\": \"bowler\",\n  \"category\": \"grade_a\",\n  \"base_price\": 15000000\n}",
+              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Pat Cummins\",\n  \"role\": \"All-Rounder\",\n  \"category\": \"Marquee\",\n  \"country\": \"Australia\",\n  \"is_foreign\": 1,\n  \"base_price\": 20000000,\n  \"matches\": 42,\n  \"runs\": 379,\n  \"wickets\": 45\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -423,15 +650,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "players", "create-single"]
             },
-            "description": "Admin endpoint to directly add a player into auction pool."
+            "description": "Directly insert player into approved auction lot queue."
           },
           "response": []
         },
         {
-          "name": "Bulk Import Players",
+          "name": "Bulk Import Players (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -439,7 +670,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tournamentId\": \"{{tournamentId}}\",\n  \"players\": [\n    {\n      \"name\": \"Rashid Khan\",\n      \"role\": \"all_rounder\",\n      \"category\": \"grade_a\",\n      \"base_price\": 15000000\n    },\n    {\n      \"name\": \"KL Rahul\",\n      \"role\": \"wicketkeeper\",\n      \"category\": \"grade_a\",\n      \"base_price\": 15000000\n    }\n  ]\n}",
+              "raw": "{\n  \"tournamentId\": \"{{tournamentId}}\",\n  \"players\": [\n    {\n      \"name\": \"Glenn Maxwell\",\n      \"role\": \"All-Rounder\",\n      \"category\": \"Tier-1\",\n      \"country\": \"Australia\",\n      \"is_foreign\": 1,\n      \"base_price\": 20000000\n    },\n    {\n      \"name\": \"Shreyas Iyer\",\n      \"role\": \"Batsman\",\n      \"category\": \"Tier-1\",\n      \"country\": \"India\",\n      \"is_foreign\": 0,\n      \"base_price\": 20000000\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -451,15 +682,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "players", "bulk-import"]
             },
-            "description": "Bulk import array of players into tournament pool."
+            "description": "Bulk import an array of player objects into tournament."
           },
           "response": []
         },
         {
-          "name": "Approve Player",
+          "name": "Approve Player (Admin Only)",
           "request": {
             "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -467,7 +702,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"Documents verified and approved.\"\n}",
+              "raw": "{\n  \"reason\": \"Verified stats and eligibility.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -484,10 +719,14 @@
           "response": []
         },
         {
-          "name": "Reject Player",
+          "name": "Reject Player (Admin Only)",
           "request": {
             "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -495,7 +734,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"Incomplete profile data.\"\n}",
+              "raw": "{\n  \"reason\": \"Incomplete document verification.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -507,15 +746,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "players", "{{playerId}}", "reject"]
             },
-            "description": "Reject player registration."
+            "description": "Reject pending player registration."
           },
           "response": []
         },
         {
-          "name": "Request Player Info Changes",
+          "name": "Request Changes (Admin Only)",
           "request": {
             "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -523,7 +766,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"Please re-upload a clear photo.\"\n}",
+              "raw": "{\n  \"reason\": \"Please update photo URL.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -535,15 +778,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "players", "{{playerId}}", "request-changes"]
             },
-            "description": "Send back player registration for changes."
+            "description": "Request player to update profile data."
           },
           "response": []
         },
         {
-          "name": "Suspend Player",
+          "name": "Suspend Player (Admin Only)",
           "request": {
             "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -551,7 +798,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"Suspended due to code of conduct violation.\"\n}",
+              "raw": "{\n  \"reason\": \"Suspended for code of conduct violation.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -570,17 +817,22 @@
       ]
     },
     {
-      "name": "Franchises & Purse Ledger",
+      "name": "6. Auction Sessions",
       "item": [
         {
-          "name": "Get Franchises List",
+          "name": "Get Auction Session Config",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/franchises?tournamentId={{tournamentId}}",
+              "raw": "{{baseUrl}}/api/sessions?tournamentId={{tournamentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises"],
+              "path": ["api", "sessions"],
               "query": [
                 {
                   "key": "tournamentId",
@@ -588,118 +840,25 @@
                 }
               ]
             },
-            "description": "Get all teams/franchises for a tournament."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Franchise Details",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises", "{{franchiseId}}"]
-            },
-            "description": "Get details of a single franchise."
-          },
-          "response": []
-        },
-        {
-          "name": "Create Franchise",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tournament_id\": \"{{tournamentId}}\",\n  \"name\": \"Chennai Super Kings\",\n  \"code\": \"CSK\",\n  \"logo_url\": \"https://example.com/csk-logo.png\",\n  \"owner_id\": \"{{userId}}\",\n  \"allocated_purse\": 100000000\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/franchises",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises"]
-            },
-            "description": "Create a new franchise team."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Franchise",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Chennai Super Kings\",\n  \"code\": \"CSK\",\n  \"allocated_purse\": 120000000\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises", "{{franchiseId}}"]
-            },
-            "description": "Update franchise information."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Franchise",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises", "{{franchiseId}}"]
-            },
-            "description": "Delete franchise record."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Franchise Purse & Ledger",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/franchises/{{franchiseId}}/purse",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "franchises", "{{franchiseId}}", "purse"]
-            },
-            "description": "Fetch real-time remaining purse, spent amount, squad size, and transaction history."
+            "description": "Fetch real-time auction session status, timer seconds, and timer settings."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Matches & Standings",
+      "name": "7. Matches & Standings",
       "item": [
         {
           "name": "Get Matches List",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/matches?tournamentId={{tournamentId}}",
               "host": ["{{baseUrl}}"],
@@ -711,15 +870,20 @@
                 }
               ]
             },
-            "description": "Get all scheduled and completed match fixtures."
+            "description": "Fetch all match fixtures."
           },
           "response": []
         },
         {
-          "name": "Get Points Table / Standings",
+          "name": "Get Standings (Points Table)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/matches/standings?tournamentId={{tournamentId}}",
               "host": ["{{baseUrl}}"],
@@ -731,7 +895,7 @@
                 }
               ]
             },
-            "description": "Get tournament standings and Net Run Rate (NRR) table."
+            "description": "Get points table standings and NRR."
           },
           "response": []
         },
@@ -739,21 +903,30 @@
           "name": "Get Match Details",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/matches/{{matchId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "matches", "{{matchId}}"]
             },
-            "description": "Get match details including scorecards and ball-by-ball events."
+            "description": "Get match details and ball-by-ball event log."
           },
           "response": []
         },
         {
-          "name": "Generate Fixtures",
+          "name": "Generate Round Robin Fixtures (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -773,15 +946,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "matches", "generate"]
             },
-            "description": "Automatically generate round-robin match fixtures for participating franchises."
+            "description": "Auto-generate round-robin match schedule."
           },
           "response": []
         },
         {
-          "name": "Add Match Ball/Event",
+          "name": "Add Match Event / Ball (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -789,7 +966,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"innings\": 1,\n  \"eventType\": \"ball\",\n  \"payload\": {\n    \"runs\": 4,\n    \"isWicket\": false,\n    \"batsman\": \"Virat Kohli\",\n    \"bowler\": \"Jasprit Bumrah\"\n  }\n}",
+              "raw": "{\n  \"innings\": 1,\n  \"eventType\": \"ball\",\n  \"payload\": {\n    \"runs\": 4,\n    \"isWicket\": false,\n    \"extraType\": null\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -801,15 +978,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "matches", "{{matchId}}", "event"]
             },
-            "description": "Record live ball-by-ball scoring event for a match."
+            "description": "Record ball-by-ball match scoring event."
           },
           "response": []
         },
         {
-          "name": "Complete Match",
+          "name": "Complete Match (Admin Only)",
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -817,7 +998,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"winnerTeamId\": \"{{franchiseId}}\",\n  \"resultSummary\": \"CSK won by 5 wickets\",\n  \"homeScore\": \"180/4 (19.2)\",\n  \"awayScore\": \"178/8 (20.0)\"\n}",
+              "raw": "{\n  \"winnerTeamId\": \"fran-csk\",\n  \"resultSummary\": \"CSK won by 5 wickets\",\n  \"homeScore\": {\n    \"runs\": 182,\n    \"overs\": 19.2\n  },\n  \"awayScore\": {\n    \"runs\": 180,\n    \"overs\": 20.0\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -829,20 +1010,25 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "matches", "{{matchId}}", "complete"]
             },
-            "description": "Mark match as complete and update points table standings."
+            "description": "Mark match as completed and recalculate Points Table & NRR."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Reports & Analytics",
+      "name": "8. Reports & Analytics",
       "item": [
         {
           "name": "Get Auction Report",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/reports/auction?tournamentId={{tournamentId}}",
               "host": ["{{baseUrl}}"],
@@ -854,7 +1040,7 @@
                 }
               ]
             },
-            "description": "Get detailed auction summary report, top buys, and franchise spending analytics."
+            "description": "Get detailed auction report and spending breakdown."
           },
           "response": []
         }
