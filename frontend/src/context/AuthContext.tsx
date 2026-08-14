@@ -35,17 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  // Fetch tournaments and validate token session on mount
+  // 1. Validate token session on mount
   useEffect(() => {
-    apiRequest('/tournaments')
-      .then(res => {
-        setTournaments(res);
-        if (res.length > 0) {
-          setCurrentTournamentId(res[0].id);
-        }
-      })
-      .catch(console.error);
-
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
       apiRequest('/auth/me', {
@@ -64,6 +55,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     }
   }, []);
+
+  // 2. Fetch tournaments whenever token becomes available
+  useEffect(() => {
+    const activeToken = token || localStorage.getItem('token');
+    if (!activeToken) return;
+
+    apiRequest('/tournaments')
+      .then(res => {
+        setTournaments(res);
+        if (res.length > 0) {
+          setCurrentTournamentId(res[0].id);
+        }
+      })
+      .catch(console.error);
+  }, [token]);
 
   const login = async (email: string, password: string): Promise<User> => {
     const res = await apiRequest('/auth/login', {

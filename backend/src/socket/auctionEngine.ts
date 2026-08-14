@@ -3,6 +3,7 @@ import { db } from '../db/database';
 import { recordPurseTransaction, getFranchisePurse } from '../services/purseLedgerService';
 import { verifyTokenAndGetUser } from '../services/authService';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateHardSafeLimit, calculateMinimumFutureReserve, parseGroupRules } from '../services/hardSafeLimitCalculator';
 
 interface ActiveLotState {
   lotId: string;
@@ -10,7 +11,7 @@ interface ActiveLotState {
   tournamentId: string;
   playerId: string;
   playerName: string;
-  category: string;
+  group_name: string;
   role: string;
   isForeign: boolean;
   basePrice: number;
@@ -28,6 +29,218 @@ interface ActiveLotState {
 let activeAuctionState: ActiveLotState | null = null;
 let timerInterval: NodeJS.Timeout | null = null;
 
+function calculateDynamicMaxBid(franchiseId: string, playerGroup: string, remainingPurse: number, tournamentId: string): number {
+  const squad = db.prepare(`
+    SELECT p.group_name, al.sold_price 
+    FROM auction_lots al
+    JOIN players p ON al.player_id = p.id
+    WHERE al.buyer_id = ? AND al.status = 'sold'
+  `).all(franchiseId) as { group_name: string; sold_price: number }[];
+
+  const rules = db.prepare('SELECT max_squad, custom_rules_json FROM tournament_rules WHERE tournament_id = ?').get(tournamentId) as any;
+  const customRulesJson = rules?.custom_rules_json;
+
+  if (squad.length >= (rules?.max_squad || 7)) return -1;
+
+  const currentGroupCounts: Record<string, number> = {};
+  squad.forEach((p: any) => {
+    const g = (p.group_name || '').toUpperCase();
+    currentGroupCounts[g] = (currentGroupCounts[g] || 0) + 1;
+  });
+
+  const parsedRules = typeof customRulesJson === 'string' ? JSON.parse(customRulesJson) : customRulesJson;
+  const groupRules = parsedRules?.group_rules || [
+    { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+  ];
+
+  const groupRule = groupRules.find((r: any) => r.group_name.toUpperCase() === playerGroup.toUpperCase());
+  if (groupRule) {
+    const ownedInGroup = currentGroupCounts[playerGroup.toUpperCase()] || 0;
+    const maxAllowed = groupRule.max_players ?? groupRule.min_players;
+    if (ownedInGroup >= maxAllowed) {
+      return -1;
+    }
+  }
+
+  const result = calculateHardSafeLimit({
+    wallet: remainingPurse,
+    squad,
+    currentPlayerGroup: playerGroup,
+    customRulesJson
+  });
+
+  if (remainingPurse < result.minimumFutureReserve) {
+    return -1;
+  }
+
+  return result.hardSafeLimit;
+}
+
+// Transaction-safe bid placement helper
+const placeBidTransaction = db.transaction((params: {
+  franchiseId: string,
+  lotId: string,
+  bidAmount: number,
+  playerGroup: string,
+  tournamentId: string
+}) => {
+  const { franchiseId, lotId, bidAmount, playerGroup, tournamentId } = params;
+
+  const franchise = db.prepare('SELECT * FROM franchises WHERE id = ?').get(franchiseId) as any;
+  if (!franchise) {
+    return { allowed: false, reasonCode: 'FRANCHISE_NOT_FOUND', message: 'Franchise not found.' };
+  }
+
+  const remainingPurse = franchise.remaining_purse;
+
+  const squad = db.prepare(`
+    SELECT p.group_name, al.sold_price 
+    FROM auction_lots al
+    JOIN players p ON al.player_id = p.id
+    WHERE al.buyer_id = ? AND al.status = 'sold'
+  `).all(franchiseId) as { group_name: string; sold_price: number }[];
+
+  const rules = db.prepare('SELECT max_squad, custom_rules_json FROM tournament_rules WHERE tournament_id = ?').get(tournamentId) as any;
+  const maxSquad = rules?.max_squad || 7;
+  if (squad.length >= maxSquad) {
+    return { allowed: false, reasonCode: 'MAX_SQUAD_LIMIT_REACHED', message: `Maximum squad limit of ${maxSquad} players reached!` };
+  }
+
+  const currentGroupCounts: Record<string, number> = {};
+  squad.forEach((p: any) => {
+    const g = (p.group_name || '').toUpperCase();
+    currentGroupCounts[g] = (currentGroupCounts[g] || 0) + 1;
+  });
+
+  const parsedRules = typeof rules?.custom_rules_json === 'string' ? JSON.parse(rules.custom_rules_json) : rules?.custom_rules_json;
+  const groupRules = parsedRules?.group_rules || [
+    { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+  ];
+
+  const groupRule = groupRules.find((r: any) => r.group_name.toUpperCase() === playerGroup.toUpperCase());
+  if (groupRule) {
+    const ownedInGroup = currentGroupCounts[playerGroup.toUpperCase()] || 0;
+    const maxAllowed = groupRule.max_players ?? groupRule.min_players;
+    if (ownedInGroup >= maxAllowed) {
+      return {
+        allowed: false,
+        reasonCode: 'GROUP_LIMIT_EXCEEDED',
+        message: `Bidding blocked: buying this player would violate group limits (Max ${maxAllowed} players allowed for ${playerGroup}).`
+      };
+    }
+  }
+
+  // Global feasibility check (Case 17)
+  const availableQuery = db.prepare(`
+    SELECT p.group_name, COUNT(*) as cnt
+    FROM players p
+    JOIN auction_lots al ON p.id = al.player_id
+    WHERE p.tournament_id = ? 
+      AND p.approval_status = 'approved'
+      AND al.status IN ('queued', 'unsold', 'passed')
+      AND al.id != ?
+    GROUP BY p.group_name
+  `);
+  
+  const availableRows = availableQuery.all(tournamentId, lotId) as { group_name: string; cnt: number }[];
+  const availableCounts: Record<string, number> = {};
+  availableRows.forEach(row => {
+    availableCounts[row.group_name.toUpperCase()] = row.cnt;
+  });
+
+  const franchisesList = db.prepare('SELECT id FROM franchises WHERE tournament_id = ?').all(tournamentId) as { id: string }[];
+  
+  for (const rule of groupRules) {
+    const gName = rule.group_name.toUpperCase();
+    let totalOutstanding = 0;
+
+    for (const f of franchisesList) {
+      const fSquad = db.prepare(`
+        SELECT p.group_name 
+        FROM auction_lots al
+        JOIN players p ON al.player_id = p.id
+        WHERE al.buyer_id = ? AND al.status = 'sold'
+      `).all(f.id) as { group_name: string }[];
+
+      let owned = fSquad.filter(p => (p.group_name || '').toUpperCase() === gName).length;
+      if (f.id === franchiseId && gName === playerGroup.toUpperCase()) {
+        owned++;
+      }
+
+      const needed = Math.max(0, rule.min_players - owned);
+      totalOutstanding += needed;
+    }
+
+    const available = availableCounts[gName] || 0;
+    if (available < totalOutstanding) {
+      return {
+        allowed: false,
+        reasonCode: 'INSUFFICIENT_POOL_PLAYERS',
+        message: `Bidding blocked: buying this player would leave the player pool with too few ${gName} players to complete all franchise teams.`
+      };
+    }
+  }
+
+  const result = calculateMinimumFutureReserve(
+    { squad, remainingPurse },
+    playerGroup,
+    { custom_rules_json: rules?.custom_rules_json }
+  );
+
+  const hardSafeLimit = result.hardSafeLimit;
+  const minimumFutureReserve = result.totalReserve;
+
+  if (remainingPurse < minimumFutureReserve) {
+    return {
+      allowed: false,
+      reasonCode: 'TEAM_COMPLETION_FINANCIAL_RISK',
+      message: 'You do not have enough money left to complete your required team composition.',
+      requestedBid: bidAmount,
+      hardSafeLimit: 0,
+      currentWallet: remainingPurse,
+      minimumFutureReserve
+    };
+  }
+
+  if (bidAmount > hardSafeLimit) {
+    return {
+      allowed: false,
+      reasonCode: 'HARD_SAFE_LIMIT_EXCEEDED',
+      message: 'Bid exceeds the maximum amount you can safely spend while completing your team.',
+      requestedBid: bidAmount,
+      hardSafeLimit,
+      currentWallet: remainingPurse,
+      minimumFutureReserve
+    };
+  }
+
+  const bidId = uuidv4();
+  db.prepare(`
+    INSERT INTO bids (id, lot_id, franchise_id, amount)
+    VALUES (?, ?, ?, ?)
+  `).run(bidId, lotId, franchiseId, bidAmount);
+
+  db.prepare(`
+    UPDATE auction_lots
+    SET current_highest_bid = ?, current_bidder_id = ?
+    WHERE id = ?
+  `).run(bidAmount, franchiseId, lotId);
+
+  return {
+    allowed: true,
+    hardSafeLimit,
+    requestedBid: bidAmount,
+    currentWallet: remainingPurse,
+    futureReserve: minimumFutureReserve,
+    franchiseName: franchise.name,
+    franchiseShort: franchise.short_name
+  };
+});
+
 export function setupAuctionSocket(io: Server) {
   const auctionRoom = 'auction_room';
 
@@ -35,8 +248,8 @@ export function setupAuctionSocket(io: Server) {
   io.use((socket: Socket, next) => {
     try {
       const rawToken = socket.handshake.auth?.token ||
-                       socket.handshake.headers?.authorization?.replace('Bearer ', '') ||
-                       socket.handshake.query?.token;
+        socket.handshake.headers?.authorization?.replace('Bearer ', '') ||
+        socket.handshake.query?.token;
 
       if (!rawToken) {
         // Unauthenticated spectator mode
@@ -64,20 +277,37 @@ export function setupAuctionSocket(io: Server) {
     return true;
   }
 
-  function calculateMinNextBid(currentBid: number, basePrice: number): number {
+  function calculateMinNextBid(currentBid: number, basePrice: number, tournamentId: string): number {
     if (currentBid === 0) return basePrice;
 
-    // Default ladder
-    if (currentBid < 10000000) return currentBid + 1000000;       // < 1 Cr: +10 Lakhs
-    if (currentBid < 50000000) return currentBid + 2500000;       // < 5 Cr: +25 Lakhs
-    if (currentBid < 100000000) return currentBid + 5000000;      // < 10 Cr: +50 Lakhs
-    return currentBid + 10000000;                                 // >= 10 Cr: +1 Cr
+    try {
+      const rules = db.prepare('SELECT increment_ladder FROM tournament_rules WHERE tournament_id = ?').get(tournamentId) as any;
+      if (rules?.increment_ladder) {
+        const ladder = typeof rules.increment_ladder === 'string' ? JSON.parse(rules.increment_ladder) : rules.increment_ladder;
+        if (Array.isArray(ladder) && ladder.length > 0) {
+          const sorted = [...ladder].sort((x: any, y: any) => x.upto - y.upto);
+          for (const step of sorted) {
+            if (currentBid < step.upto) {
+              return currentBid + step.increment;
+            }
+          }
+          return currentBid + sorted[sorted.length - 1].increment;
+        }
+      }
+    } catch (e) {
+      console.error('[AuctionEngine] Failed to parse increment_ladder:', e);
+    }
+
+    if (currentBid < 1000) return currentBid + 10;
+    if (currentBid < 5000) return currentBid + 25;
+    if (currentBid < 10000) return currentBid + 50;
+    return currentBid + 100;
   }
 
   function broadcastState() {
     if (!activeAuctionState) return;
 
-    const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
+    const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice, activeAuctionState.tournamentId);
     io.to(auctionRoom).emit('auction:state', {
       ...activeAuctionState,
       minNextBid
@@ -135,7 +365,7 @@ export function setupAuctionSocket(io: Server) {
         -finalPrice,
         'bid_deduction',
         lotId,
-        `Purchased ${activeAuctionState.playerName} for ₹${(finalPrice / 10000000).toFixed(2)} Cr (Auto-close)`
+        `Purchased ${activeAuctionState.playerName} for ₹${finalPrice} rs (Auto-close)`
       );
 
       activeAuctionState.status = 'sold';
@@ -144,7 +374,7 @@ export function setupAuctionSocket(io: Server) {
 
       io.to(auctionRoom).emit('auction:event', {
         type: 'sold',
-        message: `⏱ TIMER EXPIRED → SOLD! ${activeAuctionState.playerName} to ${activeAuctionState.highestBidderName} for ₹${(finalPrice / 10000000).toFixed(2)} Cr!`
+        message: `⏱ TIMER EXPIRED → SOLD! ${activeAuctionState.playerName} to ${activeAuctionState.highestBidderName} for ₹${finalPrice} rs!`
       });
     } else {
       // No bids at all
@@ -196,7 +426,7 @@ export function setupAuctionSocket(io: Server) {
   function loadLotState(lotIdOrPlayerId: string): ActiveLotState {
     console.log('[AuctionEngine] Loading lot state for:', lotIdOrPlayerId);
     const lot = db.prepare(`
-      SELECT al.*, p.name as player_name, p.category, p.role, p.is_foreign, p.base_price, p.photo_url,
+      SELECT al.*, p.name as player_name, p.group_name, p.role, p.is_foreign, p.base_price, p.photo_url,
              f.name as bidder_name, f.short_name as bidder_short,
              ases.timer_seconds as session_timer_seconds, ases.timer_enabled as session_timer_enabled
       FROM auction_lots al
@@ -221,7 +451,7 @@ export function setupAuctionSocket(io: Server) {
       tournamentId: lot.tournament_id,
       playerId: lot.player_id,
       playerName: lot.player_name,
-      category: lot.category,
+      group_name: lot.group_name,
       role: lot.role,
       isForeign: Boolean(lot.is_foreign),
       basePrice: lot.base_price,
@@ -246,11 +476,11 @@ export function setupAuctionSocket(io: Server) {
 
       // If active state exists, emit immediately to the joining client
       if (activeAuctionState && activeAuctionState.tournamentId === tournamentId) {
-        const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
+        const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice, activeAuctionState.tournamentId);
         socket.emit('auction:state', { ...activeAuctionState, minNextBid });
       } else if (activeAuctionState && activeAuctionState.status === 'live') {
         // Different tournament but there's a live lot - still share state
-        const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
+        const minNextBid = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice, activeAuctionState.tournamentId);
         socket.emit('auction:state', { ...activeAuctionState, minNextBid });
       } else {
         // Try loading current live or first queued lot from DB
@@ -263,7 +493,7 @@ export function setupAuctionSocket(io: Server) {
             const lotState = loadLotState(session.current_lot_id);
             if (lotState.status === 'live') {
               activeAuctionState = lotState;
-              const minNextBid = calculateMinNextBid(lotState.currentBid, lotState.basePrice);
+              const minNextBid = calculateMinNextBid(lotState.currentBid, lotState.basePrice, lotState.tournamentId);
               socket.emit('auction:state', { ...lotState, minNextBid });
             }
           } catch (e) {
@@ -305,7 +535,7 @@ export function setupAuctionSocket(io: Server) {
         startTimer();
         broadcastState();
 
-        const msg = `🟢 Auction started for ${state.playerName} — Base: ₹${(state.basePrice / 10000000).toFixed(2)} Cr`;
+        const msg = `🟢 Auction started for ${state.playerName} — Base: ₹${state.basePrice} rs`;
         console.log(`[AuctionEngine] ${msg}`);
         io.to(auctionRoom).emit('auction:event', { type: 'lot_started', message: msg });
       } catch (err: any) {
@@ -321,94 +551,88 @@ export function setupAuctionSocket(io: Server) {
       const socketUser = (socket as any).user;
       if (socketUser.role === 'Franchise Owner' && socketUser.franchise_id && socketUser.franchise_id !== franchiseId) {
         return socket.emit('bid:rejected', {
-          reason: `403 Forbidden: You can only place bids on behalf of your assigned franchise (${socketUser.franchise_short || socketUser.franchise_id}).`
+          allowed: false,
+          reasonCode: 'FORBIDDEN',
+          message: `403 Forbidden: You can only place bids on behalf of your assigned franchise.`
         });
       }
       if (!activeAuctionState || activeAuctionState.status !== 'live') {
-        return socket.emit('bid:rejected', { reason: 'No active lot currently accepting bids.' });
+        return socket.emit('bid:rejected', {
+          allowed: false,
+          reasonCode: 'LOT_NOT_LIVE',
+          message: 'No active lot currently accepting bids.'
+        });
       }
 
       if (activeAuctionState.isPaused) {
-        return socket.emit('bid:rejected', { reason: 'Auction is currently paused by operator.' });
+        return socket.emit('bid:rejected', {
+          allowed: false,
+          reasonCode: 'AUCTION_PAUSED',
+          message: 'Auction is currently paused by operator.'
+        });
       }
 
       // Check duplicate leading bidder
       if (activeAuctionState.highestBidderId === franchiseId) {
-        return socket.emit('bid:rejected', { reason: 'Your franchise is already the highest bidder!' });
-      }
-
-      // Check min required increment
-      // const minRequired = calculateMinNextBid(activeAuctionState.currentBid, activeAuctionState.basePrice);
-      // if (bidAmount < minRequired) {
-      //   return socket.emit('bid:rejected', { reason: `Bid must be at least ₹${(minRequired / 10000000).toFixed(2)} Cr` });
-
-      if (activeAuctionState.currentBid === 0) {
-        if (bidAmount < activeAuctionState.basePrice) {
-          return socket.emit('bid:rejected', { reason: `Opening bid must be at least base price of ₹${(activeAuctionState.basePrice / 10000000).toFixed(2)} Cr` });
-        }
-      } else if (bidAmount <= activeAuctionState.currentBid) {
-        return socket.emit('bid:rejected', { reason: 'Bid must be higher than the current bid!' });
-      }
-      // }
-
-      // Check franchise purse availability & squad rules
-      const franchise = db.prepare('SELECT * FROM franchises WHERE id = ?').get(franchiseId) as any;
-      if (!franchise) return socket.emit('bid:rejected', { reason: 'Franchise not found.' });
-
-      const purse = getFranchisePurse(franchiseId);
-      if (purse.remainingPurse < bidAmount) {
         return socket.emit('bid:rejected', {
-          reason: `Insufficient purse! Remaining: ₹${(purse.remainingPurse / 10000000).toFixed(2)} Cr, Required: ₹${(bidAmount / 10000000).toFixed(2)} Cr`
+          allowed: false,
+          reasonCode: 'ALREADY_LEADING',
+          message: 'Your franchise is already the highest bidder!'
         });
       }
 
-      // Check squad size limits
-      const rules = db.prepare('SELECT max_squad, foreign_player_limit FROM tournament_rules WHERE tournament_id = ?').get(activeAuctionState.tournamentId) as any;
-      const squadCount = db.prepare("SELECT count(*) as count FROM auction_lots WHERE buyer_id = ? AND status = 'sold'").get(franchiseId) as any;
-
-      if (rules && squadCount.count >= rules.max_squad) {
-        return socket.emit('bid:rejected', { reason: `Maximum squad limit of ${rules.max_squad} players reached!` });
-      }
-
-      if (activeAuctionState.isForeign && rules) {
-        const foreignCount = db.prepare(`
-          SELECT count(*) as count FROM auction_lots al
-          JOIN players p ON al.player_id = p.id
-          WHERE al.buyer_id = ? AND al.status = 'sold' AND p.is_foreign = 1
-        `).get(franchiseId) as any;
-
-        if (foreignCount.count >= rules.foreign_player_limit) {
-          return socket.emit('bid:rejected', { reason: `Foreign player limit of ${rules.foreign_player_limit} reached!` });
+      // Check min required increments
+      if (activeAuctionState.currentBid === 0) {
+        if (bidAmount < activeAuctionState.basePrice) {
+          return socket.emit('bid:rejected', {
+            allowed: false,
+            reasonCode: 'BID_BELOW_BASE',
+            message: `Opening bid must be at least base price of ₹${activeAuctionState.basePrice} rs`
+          });
         }
+      } else if (bidAmount <= activeAuctionState.currentBid) {
+        return socket.emit('bid:rejected', {
+          allowed: false,
+          reasonCode: 'BID_NOT_HIGHER',
+          message: 'Bid must be higher than the current bid!'
+        });
       }
 
-      // Bid is VALID! Record bid in DB and update active state
-      const bidId = uuidv4();
-      db.prepare(`
-        INSERT INTO bids (id, lot_id, franchise_id, amount)
-        VALUES (?, ?, ?, ?)
-      `).run(bidId, activeAuctionState.lotId, franchiseId, bidAmount);
+      // Run transactional evaluation & execution
+      const txnResult = placeBidTransaction({
+        franchiseId,
+        lotId: activeAuctionState.lotId,
+        bidAmount,
+        playerGroup: activeAuctionState.group_name,
+        tournamentId: activeAuctionState.tournamentId
+      });
 
-      db.prepare(`
-        UPDATE auction_lots
-        SET current_highest_bid = ?, current_bidder_id = ?
-        WHERE id = ?
-      `).run(bidAmount, franchiseId, activeAuctionState.lotId);
+      if (!txnResult.allowed) {
+        return socket.emit('bid:rejected', txnResult);
+      }
 
+      // Success! Update memory state
       activeAuctionState.currentBid = bidAmount;
       activeAuctionState.highestBidderId = franchiseId;
-      activeAuctionState.highestBidderName = franchise.name;
-      activeAuctionState.highestBidderShort = franchise.short_name;
+      activeAuctionState.highestBidderName = txnResult.franchiseName;
+      activeAuctionState.highestBidderShort = txnResult.franchiseShort;
       if (activeAuctionState.timerEnabled) {
-        activeAuctionState.timer = activeAuctionState.timerDuration; // Reset timer on active bid
+        activeAuctionState.timer = activeAuctionState.timerDuration;
       }
 
-      socket.emit('bid:accepted', { amount: bidAmount });
+      socket.emit('bid:accepted', {
+        allowed: true,
+        hardSafeLimit: txnResult.hardSafeLimit,
+        requestedBid: bidAmount,
+        currentWallet: txnResult.currentWallet,
+        futureReserve: txnResult.futureReserve
+      });
+
       broadcastState();
 
       io.to(auctionRoom).emit('auction:event', {
         type: 'new_bid',
-        message: `💰 ${franchise.short_name} bid ₹${(bidAmount / 10000000).toFixed(2)} Cr for ${activeAuctionState.playerName}`
+        message: `💰 ${txnResult.franchiseShort} bid ₹${bidAmount} rs for ${activeAuctionState.playerName}`
       });
     });
 
@@ -439,7 +663,7 @@ export function setupAuctionSocket(io: Server) {
         -finalPrice,
         'bid_deduction',
         lotId,
-        `Purchased ${activeAuctionState.playerName} for ₹${(finalPrice / 10000000).toFixed(2)} Cr`
+        `Purchased ${activeAuctionState.playerName} for ₹${finalPrice} rs`
       );
 
       activeAuctionState.status = 'sold';
@@ -448,7 +672,7 @@ export function setupAuctionSocket(io: Server) {
 
       io.to(auctionRoom).emit('auction:event', {
         type: 'sold',
-        message: `🏏 SOLD! ${activeAuctionState.playerName} → ${activeAuctionState.highestBidderName} for ₹${(finalPrice / 10000000).toFixed(2)} Cr!`
+        message: `🏏 SOLD! ${activeAuctionState.playerName} → ${activeAuctionState.highestBidderName} for ₹${finalPrice} rs!`
       });
     });
 
@@ -602,7 +826,7 @@ export function setupAuctionSocket(io: Server) {
 
         io.to(auctionRoom).emit('auction:event', {
           type: 'rollback',
-          message: `🔄 Sale ROLLBACK for ${player?.name || 'player'}. ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`
+          message: `🔄 Sale ROLLBACK for ${player?.name || 'player'}. ₹${refundAmount} rs refunded.`
         });
       } catch (err: any) {
         console.error('[AuctionEngine] Error in operator:rollback_sale:', err.message);

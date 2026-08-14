@@ -54,12 +54,11 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS tournament_rules (
       id TEXT PRIMARY KEY,
       tournament_id TEXT UNIQUE NOT NULL,
-      purse_budget REAL DEFAULT 1000000000, -- e.g. 100 Cr (in rupees)
-      min_squad INTEGER DEFAULT 15,
-      max_squad INTEGER DEFAULT 25,
-      foreign_player_limit INTEGER DEFAULT 8,
+      purse_budget REAL DEFAULT 10000, -- e.g. 10k per team
+      min_squad INTEGER DEFAULT 7,
+      max_squad INTEGER DEFAULT 7,
       rtm_count_per_team INTEGER DEFAULT 2,
-      base_price_tiers TEXT, -- JSON array of base price values in INR e.g. [20000000, 15000000, 10000000, 5000000, 2000000]
+      base_price_tiers TEXT, -- JSON array of base price values e.g. [200, 150, 100, 50, 20]
       increment_ladder TEXT, -- JSON array of thresholds & increments
       custom_rules_json TEXT,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
@@ -89,10 +88,10 @@ export function initDatabase() {
       user_id TEXT,
       tournament_id TEXT NOT NULL,
       name TEXT NOT NULL,
-      category TEXT NOT NULL, -- Marquee, Tier-1, Tier-2, Tier-3
+      group_name TEXT NOT NULL, -- GROUP A, GROUP B, GROUP C
       role TEXT NOT NULL, -- Batsman, Bowler, All-Rounder, Wicket-Keeper
       is_foreign INTEGER DEFAULT 0, -- 0 or 1
-      country TEXT DEFAULT 'India',
+      status TEXT DEFAULT 'Newcomer', -- Returning, Newcomer
       base_price REAL NOT NULL,
       photo_url TEXT,
       document_url TEXT,

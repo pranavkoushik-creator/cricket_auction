@@ -22,7 +22,7 @@ export function seedData() {
     'active'
   );
 
-  // 2. Create Core Users (3 Core Roles: Super Admin, Franchise Owners, Player)
+  // 2. Create Core Users
   const users = [
     { id: 'usr-admin', name: 'Pranav Koushik (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
     { id: 'usr-owner-mi', name: 'Nita Ambani (MI Owner)', email: 'mi@franchise.com', role: 'Franchise Owner' },
@@ -45,36 +45,55 @@ export function seedData() {
   `);
 
   for (const u of users) {
-    insertUser.run(u.id, u.name, u.email, passwordHash, `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`);
+    insertUser.run(u.id, u.name, u.email, passwordHash, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80');
     insertRole.run(uuidv4(), u.id, tId, u.role);
   }
 
-  // Check if main tournament data (franchises, players, etc.) seeded already
-  const fCount = db.prepare('SELECT count(*) as count FROM franchises').get() as { count: number };
-  if (fCount.count > 0) {
-    console.log('Database tournament structure already seeded.');
-    return;
-  }
+  // Clear existing players, lots, bids for fresh seed
+  db.prepare('DELETE FROM match_events').run();
+  db.prepare('DELETE FROM matches').run();
+  db.prepare('DELETE FROM points_table').run();
+  db.prepare('DELETE FROM bids').run();
+  db.prepare('DELETE FROM auction_lots').run();
+  db.prepare('DELETE FROM purse_ledger').run();
+  db.prepare('DELETE FROM players').run();
+  db.prepare('DELETE FROM franchises').run();
 
   console.log('Seeding initial IPL Tournament, Roles, Franchises, Players, and Fixtures...');
 
   // 3. Create Tournament Rules
   const incrementLadder = JSON.stringify([
-    { upto: 10000000, increment: 1000000 },      // Up to 1 Cr: +10 Lakhs
-    { upto: 50000000, increment: 2500000 },      // Up to 5 Cr: +25 Lakhs
-    { upto: 100000000, increment: 5000000 },     // Up to 10 Cr: +50 Lakhs
-    { upto: 9999999999, increment: 10000000 }    // Above 10 Cr: +1 Crore
+    { upto: 1000000, increment: 5000 },
+    { upto: 5000000, increment: 10000 },
+    { upto: 10000000, increment: 25000 },
+    { upto: 9999999999, increment: 50000 }
   ]);
 
-  const basePriceTiers = JSON.stringify([20000000, 15000000, 10000000, 5000000, 2000000]); // 2 Cr, 1.5 Cr, 1 Cr, 50 L, 20 L in INR
+  const basePriceTiers = JSON.stringify([100000, 50000, 25000]);
+
+  const customRules = JSON.stringify({
+    group_rules: [
+      { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
+      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
+      { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    ],
+    bid_increments: [5000, 10000, 25000, 50000]
+  });
 
   db.prepare(`
-    INSERT INTO tournament_rules (id, tournament_id, purse_budget, min_squad, max_squad, foreign_player_limit, rtm_count_per_team, base_price_tiers, increment_ladder)
-    VALUES (?, ?, 1000000000, 15, 25, 8, 2, ?, ?)
-  `).run(uuidv4(), tId, basePriceTiers, incrementLadder);
+    INSERT INTO tournament_rules (id, tournament_id, purse_budget, min_squad, max_squad, rtm_count_per_team, base_price_tiers, increment_ladder, custom_rules_json)
+    VALUES (?, ?, 1000000, 7, 7, 2, ?, ?, ?)
+    ON CONFLICT(tournament_id) DO UPDATE SET 
+      purse_budget = excluded.purse_budget,
+      min_squad = excluded.min_squad,
+      max_squad = excluded.max_squad,
+      base_price_tiers = excluded.base_price_tiers,
+      increment_ladder = excluded.increment_ladder,
+      custom_rules_json = excluded.custom_rules_json
+  `).run(uuidv4(), tId, basePriceTiers, incrementLadder, customRules);
 
-  // 4. Create 4 Franchises with ₹100 Crore purse each
-  const initialPurse = 1000000000; // 100 Crore Rupees
+  // 4. Create 4 Franchises with ₹1,000,000 purse each
+  const initialPurse = 1000000;
   const franchises = [
     { id: 'fran-mi', name: 'Mumbai Strikers', short: 'MI', color: '#004BA0', secColor: '#D1AB3E', owner: 'usr-owner-mi' },
     { id: 'fran-csk', name: 'Chennai Super Kings', short: 'CSK', color: '#FCCA06', secColor: '#00529C', owner: 'usr-owner-csk' },
@@ -93,7 +112,7 @@ export function seedData() {
   `);
 
   for (const f of franchises) {
-    const logo = `https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=150&auto=format&fit=crop&q=80`;
+    const logo = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=150&auto=format&fit=crop&q=80';
     insertFranchise.run(f.id, tId, f.name, f.short, logo, f.color, f.secColor, f.owner, initialPurse, initialPurse);
     insertLedger.run(uuidv4(), f.id, initialPurse, initialPurse);
 
@@ -101,33 +120,57 @@ export function seedData() {
     db.prepare(`
       INSERT INTO points_table (id, tournament_id, franchise_id, played, won, lost, tied, no_result, points, nrr, position)
       VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0, 0.000, 1)
+      ON CONFLICT DO NOTHING
     `).run(uuidv4(), tId, f.id);
   }
 
-  // 5. Create 18 Realistic Players
+  // 5. Create 39 Players from PDF
   const playersData = [
-    { name: 'Virat Kohli', category: 'Marquee', role: 'Batsman', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 237, runs: 7263, avg: 37.2, sr: 130.0 } },
-    { name: 'Rohit Sharma', category: 'Marquee', role: 'Batsman', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 243, runs: 6211, avg: 29.5, sr: 130.8 } },
-    { name: 'Jasprit Bumrah', category: 'Marquee', role: 'Bowler', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 120, wickets: 145, economy: 7.39, avg: 23.3 } },
-    { name: 'MS Dhoni', category: 'Marquee', role: 'Wicket-Keeper', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 250, runs: 5082, avg: 38.8, sr: 135.9 } },
-    { name: 'Rashid Khan', category: 'Marquee', role: 'All-Rounder', is_foreign: 1, country: 'Afghanistan', base: 20000000, stats: { matches: 109, wickets: 139, economy: 6.67, runs: 443 } },
-    { name: 'Travis Head', category: 'Tier-1', role: 'Batsman', is_foreign: 1, country: 'Australia', base: 20000000, stats: { matches: 25, runs: 567, avg: 35.4, sr: 185.2 } },
-    { name: 'Hardik Pandya', category: 'Tier-1', role: 'All-Rounder', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 123, runs: 2309, wickets: 53, sr: 145.8 } },
-    { name: 'KL Rahul', category: 'Tier-1', role: 'Wicket-Keeper', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 118, runs: 4163, avg: 45.8, sr: 134.6 } },
-    { name: 'Mitchell Starc', category: 'Tier-1', role: 'Bowler', is_foreign: 1, country: 'Australia', base: 20000000, stats: { matches: 39, wickets: 51, economy: 8.8, avg: 24.1 } },
-    { name: 'Rishabh Pant', category: 'Tier-1', role: 'Wicket-Keeper', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 98, runs: 2838, avg: 34.6, sr: 148.0 } },
-    { name: 'Suryakumar Yadav', category: 'Tier-1', role: 'Batsman', is_foreign: 0, country: 'India', base: 20000000, stats: { matches: 139, runs: 3249, avg: 31.8, sr: 143.3 } },
-    { name: 'Trent Boult', category: 'Tier-2', role: 'Bowler', is_foreign: 1, country: 'New Zealand', base: 15000000, stats: { matches: 88, wickets: 105, economy: 8.2, avg: 26.5 } },
-    { name: 'Shubman Gill', category: 'Tier-2', role: 'Batsman', is_foreign: 0, country: 'India', base: 15000000, stats: { matches: 91, runs: 2790, avg: 37.7, sr: 134.1 } },
-    { name: 'Ravindra Jadeja', category: 'Tier-2', role: 'All-Rounder', is_foreign: 0, country: 'India', base: 15000000, stats: { matches: 226, runs: 2692, wickets: 152, sr: 128.6 } },
-    { name: 'Nicholas Pooran', category: 'Tier-2', role: 'Wicket-Keeper', is_foreign: 1, country: 'West Indies', base: 15000000, stats: { matches: 62, runs: 1270, avg: 26.4, sr: 156.8 } },
-    { name: 'Yuzvendra Chahal', category: 'Tier-2', role: 'Bowler', is_foreign: 0, country: 'India', base: 10000000, stats: { matches: 145, wickets: 187, economy: 7.67, avg: 21.6 } },
-    { name: 'Heinrich Klaasen', category: 'Tier-3', role: 'Batsman', is_foreign: 1, country: 'South Africa', base: 10000000, stats: { matches: 19, runs: 514, avg: 36.7, sr: 177.2 } },
-    { name: 'Rinku Singh', category: 'Tier-3', role: 'Batsman', is_foreign: 0, country: 'India', base: 5000000, stats: { matches: 31, runs: 725, avg: 36.2, sr: 142.1 } }
-  ];
+    { name: 'Ajey Simha', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 1, "Runs": 43, "Strike Rate": 268, "Wickets": 1 } },
+    { name: 'Arun Kumar HR', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 91, "Strike Rate": 260, "Wickets": 5 } },
+    { name: 'Dushyanth S J', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 4, "Runs": 252, "Strike Rate": 327, "Wickets": 2 } },
+    { name: 'HEMANTH R', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 2, "Runs": 32, "Strike Rate": 246, "Wickets": 4 } },
+    { name: 'Manoj M R', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 4, "Runs": 28, "Strike Rate": 121, "Wickets": 1 } },
+    { name: 'Rishav D Raj', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 2, "Runs": 88, "Strike Rate": 283, "Wickets": 0 } },
+    { name: 'Santhosh M', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 18, "Strike Rate": 78, "Wickets": 0 } },
+    { name: 'SAYAM D jAIN', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 199, "Strike Rate": 288, "Wickets": 3 } },
+    { name: 'Srivathsa E R', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 51, "Strike Rate": 231, "Wickets": 1 } },
+    { name: 'Suhas Gowda', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 153, "Strike Rate": 239, "Wickets": 2 } },
+    { name: 'Sujan Shetty', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 55, "Strike Rate": 196, "Wickets": 2 } },
+    { name: 'Surya H R', group_name: 'GROUP A', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 153, "Strike Rate": 272, "Wickets": 1 } },
+    { name: 'Ankit Kumar', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 1, "Runs": 1, "Strike Rate": 12, "Wickets": 0 } },
+    { name: 'Kiran Kumar HA', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 2, "Runs": 11, "Strike Rate": 73, "Wickets": 0 } },
+    { name: 'Manoj K N', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Milap Nagar', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Nandan', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Nithesh', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 3, "Runs": 2, "Strike Rate": 133, "Wickets": 2 } },
+    { name: 'Noor Athil', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Punith N', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Rakesh YS', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Ratikanta Mohapatra', group_name: 'GROUP B', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Revana Siddappa', group_name: 'GROUP B', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Sarang Kaliyath', group_name: 'GROUP B', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Shrishail Chanaveer', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Srinidhi A', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Sushil Kumar Singh', group_name: 'GROUP B', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Yashas Kumar S', group_name: 'GROUP B', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 50, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Dinesh Gowd Patel', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Karthik Shastry', group_name: 'GROUP C', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 3, "Runs": 6, "Strike Rate": 75, "Wickets": 0 } },
+    { name: 'Krishnasis', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Pranav Koushik N', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Pushpalatha G', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Rajdhilip G', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Samir', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Shakib Jilani', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'shashank d r', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Siba Prasad Hota', group_name: 'GROUP C', status: 'Returning', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Suchith M S', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Viral Upendrabhai Vasoya', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Vivek Kulkarni', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } },
+    { name: 'Vyom Kumar Mittal', group_name: 'GROUP C', status: 'Newcomer', role: 'All-Rounder', is_foreign: 0, base: 25, stats: { "Innings": 0, "Runs": 0, "Strike Rate": 0, "Wickets": 0 } }];
 
   const insertPlayer = db.prepare(`
-    INSERT INTO players (id, tournament_id, name, category, role, is_foreign, country, base_price, approval_status, stats_json, photo_url)
+    INSERT INTO players (id, tournament_id, name, group_name, role, is_foreign, status, base_price, approval_status, stats_json, photo_url)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
   `);
 
@@ -141,17 +184,17 @@ export function seedData() {
 
   for (let i = 0; i < playersData.length; i++) {
     const p = playersData[i];
-    const pId = `ply-${i + 1}`;
+    const pId = 'ply-' + (i + 1);
     createdPlayerIds.push(pId);
     insertPlayer.run(
       pId,
       tId,
       p.name,
-      p.category,
+      p.group_name,
       p.role,
       p.is_foreign,
-      p.country,
-      p.base,
+      p.status,
+      p.base * 1000,
       JSON.stringify(p.stats),
       photos[i % photos.length]
     );
@@ -162,6 +205,7 @@ export function seedData() {
   db.prepare(`
     INSERT INTO auction_sessions (id, tournament_id, status, current_lot_id, timer_seconds, timer_enabled)
     VALUES (?, ?, 'scheduled', null, 15, 1)
+    ON CONFLICT DO NOTHING
   `).run(sessionId, tId);
 
   const insertLot = db.prepare(`
@@ -169,39 +213,23 @@ export function seedData() {
     VALUES (?, ?, ?, ?, ?, ?, 'queued', 0)
   `);
 
+  let seq = 1;
   for (let i = 0; i < createdPlayerIds.length; i++) {
     const pId = createdPlayerIds[i];
     const pData = playersData[i];
-    const lotId = `lot-${i + 1}`;
+    const lotId = 'lot-' + (i + 1);
     insertLot.run(
       lotId,
       sessionId,
       tId,
       pId,
-      i + 1,
-      `Set ${Math.floor(i / 5) + 1} - ${pData.category}`
+      seq++,
+      pData.group_name
     );
   }
 
   // Set the first lot as current in the session
   db.prepare('UPDATE auction_sessions SET current_lot_id = ? WHERE id = ?').run('lot-1', sessionId);
-
-  // 7. Create Sample Matches for Match Scheduling & Scoring Demo
-  const matches = [
-    { id: 'match-1', num: 1, stage: 'Group Stage', home: 'fran-mi', away: 'fran-csk', venue: 'Wankhede Stadium, Mumbai', time: '2026-08-15 19:30:00', status: 'upcoming' },
-    { id: 'match-2', num: 2, stage: 'Group Stage', home: 'fran-rcb', away: 'fran-dc', venue: 'M. Chinnaswamy Stadium, Bengaluru', time: '2026-08-16 19:30:00', status: 'upcoming' },
-    { id: 'match-3', num: 3, stage: 'Group Stage', home: 'fran-csk', away: 'fran-rcb', venue: 'MA Chidambaram Stadium, Chennai', time: '2026-08-18 19:30:00', status: 'upcoming' },
-    { id: 'match-4', num: 4, stage: 'Group Stage', home: 'fran-mi', away: 'fran-dc', venue: 'Arun Jaitley Stadium, Delhi', time: '2026-08-20 19:30:00', status: 'upcoming' }
-  ];
-
-  const insertMatch = db.prepare(`
-    INSERT INTO matches (id, tournament_id, match_number, stage, home_team_id, away_team_id, venue, scheduled_time, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  for (const m of matches) {
-    insertMatch.run(m.id, tId, m.num, m.stage, m.home, m.away, m.venue, m.time, m.status);
-  }
 
   console.log('Seeding completed successfully!');
 }

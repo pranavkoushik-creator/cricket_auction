@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import { BarChart3, Trophy, DollarSign, FileSpreadsheet } from 'lucide-react';
 
 export const AnalyticsReportsView: React.FC = () => {
   const { currentTournamentId } = useAuth();
+  const { eventsLog, auctionState } = useAuctionSocket();
   const [report, setReport] = useState<any>(null);
+
+  const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
 
   useEffect(() => {
     apiRequest(`/reports/auction?tournamentId=${currentTournamentId}`)
       .then(setReport)
       .catch(console.error);
-  }, [currentTournamentId]);
+  }, [currentTournamentId, lastRollbackTime, auctionState?.status]);
 
   if (!report) return <div className="p-8 text-center text-gray-400">Loading auction analytics & reports...</div>;
 
   const exportCSV = () => {
-    let csv = 'Player Name,Category,Role,Buyer Franchise,Sold Price (INR)\n';
+    let csv = 'Player Name,Group,Role,Buyer Franchise,Sold Price (INR)\n';
     report.sold_lots.forEach((l: any) => {
-      csv += `"${l.player_name}","${l.category}","${l.role}","${l.buyer_name}",${l.sold_price}\n`;
+      csv += `"${l.player_name}","${l.group_name}","${l.role}","${l.buyer_name}",${l.sold_price}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

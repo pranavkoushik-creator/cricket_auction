@@ -97,7 +97,7 @@ export const SpectatorAuctionView: React.FC = () => {
               {/* Header Badges */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black px-3.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 uppercase tracking-wider">
-                  SET {auctionState.category?.toUpperCase()} · {auctionState.role?.toUpperCase()}
+                  SET {auctionState.group_name?.toUpperCase()} · {auctionState.role?.toUpperCase()}
                 </span>
 
                 <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
@@ -186,7 +186,7 @@ export const SpectatorAuctionView: React.FC = () => {
                     />
                     <div>
                       <span className="text-[10px] text-yellow-400 font-extrabold uppercase tracking-wider block">
-                        {auctionState.category} · {auctionState.role}
+                        {auctionState.group_name} · {auctionState.role}
                       </span>
                       <h4 className="text-xl font-black text-white font-broadcast">{auctionState.playerName}</h4>
                       <span className="text-xs text-gray-400">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>

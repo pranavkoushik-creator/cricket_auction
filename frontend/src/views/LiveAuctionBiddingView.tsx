@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
@@ -13,6 +13,26 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
   const [franchises, setFranchises] = useState<any[]>([]);
   const [currentFranchise, setCurrentFranchise] = useState<any>(null);
+  const [tournament, setTournament] = useState<any>(null);
+  const [rosterFilter, setRosterFilter] = useState<'ALL' | 'GROUP A' | 'GROUP B' | 'GROUP C'>('ALL');
+  const [hoveredBidAmount, setHoveredBidAmount] = useState<number | null>(null);
+
+  const { countA, countB, countC, filteredSquad } = useMemo(() => {
+    const squad = currentFranchise?.squad || [];
+    let a = 0, b = 0, c = 0;
+    squad.forEach((p: any) => {
+      const g = (p.group_name || '').toUpperCase();
+      if (g === 'GROUP A') a++;
+      else if (g === 'GROUP B') b++;
+      else if (g === 'GROUP C') c++;
+    });
+
+    const filtered = rosterFilter === 'ALL'
+      ? squad
+      : squad.filter((p: any) => (p.group_name || '').toUpperCase() === rosterFilter);
+
+    return { countA: a, countB: b, countC: c, filteredSquad: filtered };
+  }, [currentFranchise?.squad, rosterFilter]);
 
   const fetchFranchiseData = () => {
     apiRequest(`/franchises?tournamentId=${currentTournamentId}`)
@@ -33,6 +53,9 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
   useEffect(() => {
     fetchFranchiseData();
+    apiRequest(`/tournaments/${currentTournamentId}`)
+      .then(setTournament)
+      .catch(console.error);
   }, [currentTournamentId, selectedFranchiseId, auctionState?.currentBid, auctionState?.status, user?.franchise_id, lastRollbackTime]);
 
   // Trigger confetti on winning sale
@@ -41,6 +64,95 @@ export const LiveAuctionBiddingView: React.FC = () => {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
   }, [auctionState?.status]);
+
+  const { dynamicMaxBid, minimumFutureReserve } = useMemo(() => {
+    if (!auctionState || auctionState.status !== 'live' || !currentFranchise || !currentFranchise.squad) {
+      return { dynamicMaxBid: -1, minimumFutureReserve: 0 };
+    }
+
+    const squad = currentFranchise.squad;
+    const remainingPurse = currentFranchise.remaining_purse;
+    const activeGroup = (auctionState.group_name || '').toUpperCase();
+
+    // Group counts
+    const currentGroupCounts: Record<string, number> = {};
+    squad.forEach((p: any) => {
+      const g = (p.group_name || '').toUpperCase();
+      currentGroupCounts[g] = (currentGroupCounts[g] || 0) + 1;
+    });
+
+    // Check squad size limit
+    if (squad.length >= 7) {
+      return { dynamicMaxBid: -1, minimumFutureReserve: 0 };
+    }
+
+    // Load group rules from tournament
+    let groupRules = [
+      { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
+      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
+      { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    ];
+
+    try {
+      if (tournament?.rules?.custom_rules_json) {
+        const parsed = typeof tournament.rules.custom_rules_json === 'string'
+          ? JSON.parse(tournament.rules.custom_rules_json)
+          : tournament.rules.custom_rules_json;
+        if (parsed?.group_rules) {
+          groupRules = parsed.group_rules;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse group rules on frontend:', e);
+    }
+
+    // Check group eligibility (Case 3)
+    const activeRule = groupRules.find(r => r.group_name.toUpperCase() === activeGroup);
+    if (activeRule) {
+      const ownedInGroup = currentGroupCounts[activeGroup] || 0;
+      const maxAllowed = activeRule.max_players ?? activeRule.min_players;
+      if (ownedInGroup >= maxAllowed) {
+        return { dynamicMaxBid: -1, minimumFutureReserve: 0 };
+      }
+    }
+
+    // Hypothetical counts after purchase
+    const hypotheticalCounts = { ...currentGroupCounts };
+    hypotheticalCounts[activeGroup] = (hypotheticalCounts[activeGroup] || 0) + 1;
+
+    // Calculate future reserve
+    let totalReserve = 0;
+    groupRules.forEach(rule => {
+      const gName = rule.group_name.toUpperCase();
+      const owned = hypotheticalCounts[gName] || 0;
+      const minRequired = rule.min_players;
+      const remaining = Math.max(0, minRequired - owned);
+      totalReserve += remaining * rule.base_price;
+    });
+
+    const hardSafeLimit = Math.max(0, remainingPurse - totalReserve);
+
+    return {
+      dynamicMaxBid: hardSafeLimit,
+      minimumFutureReserve: totalReserve
+    };
+  }, [auctionState, currentFranchise, tournament]);
+
+  const bidIncrements = useMemo(() => {
+    try {
+      if (tournament?.rules?.custom_rules_json) {
+        const parsed = typeof tournament.rules.custom_rules_json === 'string'
+          ? JSON.parse(tournament.rules.custom_rules_json)
+          : tournament.rules.custom_rules_json;
+        if (parsed?.bid_increments) {
+          return parsed.bid_increments.map(Number);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse bid increments:', e);
+    }
+    return [5000, 10000, 25000, 50000]; // Fallback defaults
+  }, [tournament]);
 
   if (!currentFranchise) return <div className="p-8 text-center text-gray-400">Loading franchise bidding dashboard...</div>;
 
@@ -84,16 +196,26 @@ export const LiveAuctionBiddingView: React.FC = () => {
         </div>
 
         {/* Live Purse Tracker Bar */}
-        <div className="flex items-center gap-4 bg-gray-900/80 px-4 py-2.5 rounded-xl border border-gray-800">
+        <div className="flex flex-wrap items-center gap-4 bg-gray-900/80 px-4 py-2.5 rounded-xl border border-gray-800">
           <div className="text-right">
-            <p className="text-[11px] font-semibold text-gray-400">REMAINING PURSE</p>
+            <p className="text-[11px] font-semibold text-gray-400 text-left">REMAINING PURSE</p>
             <p className="text-xl font-black text-emerald-400">{formatCurrency(currentFranchise.remaining_purse)}</p>
+          </div>
+          <div className="h-8 w-px bg-gray-800 hidden sm:block" />
+          <div className="text-right">
+            <p className="text-[11px] font-semibold text-gray-400 text-left">MIN FUTURE RESERVE</p>
+            <p className="text-sm font-bold text-yellow-400">{formatCurrency(minimumFutureReserve)}</p>
+          </div>
+          <div className="h-8 w-px bg-gray-800 hidden sm:block" />
+          <div className="text-right">
+            <p className="text-[11px] font-semibold text-gray-400 text-left">HARD SAFE LIMIT</p>
+            <p className="text-sm font-bold text-cyan-400">{dynamicMaxBid === -1 ? 'BLOCKED' : formatCurrency(dynamicMaxBid)}</p>
           </div>
           <div className="h-8 w-px bg-gray-800" />
           <div className="text-right">
-            <p className="text-[11px] font-semibold text-gray-400">SQUAD SIZE</p>
+            <p className="text-[11px] font-semibold text-gray-400 text-left">SQUAD SIZE</p>
             <p className="text-sm font-bold text-white">
-              {currentFranchise.total_players} / 25 <span className="text-xs text-gray-400">({currentFranchise.foreign_players} foreign)</span>
+              {currentFranchise.squad?.length || 0} / 7
             </p>
           </div>
         </div>
@@ -119,8 +241,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
               } space-y-6`}>
               {/* Header Badge */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  {auctionState.category} Set · {auctionState.role}
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
+                  {auctionState.group_name} Set · {auctionState.role}
                 </span>
 
                 {auctionState.timerEnabled === false ? (
@@ -170,45 +292,67 @@ export const LiveAuctionBiddingView: React.FC = () => {
                 )}
               </div>
 
-              {/* Bidding Buttons Ladder */}
+              {/* Dynamic Max Bid Info or Warning */}
               <div className="space-y-3 pt-2">
+                {dynamicMaxBid === -1 ? (
+                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-center font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                    <span>Bidding Blocked: Acquiring {auctionState.playerName} would violate squad composition rules!</span>
+                  </div>
+                ) : (
+                  <div className="p-3 py-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-200 text-xs text-center font-semibold flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0" />
+                    <span>Your Max Bid Limit for {auctionState.playerName}: <span className="font-extrabold text-yellow-400 text-sm ml-1">{formatCurrency(dynamicMaxBid)}</span></span>
+                  </div>
+                )}
+
                 <p className="text-xs font-semibold text-gray-400 text-center uppercase tracking-wider">Quick Bid Increment Controls</p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <button
                     onClick={() => placeBid(currentFranchise.id, minNextBid)}
-                    disabled={isLeading}
+                    onMouseEnter={() => setHoveredBidAmount(minNextBid)}
+                    onMouseLeave={() => setHoveredBidAmount(null)}
+                    disabled={isLeading || minNextBid > dynamicMaxBid || dynamicMaxBid === -1}
                     className="py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:brightness-110 text-black font-black text-base shadow-xl shadow-yellow-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                   >
                     <span>RAISE BID TO {formatCurrency(minNextBid)}</span>
                     <ChevronRight className="w-5 h-5" />
                   </button>
-
-                  <button
-                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 2500000)}
-                    disabled={isLeading}
-                    className="py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    + ₹25 LAKHS ({formatCurrency(currentBidBase + 2500000)})
-                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 5000000)}
-                    disabled={isLeading}
-                    className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
-                  >
-                    + ₹50 LAKHS ({formatCurrency(currentBidBase + 5000000)})
-                  </button>
-                  <button
-                    onClick={() => placeBid(currentFranchise.id, currentBidBase + 10000000)}
-                    disabled={isLeading}
-                    className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
-                  >
-                    + ₹1 CRORE ({formatCurrency(currentBidBase + 10000000)})
-                  </button>
+                  {bidIncrements.map((inc, index) => {
+                    const bidVal = currentBidBase + inc;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => placeBid(currentFranchise.id, bidVal)}
+                        onMouseEnter={() => setHoveredBidAmount(bidVal)}
+                        onMouseLeave={() => setHoveredBidAmount(null)}
+                        disabled={isLeading || bidVal > dynamicMaxBid || dynamicMaxBid === -1}
+                        className="py-3.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
+                      >
+                        + {formatCurrency(inc)} ({formatCurrency(bidVal)})
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Dynamic Bid Validation Status Display */}
+                {hoveredBidAmount !== null && (
+                  <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${
+                    hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
+                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                      : 'bg-red-950/60 border-red-500/40 text-red-300'
+                  }`}>
+                    {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
+                      <span>✓ BID ALLOWED</span>
+                    ) : (
+                      <span>✕ BID BLOCKED<br />Maximum safe bid is {formatCurrency(dynamicMaxBid)}.</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -234,19 +378,65 @@ export const LiveAuctionBiddingView: React.FC = () => {
             <span className="text-xs text-gray-400 font-semibold">{currentFranchise.squad?.length || 0} Players</span>
           </div>
 
-          <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-            {currentFranchise.squad && currentFranchise.squad.length > 0 ? (
-              currentFranchise.squad.map((p: any) => (
+          {/* Group Filter Options */}
+          <div className="grid grid-cols-4 gap-1 p-1 bg-gray-950/60 rounded-xl border border-gray-850">
+            <button
+              onClick={() => setRosterFilter('ALL')}
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
+                rosterFilter === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setRosterFilter('GROUP A')}
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
+                rosterFilter === 'GROUP A'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+              }`}
+            >
+              A ({countA}/2)
+            </button>
+            <button
+              onClick={() => setRosterFilter('GROUP B')}
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
+                rosterFilter === 'GROUP B'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+              }`}
+            >
+              B ({countB}/2-3)
+            </button>
+            <button
+              onClick={() => setRosterFilter('GROUP C')}
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
+                rosterFilter === 'GROUP C'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+              }`}
+            >
+              C ({countC}/2-3)
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+            {filteredSquad && filteredSquad.length > 0 ? (
+              filteredSquad.map((p: any) => (
                 <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">
                   <div>
-                    <p className="font-bold text-white">{p.name}</p>
-                    <p className="text-[11px] text-gray-400">{p.role} · {p.category}</p>
+                    <h4 className="font-bold text-white text-sm">{p.name}</h4>
+                    <p className="text-[11px] text-gray-400">{p.role} · {p.group_name}</p>
                   </div>
                   <span className="font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-500 text-center py-10">No players purchased yet in this auction session.</p>
+              <p className="text-xs text-gray-500 text-center py-10">
+                {rosterFilter === 'ALL' ? 'No players purchased yet.' : `No ${rosterFilter} players purchased yet.`}
+              </p>
             )}
           </div>
         </div>

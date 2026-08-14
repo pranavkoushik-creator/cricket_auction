@@ -22,7 +22,7 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentTournamentId, user } = useAuth();
+  const { currentTournamentId, user, token } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -30,14 +30,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [eventsLog, setEventsLog] = useState<{ type: string; message: string; timestamp: string }[]>([]);
   const [bidError, setBidError] = useState<string | null>(null);
 
-  // Create socket once on mount or when auth state changes
+  // Create or reconnect socket whenever auth token changes (e.g. on login/logout)
   useEffect(() => {
     const socketHost = typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:4000` : 'http://localhost:4000';
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    console.log('[Socket] Connecting to auction engine at:', socketHost);
+    const currentToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    console.log('[Socket] Connecting to auction engine at:', socketHost, 'with token present:', Boolean(currentToken));
     
     const s = io(socketHost, {
-      auth: { token },
+      auth: { token: currentToken },
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
@@ -89,7 +89,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       s.disconnect();
       socketRef.current = null;
     };
-  }, []); // Create socket ONCE
+  }, [token]);
 
   // Re-join auction room whenever the tournament changes or socket connects
   useEffect(() => {

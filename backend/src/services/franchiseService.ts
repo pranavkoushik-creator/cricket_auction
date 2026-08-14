@@ -14,7 +14,7 @@ export function getFranchises(tournamentId: string) {
   for (const f of franchises) {
     // Get squad count and bought players
     const squad = db.prepare(`
-      SELECT al.*, p.name, p.category, p.role, p.is_foreign, p.country, p.photo_url
+      SELECT al.*, p.name, p.group_name, p.role, p.is_foreign, p.status, p.photo_url
       FROM auction_lots al
       JOIN players p ON al.player_id = p.id
       WHERE al.buyer_id = ? AND al.status = 'sold'
@@ -40,7 +40,7 @@ export function getFranchiseById(id: string) {
   if (!f) throw new Error('Franchise not found');
 
   const squad = db.prepare(`
-    SELECT al.*, p.name, p.category, p.role, p.is_foreign, p.country, p.photo_url, p.base_price
+    SELECT al.*, p.name, p.group_name, p.role, p.is_foreign, p.status, p.photo_url, p.base_price
     FROM auction_lots al
     JOIN players p ON al.player_id = p.id
     WHERE al.buyer_id = ? AND al.status = 'sold'
@@ -69,7 +69,7 @@ export function createFranchise(data: {
   initial_purse?: number;
 }) {
   const rules = db.prepare('SELECT purse_budget FROM tournament_rules WHERE tournament_id = ?').get(data.tournament_id) as any;
-  const purse = data.initial_purse || rules?.purse_budget || 1000000000;
+  const purse = data.initial_purse || rules?.purse_budget || 10000;
   const id = `fran-${uuidv4().substring(0, 8)}`;
 
   db.prepare(`

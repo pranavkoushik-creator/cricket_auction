@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck, UserPlus, CheckCircle2 } from 'lucide-react';
@@ -29,7 +30,7 @@ const DEFAULT_FORM: FranchiseFormData = {
   primary_color: '#3b82f6',
   secondary_color: '#1e40af',
   owner_id: '',
-  initial_purse: 1000000000 // 100 Crore
+  initial_purse: 10000 // 10k
 };
 
 const DEFAULT_OWNER_FORM: OwnerFormData = {
@@ -41,11 +42,12 @@ const DEFAULT_OWNER_FORM: OwnerFormData = {
 
 export const FranchiseManagementView: React.FC = () => {
   const { currentTournamentId, currentRole } = useAuth();
-  const isAdmin = currentRole === 'Super Admin' || currentRole === 'Tournament Admin';
+  const isAdmin = currentRole === 'Super Admin';
 
   const [franchises, setFranchises] = useState<any[]>([]);
   const [selectedFranchise, setSelectedFranchise] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
+  const { eventsLog, auctionState } = useAuctionSocket();
 
   // Franchise Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,10 +96,12 @@ export const FranchiseManagementView: React.FC = () => {
       .catch(console.error);
   };
 
+  const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
+
   useEffect(() => {
     loadFranchises();
     loadUsers();
-  }, [currentTournamentId]);
+  }, [currentTournamentId, lastRollbackTime, auctionState?.status]);
 
   const handleOpenCreateModal = () => {
     setModalMode('create');
@@ -144,7 +148,7 @@ export const FranchiseManagementView: React.FC = () => {
         setIsSubmittingOwner(false);
         setIsOwnerModalOpen(false);
         setOwnerFormData(DEFAULT_OWNER_FORM);
-        
+
         // Refresh users list and automatically select the newly created owner!
         await loadUsers();
         setFormData(prev => ({ ...prev, owner_id: newOwner.id }));
@@ -253,11 +257,10 @@ export const FranchiseManagementView: React.FC = () => {
               <button
                 key={f.id}
                 onClick={() => loadFranchiseDetails(f.id)}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition whitespace-nowrap ${
-                  selectedFranchise?.id === f.id
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                    : 'bg-gray-900/60 text-gray-400 border-gray-800 hover:text-white'
-                }`}
+                className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition whitespace-nowrap ${selectedFranchise?.id === f.id
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                  : 'bg-gray-900/60 text-gray-400 border-gray-800 hover:text-white'
+                  }`}
               >
                 {f.short_name}
               </button>
@@ -343,9 +346,9 @@ export const FranchiseManagementView: React.FC = () => {
                           <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover" />
                           <span>{p.name}</span>
                         </td>
-                        <td className="py-3 px-3 text-gray-300">{p.category}</td>
+                        <td className="py-3 px-3 text-gray-300">{p.group_name}</td>
                         <td className="py-3 px-3 text-gray-300">{p.role}</td>
-                        <td className="py-3 px-3 text-gray-400">{p.is_foreign ? `Foreign (${p.country})` : 'Indian'}</td>
+                        <td className="py-3 px-3 text-gray-400">{p.is_foreign ? 'Foreign' : 'Indian'}</td>
                         <td className="py-3 px-3 text-right font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</td>
                       </tr>
                     ))
@@ -551,7 +554,7 @@ export const FranchiseManagementView: React.FC = () => {
                   <label className="block text-xs font-semibold text-gray-400">Initial Purse Budget (INR)</label>
                   <input
                     type="number"
-                    step={1000000}
+                    step={100}
                     value={formData.initial_purse}
                     onChange={e => setFormData({ ...formData, initial_purse: parseFloat(e.target.value) || 0 })}
                     className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-mono"
@@ -564,7 +567,7 @@ export const FranchiseManagementView: React.FC = () => {
                     <label className="block text-xs font-semibold text-gray-400">Current Remaining Purse (INR)</label>
                     <input
                       type="number"
-                      step={1000000}
+                      step={100}
                       value={formData.remaining_purse ?? formData.initial_purse}
                       onChange={e => setFormData({ ...formData, remaining_purse: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-mono"
@@ -577,7 +580,7 @@ export const FranchiseManagementView: React.FC = () => {
               {/* Quick Purse Budget Presets */}
               <div className="flex items-center gap-2 pt-1">
                 <span className="text-[11px] text-gray-400 font-semibold">Presets:</span>
-                {[1000000000, 900000000, 750000000, 500000000].map(val => (
+                {[10000, 9000, 7500, 5000].map(val => (
                   <button
                     key={val}
                     type="button"

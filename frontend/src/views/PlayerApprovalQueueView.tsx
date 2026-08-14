@@ -7,9 +7,9 @@ import { UserCheck, Check, X, Ban, UserPlus, Upload, Download, FileSpreadsheet, 
 interface SinglePlayerForm {
   name: string;
   role: string;
-  category: string;
+  group_name: string;
   base_price: number;
-  country: string;
+  status: string;
   is_foreign: boolean;
   photo_url: string;
   approval_status: 'approved' | 'pending';
@@ -18,9 +18,9 @@ interface SinglePlayerForm {
 const DEFAULT_SINGLE_PLAYER: SinglePlayerForm = {
   name: '',
   role: 'Batsman',
-  category: 'Tier-1',
-  base_price: 20000000, // 2 Crore
-  country: 'India',
+  group_name: 'GROUP A',
+  base_price: 100, // 100 rs
+  status: 'Newcomer',
   is_foreign: false,
   photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
   approval_status: 'approved'
@@ -118,9 +118,9 @@ export const PlayerApprovalQueueView: React.FC = () => {
         const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         const nameIdx = headers.findIndex(h => h.includes('name'));
         const roleIdx = headers.findIndex(h => h.includes('role'));
-        const categoryIdx = headers.findIndex(h => h.includes('category'));
+        const groupNameIdx = headers.findIndex(h => h.includes('group_name') || h.includes('group'));
         const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('base'));
-        const countryIdx = headers.findIndex(h => h.includes('country') || h.includes('nation'));
+        const statusIdx = headers.findIndex(h => h.includes('status'));
         const foreignIdx = headers.findIndex(h => h.includes('foreign'));
         const photoIdx = headers.findIndex(h => h.includes('photo') || h.includes('image'));
 
@@ -139,9 +139,9 @@ export const PlayerApprovalQueueView: React.FC = () => {
           parsedRows.push({
             name: cols[nameIdx],
             role: roleIdx !== -1 && cols[roleIdx] ? cols[roleIdx] : 'Batsman',
-            category: categoryIdx !== -1 && cols[categoryIdx] ? cols[categoryIdx] : 'Tier-1',
+            group_name: groupNameIdx !== -1 && cols[groupNameIdx] ? cols[groupNameIdx] : 'GROUP A',
             base_price: priceIdx !== -1 && !isNaN(Number(cols[priceIdx])) ? Number(cols[priceIdx]) : 20000000,
-            country: countryIdx !== -1 && cols[countryIdx] ? cols[countryIdx] : (isForeignVal ? 'Foreign' : 'India'),
+            status: statusIdx !== -1 && cols[statusIdx] ? cols[statusIdx] : 'Newcomer',
             is_foreign: isForeignVal,
             photo_url: photoIdx !== -1 && cols[photoIdx] ? cols[photoIdx] : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80'
           });
@@ -191,8 +191,8 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
   // Download Sample CSV Template
   const handleDownloadSampleCsv = () => {
-    const csvContent = `name,role,category,base_price,country,is_foreign,photo_url\nSanju Samson,Wicket-Keeper,Tier-1,20000000,India,0,https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80\nMitchell Starc,Bowler,Marquee,20000000,Australia,1,https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80\nShreyas Iyer,Batsman,Tier-1,15000000,India,0,https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`;
-    
+    const csvContent = `name,role,group_name,base_price,status,is_foreign,photo_url\nSanju Samson,Wicket-Keeper,GROUP A,20000000,Returning,0,https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80\nMitchell Starc,Bowler,GROUP A,20000000,Returning,1,https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80\nShreyas Iyer,Batsman,GROUP A,15000000,Newcomer,0,https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`;
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -241,11 +241,10 @@ export const PlayerApprovalQueueView: React.FC = () => {
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
-                className={`text-xs px-3 py-1.5 rounded-lg border uppercase font-bold transition ${
-                  filterStatus === st
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                    : 'bg-gray-900/60 text-gray-400 border-gray-800 hover:text-white'
-                }`}
+                className={`text-xs px-3 py-1.5 rounded-lg border uppercase font-bold transition ${filterStatus === st
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                  : 'bg-gray-900/60 text-gray-400 border-gray-800 hover:text-white'
+                  }`}
               >
                 {st}
               </button>
@@ -264,24 +263,23 @@ export const PlayerApprovalQueueView: React.FC = () => {
                   <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-700 shadow-md" />
                   <div>
                     <h4 className="text-base font-bold text-white">{p.name}</h4>
-                    <p className="text-xs text-gray-400">{p.role} · {p.country}</p>
+                    <p className="text-xs text-gray-400">{p.role} · {p.status}</p>
                   </div>
                 </div>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${
-                  p.approval_status === 'approved'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : p.approval_status === 'pending'
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${p.approval_status === 'approved'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : p.approval_status === 'pending'
                     ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
                     : 'bg-red-500/20 text-red-300 border-red-500/30'
-                }`}>
+                  }`}>
                   {p.approval_status}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs bg-gray-900/80 p-2.5 rounded-xl border border-gray-800">
                 <div>
-                  <span className="text-gray-500 block text-[10px]">Category</span>
-                  <span className="font-bold text-white">{p.category}</span>
+                  <span className="text-gray-500 block text-[10px]">Group</span>
+                  <span className="font-bold text-white">{p.group_name}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 block text-[10px]">Base Price</span>
@@ -339,22 +337,20 @@ export const PlayerApprovalQueueView: React.FC = () => {
             <div className="flex items-center gap-2 bg-gray-900/80 p-1.5 rounded-xl border border-gray-800">
               <button
                 onClick={() => setActiveTab('single')}
-                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${
-                  activeTab === 'single'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
-                }`}
+                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'single'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-400 hover:text-white'
+                  }`}
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Single Player (Manual)</span>
               </button>
               <button
                 onClick={() => setActiveTab('bulk')}
-                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${
-                  activeTab === 'bulk'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
-                }`}
+                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'bulk'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-400 hover:text-white'
+                  }`}
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>Bulk Ingest (CSV Upload)</span>
@@ -399,16 +395,15 @@ export const PlayerApprovalQueueView: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-400">Auction Category *</label>
+                    <label className="block text-xs font-semibold text-gray-400">Auction Group *</label>
                     <select
-                      value={singleForm.category}
-                      onChange={e => setSingleForm({ ...singleForm, category: e.target.value })}
+                      value={singleForm.group_name}
+                      onChange={e => setSingleForm({ ...singleForm, group_name: e.target.value })}
                       className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
                     >
-                      <option value="Marquee">Marquee</option>
-                      <option value="Tier-1">Tier-1</option>
-                      <option value="Tier-2">Tier-2</option>
-                      <option value="Tier-3">Tier-3</option>
+                      <option value="GROUP A">GROUP A</option>
+                      <option value="GROUP B">GROUP B</option>
+                      <option value="GROUP C">GROUP C</option>
                     </select>
                   </div>
                 </div>
@@ -417,7 +412,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
                   <label className="block text-xs font-semibold text-gray-400">Base Price (INR) *</label>
                   <input
                     type="number"
-                    step={1000000}
+                    // step={1000000}
                     value={singleForm.base_price}
                     onChange={e => setSingleForm({ ...singleForm, base_price: parseFloat(e.target.value) || 0 })}
                     className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-mono"
@@ -426,7 +421,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] text-gray-400">Presets:</span>
-                    {[20000000, 15000000, 10000000, 5000000].map(val => (
+                    {[100, 50, 25].map(val => (
                       <button
                         key={val}
                         type="button"
@@ -441,14 +436,15 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3 items-center">
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-400">Nationality / Country</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. India or Australia"
-                      value={singleForm.country}
-                      onChange={e => setSingleForm({ ...singleForm, country: e.target.value })}
+                    <label className="block text-xs font-semibold text-gray-400">Status</label>
+                    <select
+                      value={singleForm.status}
+                      onChange={e => setSingleForm({ ...singleForm, status: e.target.value })}
                       className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
-                    />
+                    >
+                      <option value="Newcomer">Newcomer</option>
+                      <option value="Returning">Returning</option>
+                    </select>
                   </div>
 
                   <div className="pt-4 flex items-center space-x-2">
@@ -507,7 +503,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
                 <div className="flex items-center justify-between bg-blue-950/40 p-3 rounded-xl border border-blue-500/30 text-xs">
                   <div className="space-y-0.5">
                     <span className="font-bold text-blue-200 block">Download Template CSV</span>
-                    <span className="text-[11px] text-gray-400">Sample file format with columns: name, role, category, base_price, country, is_foreign</span>
+                    <span className="text-[11px] text-gray-400">Sample file format with columns: name, role, group_name, base_price, status, is_foreign</span>
                   </div>
                   <button
                     onClick={handleDownloadSampleCsv}
@@ -560,9 +556,9 @@ export const PlayerApprovalQueueView: React.FC = () => {
                           <tr className="border-b border-gray-800 text-gray-400 uppercase font-semibold">
                             <th className="py-2 px-3">Player Name</th>
                             <th className="py-2 px-3">Role</th>
-                            <th className="py-2 px-3">Category</th>
+                            <th className="py-2 px-3">Group</th>
                             <th className="py-2 px-3">Base Price</th>
-                            <th className="py-2 px-3">Country</th>
+                            <th className="py-2 px-3">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
@@ -570,9 +566,9 @@ export const PlayerApprovalQueueView: React.FC = () => {
                             <tr key={idx} className="hover:bg-gray-800/40">
                               <td className="py-2 px-3 font-bold text-white">{p.name}</td>
                               <td className="py-2 px-3 text-gray-300">{p.role}</td>
-                              <td className="py-2 px-3 text-gray-300">{p.category}</td>
+                              <td className="py-2 px-3 text-gray-300">{p.group_name}</td>
                               <td className="py-2 px-3 text-yellow-400 font-bold">{formatCurrency(p.base_price)}</td>
-                              <td className="py-2 px-3 text-gray-400">{p.is_foreign ? `Foreign (${p.country})` : 'Indian'}</td>
+                              <td className="py-2 px-3 text-gray-400">{p.status}</td>
                             </tr>
                           ))}
                         </tbody>

@@ -32,16 +32,16 @@ export function createTournament(data: { name: string; sport?: string; format?: 
   `).run(id, data.name, data.sport || 'Cricket', data.format || 'T20', data.dates || '', data.logo_url || null);
 
   const defaultLadder = JSON.stringify([
-    { upto: 10000000, increment: 1000000 },
-    { upto: 50000000, increment: 2500000 },
-    { upto: 100000000, increment: 5000000 },
-    { upto: 9999999999, increment: 10000000 }
+    { upto: 1000, increment: 10 },
+    { upto: 5000, increment: 25 },
+    { upto: 10000, increment: 50 },
+    { upto: 9999999999, increment: 100 }
   ]);
-  const defaultTiers = JSON.stringify([20000000, 15000000, 10000000, 5000000, 2000000]);
+  const defaultTiers = JSON.stringify([100, 50, 25]);
 
   db.prepare(`
-    INSERT INTO tournament_rules (id, tournament_id, purse_budget, min_squad, max_squad, foreign_player_limit, rtm_count_per_team, base_price_tiers, increment_ladder)
-    VALUES (?, ?, 1000000000, 15, 25, 8, 2, ?, ?)
+    INSERT INTO tournament_rules (id, tournament_id, purse_budget, min_squad, max_squad, rtm_count_per_team, base_price_tiers, increment_ladder)
+    VALUES (?, ?, 10000, 7, 7, 2, ?, ?)
   `).run(uuidv4(), id, defaultTiers, defaultLadder);
 
   return getTournamentById(id);
@@ -58,13 +58,12 @@ export function updateTournamentRules(id: string, rules: any) {
 
   db.prepare(`
     UPDATE tournament_rules
-    SET purse_budget = ?, min_squad = ?, max_squad = ?, foreign_player_limit = ?, rtm_count_per_team = ?, base_price_tiers = ?, increment_ladder = ?
+    SET purse_budget = ?, min_squad = ?, max_squad = ?, rtm_count_per_team = ?, base_price_tiers = ?, increment_ladder = ?
     WHERE tournament_id = ?
   `).run(
     rules.purse_budget,
     rules.min_squad,
     rules.max_squad,
-    rules.foreign_player_limit,
     rules.rtm_count_per_team,
     basePriceTiersStr,
     incrementLadderStr,

@@ -45,7 +45,7 @@ export function recordPurseTransaction(
   const newBalance = current.remainingPurse + amount;
 
   if (newBalance < 0 && amount < 0) {
-    throw new Error(`Insufficient purse balance. Available: ₹${(current.remainingPurse / 10000000).toFixed(2)} Cr, Required: ₹${(Math.abs(amount) / 10000000).toFixed(2)} Cr.`);
+    throw new Error(`Insufficient purse balance. Available: ₹${current.remainingPurse} rs, Required: ₹${Math.abs(amount)} rs.`);
   }
 
   const id = uuidv4();

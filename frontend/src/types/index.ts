@@ -22,7 +22,6 @@ export interface TournamentRules {
   purse_budget: number;
   min_squad: number;
   max_squad: number;
-  foreign_player_limit: number;
   rtm_count_per_team: number;
   base_price_tiers: number[];
   increment_ladder: { upto: number; increment: number }[];
@@ -74,10 +73,10 @@ export interface SquadPlayer {
   id: string;
   player_id: string;
   name: string;
-  category: string;
+  group_name: string;
   role: string;
   is_foreign: number;
-  country: string;
+  status: string;
   photo_url?: string;
   sold_price: number;
   base_price?: number;
@@ -88,10 +87,10 @@ export interface Player {
   tournament_id: string;
   user_id?: string;
   name: string;
-  category: string;
+  group_name: string;
   role: string;
   is_foreign: number;
-  country: string;
+  status: string;
   base_price: number;
   approval_status: 'pending' | 'approved' | 'rejected' | 'changes_requested' | 'suspended';
   approval_reason?: string;
@@ -104,6 +103,10 @@ export interface Player {
     avg?: number;
     sr?: number;
     economy?: number;
+    Innings?: number;
+    "Strike Rate"?: number;
+    Wickets?: number;
+    Runs?: number;
   };
   lot_status?: string;
   sold_price?: number;
@@ -117,7 +120,7 @@ export interface ActiveAuctionState {
   tournamentId: string;
   playerId: string;
   playerName: string;
-  category: string;
+  group_name: string;
   role: string;
   isForeign: boolean;
   basePrice: number;
