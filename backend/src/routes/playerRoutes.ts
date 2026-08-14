@@ -29,9 +29,9 @@ router.post('/', authorize('Super Admin', 'Player'), (req: Request, res: Respons
 
 router.post('/create-single', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
-    const { tournament_id, name, category, role, base_price } = req.body;
-    if (!tournament_id || !name || !category || !role || base_price === undefined) {
-      return res.status(400).json({ error: 'Tournament ID, Name, Category, Role, and Base Price are required.' });
+    const { tournament_id, name, group_name, role, base_price } = req.body;
+    if (!tournament_id || !name || !group_name || !role || base_price === undefined) {
+      return res.status(400).json({ error: 'Tournament ID, Name, Group Name, Role, and Base Price are required.' });
     }
     const player = createSinglePlayer(req.body);
     res.json(player);

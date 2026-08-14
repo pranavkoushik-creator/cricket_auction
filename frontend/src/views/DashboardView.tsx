@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import { Trophy, Shield, Users, Radio, CheckCircle, ArrowUpRight, DollarSign } from 'lucide-react';
 
 export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
   const { currentTournamentId } = useAuth();
+  const { eventsLog, auctionState } = useAuctionSocket();
   const [tournament, setTournament] = useState<any>(null);
+
+  const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
   const [franchises, setFranchises] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
 
@@ -22,7 +26,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     apiRequest(`/players?tournamentId=${currentTournamentId}`)
       .then(setPlayers)
       .catch(console.error);
-  }, [currentTournamentId]);
+  }, [currentTournamentId, lastRollbackTime, auctionState?.status]);
 
   if (!tournament) return <div className="p-8 text-center text-gray-400">Loading tournament dashboard...</div>;
 
@@ -75,7 +79,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           <div>
             <p className="text-xs font-semibold text-gray-400">Total Purse Per Team</p>
             <p className="text-2xl font-extrabold text-yellow-400 mt-1">
-              {formatCurrency(tournament.rules?.purse_budget || 1000000000)}
+              {formatCurrency(tournament.rules?.purse_budget || 10000)}
             </p>
             <p className="text-[11px] text-gray-500 mt-0.5">Immutable Purse Ledger Enabled</p>
           </div>
@@ -88,7 +92,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           <div>
             <p className="text-xs font-semibold text-gray-400">Franchises Registered</p>
             <p className="text-2xl font-extrabold text-blue-400 mt-1">{franchises.length}</p>
-            <p className="text-[11px] text-gray-500 mt-0.5">Squad Cap: {tournament.rules?.max_squad || 25} players</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Squad Cap: {tournament.rules?.max_squad || 7} players</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
             <Shield className="w-6 h-6" />
@@ -152,7 +156,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
                     </div>
                   </div>
                   <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">
-                    Squad: {f.total_players}/{tournament.rules?.max_squad || 25}
+                    Squad: {f.total_players}/{tournament.rules?.max_squad || 7}
                   </span>
                 </div>
 

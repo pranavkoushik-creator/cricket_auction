@@ -7,11 +7,11 @@ export const PlayerRegistrationView: React.FC = () => {
   const { currentTournamentId } = useAuth();
   const [formData, setFormData] = useState({
     name: 'Shreyas Iyer',
-    category: 'Tier-1',
+    group_name: 'GROUP A',
     role: 'Batsman',
     is_foreign: 0,
-    country: 'India',
-    base_price: 20000000,
+    status: 'Newcomer',
+    base_price: 200,
     photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
     document_url: 'https://example.com/id-proof.pdf',
     matches: 101,
@@ -91,25 +91,24 @@ export const PlayerRegistrationView: React.FC = () => {
                 onChange={e => setFormData({ ...formData, base_price: Number(e.target.value) })}
                 className="w-full bg-gray-900 text-white text-sm border border-gray-800 rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
               >
-                <option value={20000000}>₹2.00 Crore</option>
-                <option value={15000000}>₹1.50 Crore</option>
-                <option value={10000000}>₹1.00 Crore</option>
-                <option value={5000000}>₹50 Lakhs</option>
-                <option value={2000000}>₹20 Lakhs</option>
+                <option value={200}>₹200</option>
+                <option value={150}>₹150</option>
+                <option value={100}>₹100</option>
+                <option value={50}>₹50</option>
+                <option value={20}>₹20</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Category</label>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Group</label>
               <select
-                value={formData.category}
-                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                value={formData.group_name}
+                onChange={e => setFormData({ ...formData, group_name: e.target.value })}
                 className="w-full bg-gray-900 text-white text-sm border border-gray-800 rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
               >
-                <option value="Marquee">Marquee</option>
-                <option value="Tier-1">Tier-1</option>
-                <option value="Tier-2">Tier-2</option>
-                <option value="Tier-3">Tier-3</option>
+                <option value="GROUP A">GROUP A</option>
+                <option value="GROUP B">GROUP B</option>
+                <option value="GROUP C">GROUP C</option>
               </select>
             </div>
 
@@ -135,7 +134,7 @@ export const PlayerRegistrationView: React.FC = () => {
                     type="radio"
                     name="is_foreign"
                     checked={formData.is_foreign === 0}
-                    onChange={() => setFormData({ ...formData, is_foreign: 0, country: 'India' })}
+                    onChange={() => setFormData({ ...formData, is_foreign: 0 })}
                   />
                   <span>Indian Player</span>
                 </label>
@@ -144,7 +143,7 @@ export const PlayerRegistrationView: React.FC = () => {
                     type="radio"
                     name="is_foreign"
                     checked={formData.is_foreign === 1}
-                    onChange={() => setFormData({ ...formData, is_foreign: 1, country: 'Australia' })}
+                    onChange={() => setFormData({ ...formData, is_foreign: 1 })}
                   />
                   <span>Foreign Overseas</span>
                 </label>
@@ -152,13 +151,15 @@ export const PlayerRegistrationView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Country</label>
-              <input
-                type="text"
-                value={formData.country}
-                onChange={e => setFormData({ ...formData, country: e.target.value })}
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={e => setFormData({ ...formData, status: e.target.value })}
                 className="w-full bg-gray-900 text-white text-sm border border-gray-800 rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
-              />
+              >
+                <option value="Newcomer">Newcomer</option>
+                <option value="Returning">Returning</option>
+              </select>
             </div>
           </div>
 

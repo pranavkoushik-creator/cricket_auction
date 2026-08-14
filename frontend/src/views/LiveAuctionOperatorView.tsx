@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
@@ -59,6 +59,16 @@ export const LiveAuctionOperatorView: React.FC = () => {
 
   const [sessionTimerSeconds, setSessionTimerSeconds] = useState<number>(15);
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+
+  const groupedLots = useMemo(() => {
+    const groups: { [key: string]: any[] } = {};
+    queuedLots.forEach(p => {
+      const g = p.group_name || 'Other';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(p);
+    });
+    return groups;
+  }, [queuedLots]);
 
   const fetchLots = useCallback(() => {
     if (!currentTournamentId) return;
@@ -201,7 +211,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
               {/* Top Bar: Timer & Category */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
-                  {auctionState.category} Set · {auctionState.role}
+                  {auctionState.group_name} Set · {auctionState.role}
                 </span>
 
                 {/* Countdown Timer Badge */}
@@ -236,7 +246,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
                   <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                     <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
                     <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Base Price: {formatCurrency(auctionState.basePrice)}</span>
-                    <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Category: {auctionState.category}</span>
+                    <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Group: {auctionState.group_name}</span>
                   </div>
                 </div>
               </div>
@@ -314,10 +324,22 @@ export const LiveAuctionOperatorView: React.FC = () => {
                     onChange={e => setSelectedQueueLotId(e.target.value)}
                     className="w-full bg-gray-900 text-white text-sm border border-gray-700 rounded-xl p-3 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/30"
                   >
-                    {queuedLots.map((p) => (
-                      <option key={p.id} value={p.lot_id || p.id}>
-                        {p.name} ({p.role} · {p.category} · Base: {formatCurrency(p.base_price)})
-                      </option>
+                    {Object.keys(groupedLots).sort().map(groupName => (
+                      <optgroup
+                        key={groupName}
+                        label={`──\u00A0\u00A0${groupName}\u00A0\u00A0──────────────────────────────`}
+                        className="bg-gray-900 text-yellow-500 font-extrabold text-xs uppercase tracking-wider py-2"
+                      >
+                        {groupedLots[groupName].map((p) => (
+                          <option
+                            key={p.id}
+                            value={p.lot_id || p.id}
+                            className="bg-gray-900 text-white text-sm font-normal py-2"
+                          >
+                            {`${p.name}\u00A0●\u00A0Base:\u00A0${formatCurrency(p.base_price)}`}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
 
