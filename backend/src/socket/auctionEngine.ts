@@ -94,6 +94,14 @@ const placeBidTransaction = db.transaction((params: {
     return { allowed: false, reasonCode: 'FRANCHISE_NOT_FOUND', message: 'Franchise not found.' };
   }
 
+  if (franchise.is_bidding_enabled === 0) {
+    return {
+      allowed: false,
+      reasonCode: 'FRANCHISE_BIDDING_DISABLED',
+      message: 'Bidding has been disabled for your franchise by the Super Admin.'
+    };
+  }
+
   const remainingPurse = franchise.remaining_purse;
 
   const squad = db.prepare(`

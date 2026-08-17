@@ -78,6 +78,7 @@ export function initDatabase() {
       initial_purse REAL NOT NULL,
       remaining_purse REAL NOT NULL, -- derived state updated via purse_ledger
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      is_bidding_enabled INTEGER DEFAULT 1,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
       FOREIGN KEY (owner_id) REFERENCES users(id)
     );
@@ -251,6 +252,11 @@ export function initDatabase() {
   // Safe migrations for existing databases created before new columns were added
   try {
     db.exec("ALTER TABLE auction_sessions ADD COLUMN timer_enabled INTEGER DEFAULT 1");
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec("ALTER TABLE franchises ADD COLUMN is_bidding_enabled INTEGER DEFAULT 1");
   } catch (e) {
     // Column already exists
   }

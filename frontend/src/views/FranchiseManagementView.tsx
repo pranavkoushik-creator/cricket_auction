@@ -47,7 +47,7 @@ export const FranchiseManagementView: React.FC = () => {
   const [franchises, setFranchises] = useState<any[]>([]);
   const [selectedFranchise, setSelectedFranchise] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
-  const { eventsLog, auctionState } = useAuctionSocket();
+  const { eventsLog, auctionState, socket } = useAuctionSocket();
 
   // Franchise Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,12 +105,43 @@ export const FranchiseManagementView: React.FC = () => {
       .catch(console.error);
   };
 
+  const handleToggleFranchiseBidding = (franId: string) => {
+    apiRequest(`/franchises/${franId}/toggle-bidding`, {
+      method: 'PATCH'
+    })
+      .then(() => loadFranchises(franId))
+      .catch(console.error);
+  };
+
+  const handleToggleAllBidding = (enabled: boolean) => {
+    apiRequest(`/franchises/toggle-all-bidding`, {
+      method: 'POST',
+      body: JSON.stringify({ tournamentId: currentTournamentId, enabled })
+    })
+      .then(() => loadFranchises(selectedFranchise?.id))
+      .catch(console.error);
+  };
+
   const lastRollbackTime = eventsLog.find(e => e.type === 'rollback')?.timestamp || '';
 
   useEffect(() => {
     loadFranchises();
     loadUsers();
   }, [currentTournamentId, lastRollbackTime, auctionState?.status]);
+
+  // Listen for bidding toggles in real-time
+  useEffect(() => {
+    if (!socket) return;
+    const handleToggle = () => {
+      loadFranchises(selectedFranchise?.id);
+    };
+    socket.on('franchise:bidding_toggle', handleToggle);
+    socket.on('franchise:bidding_toggle_all', handleToggle);
+    return () => {
+      socket.off('franchise:bidding_toggle', handleToggle);
+      socket.off('franchise:bidding_toggle_all', handleToggle);
+    };
+  }, [socket, selectedFranchise?.id]);
 
   const handleOpenCreateModal = () => {
     setModalMode('create');
@@ -249,15 +280,36 @@ export const FranchiseManagementView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Admin Create Franchise Button */}
+          {/* Admin Actions */}
           {isAdmin && (
-            <button
-              onClick={handleOpenCreateModal}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-lg shadow-blue-500/20 transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span>CREATE FRANCHISE</span>
-            </button>
+            <>
+              <button
+                onClick={handleOpenCreateModal}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-lg shadow-blue-500/20 transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>CREATE FRANCHISE</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 bg-gray-900/60 p-1 rounded-xl border border-gray-800">
+                <button
+                  type="button"
+                  disabled={franchises.length === 0}
+                  onClick={() => handleToggleAllBidding(true)}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 font-extrabold text-xs border border-emerald-500/30 transition whitespace-nowrap disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  Enable All
+                </button>
+                <button
+                  type="button"
+                  disabled={franchises.length === 0}
+                  onClick={() => handleToggleAllBidding(false)}
+                  className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 font-extrabold text-xs border border-red-500/30 transition whitespace-nowrap disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  Disable All
+                </button>
+              </div>
+            </>
           )}
 
           {/* Team Selector Tabs */}
@@ -298,6 +350,11 @@ export const FranchiseManagementView: React.FC = () => {
                     >
                       {selectedFranchise.short_name}
                     </span>
+                    {selectedFranchise.is_bidding_enabled === 0 && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 font-extrabold border border-red-500/30 uppercase tracking-wide animate-pulse">
+                        Bidding Disabled
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
                     <UserCheck className="w-3.5 h-3.5 text-gray-400" />
@@ -316,6 +373,29 @@ export const FranchiseManagementView: React.FC = () => {
 
                 {isAdmin && (
                   <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 bg-gray-900/60 px-3 py-1.5 rounded-lg border border-gray-800 mr-1 shrink-0">
+                      <span className={`text-[10px] uppercase font-extrabold tracking-wider whitespace-nowrap ${selectedFranchise.is_bidding_enabled === 1 ? 'text-emerald-400' : 'text-red-400'
+                        }`}>
+                        Bidding: {selectedFranchise.is_bidding_enabled === 1 ? 'ON' : 'OFF'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFranchiseBidding(selectedFranchise.id)}
+                        className={`w-9 h-5 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 focus:outline-none border ${selectedFranchise.is_bidding_enabled === 1
+                          ? 'bg-emerald-500/20 border-emerald-500/40'
+                          : 'bg-red-500/10 border-red-500/30'
+                          }`}
+                        title={selectedFranchise.is_bidding_enabled === 1 ? "Disable Bidding" : "Enable Bidding"}
+                      >
+                        <div
+                          className={`w-3.5 h-3.5 rounded-full shadow transform transition-transform duration-200 ${selectedFranchise.is_bidding_enabled === 1
+                            ? 'translate-x-4 bg-emerald-400'
+                            : 'translate-x-0 bg-red-400'
+                            }`}
+                        />
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => handleOpenEditModal(selectedFranchise)}
                       className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-400 border border-gray-700 transition"
