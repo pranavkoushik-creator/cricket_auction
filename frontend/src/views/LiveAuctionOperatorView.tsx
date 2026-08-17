@@ -58,6 +58,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
   const [startingLot, setStartingLot] = useState(false);
 
   const [sessionTimerSeconds, setSessionTimerSeconds] = useState<number>(15);
+  const [sessionTimerEnabled, setSessionTimerEnabled] = useState<boolean>(true);
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
 
   const groupedLots = useMemo(() => {
@@ -101,6 +102,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
         const session = Array.isArray(res) ? res[0] : res;
         if (session) {
           setSessionTimerSeconds(session.timer_seconds ?? 15);
+          setSessionTimerEnabled(session.timer_enabled !== 0);
         }
       })
       .catch(console.error);
@@ -143,9 +145,10 @@ export const LiveAuctionOperatorView: React.FC = () => {
     setIsTimerModalOpen(true);
   };
 
-  const handleUpdateTimer = async (newSeconds: number) => {
-    await operatorUpdateTimerSeconds(newSeconds);
+  const handleUpdateTimer = async (newSeconds: number, timerEnabled: boolean) => {
+    await operatorUpdateTimerSeconds(newSeconds, timerEnabled);
     setSessionTimerSeconds(newSeconds);
+    setSessionTimerEnabled(timerEnabled);
   };
 
   const beginAuctionAfterTimerUpdate = () => {
@@ -442,6 +445,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
       <AuctionTimerUpdateModal
         isOpen={isTimerModalOpen}
         defaultSeconds={sessionTimerSeconds}
+        defaultEnabled={sessionTimerEnabled}
         onClose={() => setIsTimerModalOpen(false)}
         onUpdateTimer={handleUpdateTimer}
         onAuctionStart={beginAuctionAfterTimerUpdate}
