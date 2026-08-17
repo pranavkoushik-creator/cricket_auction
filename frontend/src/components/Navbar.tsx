@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Shield, Users, Radio, Calendar, BarChart3, UserCheck, Eye, Activity, LogOut, User as UserIcon } from 'lucide-react';
+import { Trophy, Shield, Users, Radio, BarChart3, UserCheck, Eye, Activity, LogOut } from 'lucide-react';
 import { formatRoleColor } from '../utils/formatters';
 
 interface NavbarProps {

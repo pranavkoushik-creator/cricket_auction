@@ -15,14 +15,14 @@ interface SocketContextType {
   operatorMarkUnsold: () => void;
   operatorTogglePause: () => void;
   operatorToggleTimer: () => void;
-  operatorUpdateTimerSeconds: (seconds: number) => Promise<void>;   // ← add
+  operatorUpdateTimerSeconds: (seconds: number, timerEnabled?: boolean) => Promise<void>;   // ← add
   operatorRollbackSale: (lotId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentTournamentId, user, token } = useAuth();
+  const { currentTournamentId, token } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -155,7 +155,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const operatorUpdateTimerSeconds = (seconds: number): Promise<void> => {
+  const operatorUpdateTimerSeconds = (seconds: number, timerEnabled?: boolean): Promise<void> => {
     return new Promise((resolve, reject) => {
       const s = socketRef.current;
       if (!s?.connected || !currentTournamentId) {
@@ -177,7 +177,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       s.once('auction:timer_seconds_updated', onUpdated);
       s.once('auction:error', onError);
-      s.emit('operator:update_timer_seconds', { tournamentId: currentTournamentId, seconds });
+      s.emit('operator:update_timer_seconds', { tournamentId: currentTournamentId, seconds, timerEnabled });
     });
   };
 

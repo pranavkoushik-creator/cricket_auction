@@ -776,11 +776,11 @@ export function setupAuctionSocket(io: Server) {
       }
     });
 
-    // 7. Operator: Update Timer Duration (persists to DB, syncs in-memory state)
-    socket.on('operator:update_timer_seconds', ({ tournamentId, seconds }: { tournamentId: string; seconds: number }) => {
+    // 7. Operator: Update Timer Settings (persists to DB, syncs in-memory state)
+    socket.on('operator:update_timer_seconds', ({ tournamentId, seconds, timerEnabled }: { tournamentId: string; seconds?: number; timerEnabled?: boolean }) => {
       if (!requireRole(socket, ['Super Admin'])) return;
       try {
-        if (!seconds || seconds <= 0) {
+        if (seconds !== undefined && seconds <= 0 && timerEnabled !== false) {
           return socket.emit('auction:error', { message: 'Invalid timer duration.' });
         }
 
@@ -789,19 +789,36 @@ export function setupAuctionSocket(io: Server) {
           return socket.emit('auction:error', { message: 'No active auction session found for this tournament.' });
         }
 
-        db.prepare('UPDATE auction_sessions SET timer_seconds = ? WHERE id = ?').run(seconds, session.id);
-
-        // Keep in-memory state in sync — covers both a currently-loaded lot
-        // (not yet live, waiting to start) and a lot that's already live.
-        if (activeAuctionState && activeAuctionState.sessionId === session.id) {
-          activeAuctionState.timerDuration = seconds;
-          if (activeAuctionState.status !== 'live') {
-            activeAuctionState.timer = seconds;
+        if (typeof timerEnabled === 'boolean') {
+          db.prepare('UPDATE auction_sessions SET timer_enabled = ? WHERE id = ?').run(timerEnabled ? 1 : 0, session.id);
+          if (activeAuctionState && activeAuctionState.sessionId === session.id) {
+            activeAuctionState.timerEnabled = timerEnabled;
+            if (timerEnabled) {
+              if (activeAuctionState.status === 'live' && !activeAuctionState.isPaused) {
+                if (seconds) activeAuctionState.timer = seconds;
+                startTimer();
+              }
+            } else {
+              stopTimer();
+            }
           }
+        }
+
+        if (seconds && seconds > 0) {
+          db.prepare('UPDATE auction_sessions SET timer_seconds = ? WHERE id = ?').run(seconds, session.id);
+          if (activeAuctionState && activeAuctionState.sessionId === session.id) {
+            activeAuctionState.timerDuration = seconds;
+            if (activeAuctionState.status !== 'live') {
+              activeAuctionState.timer = seconds;
+            }
+          }
+        }
+
+        if (activeAuctionState && activeAuctionState.sessionId === session.id) {
           broadcastState();
         }
 
-        socket.emit('auction:timer_seconds_updated', { seconds });
+        socket.emit('auction:timer_seconds_updated', { seconds: seconds || 15, timerEnabled });
       } catch (err: any) {
         console.error('[AuctionEngine] Error in operator:update_timer_seconds:', err.message);
         socket.emit('auction:error', { message: err.message });

@@ -268,130 +268,144 @@ export const LiveAuctionBiddingView: React.FC = () => {
       )}
 
       {/* Main Live Bidding Console Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Active Lot Card & Bidding Controls */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left 3 Cols: Active Lot Card & Bidding Controls */}
+        <div className="lg:col-span-3 space-y-6">
           {auctionState && auctionState.status === 'live' ? (
-            <div className={`glass-panel p-6 rounded-2xl border-2 transition-all ${isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
+            <div className={`glass-panel p-6 sm:p-7 rounded-2xl border-2 transition-all ${isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
               } space-y-6`}>
-              {/* Header Badge */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
-                  {auctionState.group_name} Set · {auctionState.role}
-                </span>
 
-                {auctionState.timerEnabled === false ? (
-                  <div className="flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm bg-gray-900 text-gray-400 border-gray-700">
-                    <TimerOff className="w-4 h-4" />
-                    <span>No Timer — Operator Closes Manually</span>
-                  </div>
-                ) : (
-                  <div className={`flex items-center space-x-2 px-3.5 py-1 rounded-xl border font-bold text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500' : 'bg-gray-900 text-yellow-400 border-gray-700'
-                    }`}>
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
-                  </div>
-                )}
-              </div>
+              {/* Side-by-Side 2-Column Partition Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
 
-              {/* Player Image & Bio */}
-              <div className="flex flex-col sm:flex-row items-center gap-6 bg-gray-900/60 p-5 rounded-xl border border-gray-800">
-                <img
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
-                  alt={auctionState.playerName}
-                  className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-blue-500/40 shadow-lg"
-                />
-                <div className="space-y-2 text-center sm:text-left flex-1">
-                  <span className="text-xs text-gray-400 font-semibold">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>
-                  <h3 className="text-3xl font-black text-white">{auctionState.playerName}</h3>
-                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs text-gray-300">
-                    <span className="bg-gray-800 px-2.5 py-1 rounded border border-gray-700">Role: {auctionState.role}</span>
-                    <span className="bg-gray-800 px-2.5 py-1 rounded border border-gray-700">Base Price: {formatCurrency(auctionState.basePrice)}</span>
-                  </div>
-                </div>
-              </div>
+                {/* LEFT PARTITION: Player Photo, Bio & Live Timer */}
+                <div className="bg-gray-900/60 p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col justify-between space-y-5">
+                  <div>
+                    {/* Header Tag */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
+                        {auctionState.group_name} Set · {auctionState.role}
+                      </span>
+                      <span className="text-xs text-gray-400 font-semibold">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>
+                    </div>
 
-              {/* Current Bidder Box */}
-              <div className="glass-card p-5 rounded-xl border border-gray-800 text-center space-y-2">
-                <p className="text-xs text-gray-400 font-semibold uppercase">Current Highest Bid</p>
-                <p className="text-4xl font-black text-yellow-400">{formatCurrency(auctionState.currentBid || auctionState.basePrice)}</p>
-
-                {auctionState.highestBidderName ? (
-                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold ${isLeading ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'bg-gray-800 text-amber-300 border border-gray-700'
-                    }`}>
-                    {isLeading ? <CheckCircle2 className="w-4 h-4" /> : <Flame className="w-4 h-4 text-amber-400" />}
-                    <span>{isLeading ? 'YOUR FRANCHISE IS LEADING!' : `Leading: ${auctionState.highestBidderName} (${auctionState.highestBidderShort})`}</span>
+                    {/* Player Image & Name */}
+                    <div className="flex flex-col sm:flex-row items-center gap-5">
+                      <img
+                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                        alt={auctionState.playerName}
+                        className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl shrink-0"
+                      />
+                      <div className="space-y-2 text-center sm:text-left flex-1">
+                        <h3 className="text-3xl sm:text-4xl font-black text-white leading-tight">{auctionState.playerName}</h3>
+                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs text-gray-300">
+                          <span className="bg-gray-800 px-3 py-1 rounded-lg border border-gray-700 font-medium">Role: {auctionState.role}</span>
+                          <span className="bg-gray-800 px-3 py-1 rounded-lg border border-gray-700 font-medium">Base: {formatCurrency(auctionState.basePrice)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-gray-400">Be the first franchise to place a bid at {formatCurrency(auctionState.basePrice)}</p>
-                )}
-              </div>
 
-              {/* Dynamic Max Bid Info or Warning */}
-              <div className="space-y-3 pt-2">
-                {currentFranchise.is_bidding_enabled === 0 ? (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-center font-black flex items-center justify-center gap-1.5 animate-pulse">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-400 animate-bounce" />
-                    <span>✕ BIDDING DISABLED FOR YOUR FRANCHISE BY ADMIN</span>
-                  </div>
-                ) : dynamicMaxBid === -1 ? (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-center font-bold flex items-center justify-center gap-1.5 animate-pulse">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
-                    <span>Bidding Blocked: Acquiring {auctionState.playerName} would violate squad composition rules!</span>
-                  </div>
-                ) : (
-                  <div className="p-3 py-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-200 text-xs text-center font-semibold flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0" />
-                    <span>Your Max Bid Limit for {auctionState.playerName}: <span className="font-extrabold text-yellow-400 text-sm ml-1">{formatCurrency(dynamicMaxBid)}</span></span>
-                  </div>
-                )}
-
-                <p className="text-xs font-semibold text-gray-400 text-center uppercase tracking-wider">Quick Bid Increment Controls</p>
-
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    onClick={() => placeBid(currentFranchise.id, minNextBid)}
-                    onMouseEnter={() => setHoveredBidAmount(minNextBid)}
-                    onMouseLeave={() => setHoveredBidAmount(null)}
-                    disabled={isLeading || minNextBid > dynamicMaxBid || dynamicMaxBid === -1}
-                    className="py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:brightness-110 text-black font-black text-base shadow-xl shadow-yellow-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
-                  >
-                    <span>RAISE BID TO {formatCurrency(minNextBid)}</span>
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+                  {/* Prominent Live Countdown Timer Box at Bottom of Left Partition */}
+                  {auctionState.timerEnabled === false ? (
+                    <div className="flex items-center justify-between p-4 rounded-xl border font-bold text-xs sm:text-sm bg-gray-950 text-gray-400 border-gray-800">
+                      <div className="flex items-center gap-2">
+                        <TimerOff className="w-4 h-4 text-amber-400" />
+                        <span>Auction Timer:</span>
+                      </div>
+                      <span className="text-amber-400 font-extrabold">OFF (Operator Closes Manually)</span>
+                    </div>
+                  ) : (
+                    <div className={`flex items-center justify-between p-4 rounded-xl border font-bold text-xs sm:text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-950 text-yellow-400 border-yellow-500/30'
+                      }`}>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 animate-spin text-yellow-400" />
+                        <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Timer Remaining:</span>
+                      </div>
+                      <span className="text-lg font-black">00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  {bidIncrements.map((inc, index) => {
-                    const bidVal = currentBidBase + inc;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => placeBid(currentFranchise.id, bidVal)}
-                        onMouseEnter={() => setHoveredBidAmount(bidVal)}
-                        onMouseLeave={() => setHoveredBidAmount(null)}
-                        disabled={isLeading || bidVal > dynamicMaxBid || dynamicMaxBid === -1}
-                        className="py-3.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 disabled:opacity-40 transition"
-                      >
-                        + {formatCurrency(inc)} ({formatCurrency(bidVal)})
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* RIGHT PARTITION: Bidding Console, Highest Bid & Action Buttons */}
+                <div className="space-y-5 flex flex-col justify-between">
+                  {/* Current Highest Bid Box */}
+                  <div className="glass-card p-5 rounded-2xl border border-gray-800 text-center space-y-2">
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Current Highest Bid</p>
+                    <p className="text-4xl sm:text-5xl font-black text-yellow-400">{formatCurrency(auctionState.currentBid || auctionState.basePrice)}</p>
 
-                {/* Dynamic Bid Validation Status Display */}
-                {hoveredBidAmount !== null && (
-                  <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
-                    ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                    : 'bg-red-950/60 border-red-500/40 text-red-300'
-                    }`}>
-                    {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
-                      <span>✓ BID ALLOWED</span>
+                    {auctionState.highestBidderName ? (
+                      <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold ${isLeading ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'bg-gray-800 text-amber-300 border border-gray-700'
+                        }`}>
+                        {isLeading ? <CheckCircle2 className="w-4 h-4" /> : <Flame className="w-4 h-4 text-amber-400" />}
+                        <span>{isLeading ? 'YOUR FRANCHISE IS LEADING!' : `Leading: ${auctionState.highestBidderName} (${auctionState.highestBidderShort})`}</span>
+                      </div>
                     ) : (
-                      <span>✕ BID BLOCKED<br />Maximum safe bid is {formatCurrency(dynamicMaxBid)}.</span>
+                      <p className="text-xs text-gray-400">Be the first franchise to place a bid at {formatCurrency(auctionState.basePrice)}</p>
                     )}
                   </div>
-                )}
+
+                  {/* Max Bid Limit Info Banner */}
+                  {dynamicMaxBid === -1 ? (
+                    <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-center font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                      <span>Bidding Blocked: Violates squad composition rules!</span>
+                    </div>
+                  ) : (
+                    <div className="p-3 py-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-200 text-xs text-center font-semibold flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0" />
+                      <span>Max Safe Bid Limit for {auctionState.playerName}: <span className="font-extrabold text-yellow-400 text-xs sm:text-sm ml-1">{formatCurrency(dynamicMaxBid)}</span></span>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-400 text-center uppercase tracking-wider">Quick Bid Increment Controls</p>
+
+                    <button
+                      onClick={() => placeBid(currentFranchise.id, minNextBid)}
+                      onMouseEnter={() => setHoveredBidAmount(minNextBid)}
+                      onMouseLeave={() => setHoveredBidAmount(null)}
+                      disabled={isLeading || minNextBid > dynamicMaxBid || dynamicMaxBid === -1}
+                      className="w-full py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:brightness-110 text-black font-black text-sm sm:text-base shadow-xl shadow-yellow-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                    >
+                      <span>RAISE BID TO {formatCurrency(minNextBid)}</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {bidIncrements.map((inc: number, index: number) => {
+                        const bidVal = currentBidBase + inc;
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => placeBid(currentFranchise.id, bidVal)}
+                            onMouseEnter={() => setHoveredBidAmount(bidVal)}
+                            onMouseLeave={() => setHoveredBidAmount(null)}
+                            disabled={isLeading || bidVal > dynamicMaxBid || dynamicMaxBid === -1}
+                            className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs sm:text-sm border border-gray-700 disabled:opacity-40 transition"
+                          >
+                            + {formatCurrency(inc)} ({formatCurrency(bidVal)})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dynamic Bid Validation Status Display */}
+                  {hoveredBidAmount !== null && (
+                    <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
+                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                      : 'bg-red-950/60 border-red-500/40 text-red-300'
+                      }`}>
+                      {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
+                        <span>✓ BID ALLOWED</span>
+                      ) : (
+                        <span>✕ BID BLOCKED — Safe limit is {formatCurrency(dynamicMaxBid)}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
