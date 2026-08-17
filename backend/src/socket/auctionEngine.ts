@@ -19,6 +19,8 @@ interface ActiveLotState {
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;
+  highestBidderLogo?: string | null;
+  highestBidderOwner?: string | null;
   timer: number;
   timerDuration: number; // full countdown length in seconds; restored to this value on toggle-on / new bid
   timerEnabled: boolean; // when false, no countdown runs and lots must be closed manually by the operator
