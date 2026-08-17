@@ -3,7 +3,7 @@ import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Radio, Flame, Trophy, Clock, Gavel, Sparkles, XCircle } from 'lucide-react';
+import { Radio, Flame, Trophy, Clock, Gavel, Sparkles, XCircle, TimerOff } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const SpectatorAuctionView: React.FC = () => {
@@ -13,16 +13,27 @@ export const SpectatorAuctionView: React.FC = () => {
   const [summaryReport, setSummaryReport] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'sales' | 'bids'>('all');
 
+  const [franchises, setFranchises] = useState<any[]>([]);
+
   const fetchSummary = () => {
     if (!currentTournamentId) return;
     apiRequest(`/reports/auction?tournamentId=${currentTournamentId}`)
       .then(res => setSummaryReport(res.summary))
+      .catch(console.error);
+    apiRequest(`/franchises?tournamentId=${currentTournamentId}`)
+      .then(setFranchises)
       .catch(console.error);
   };
 
   useEffect(() => {
     fetchSummary();
   }, [currentTournamentId, auctionState?.status]);
+
+  const leadingFranchise = franchises.find(f =>
+    f.id === auctionState?.highestBidderId ||
+    f.name === auctionState?.highestBidderName ||
+    f.short_name === auctionState?.highestBidderShort
+  );
 
   // Trigger confetti when a lot is marked SOLD
   useEffect(() => {
@@ -92,67 +103,102 @@ export const SpectatorAuctionView: React.FC = () => {
         {/* Main Featured Block (Left 2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
           {auctionState && auctionState.status === 'live' ? (
-            /* CASE 1: ACTIVE LIVE BIDDING CARD */
-            <div className="glass-panel p-6 rounded-2xl border-2 border-yellow-500/50 relative overflow-hidden space-y-6 shadow-2xl">
+            /* CASE 1: ACTIVE LIVE BIDDING CARD (PARTITIONED 2-COLUMN SIDE-BY-SIDE LAYOUT) */
+            <div className="glass-panel p-6 sm:p-7 rounded-2xl border-2 border-yellow-500/50 relative overflow-hidden space-y-6 shadow-2xl">
               {/* Header Badges */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
                 <span className="text-xs font-black px-3.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 uppercase tracking-wider">
                   SET {auctionState.group_name?.toUpperCase()} · {auctionState.role?.toUpperCase()}
                 </span>
 
-                <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                  <Clock className="w-4 h-4 animate-spin" />
-                  <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
-                </div>
-              </div>
-
-              {/* Featured Player Cutout & Bio */}
-              <div className="flex flex-col sm:flex-row items-center gap-6 bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                <div className="relative shrink-0">
-                  <img
-                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
-                    alt={auctionState.playerName}
-                    className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl"
-                  />
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black px-3 py-0.5 rounded-full bg-black/80 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
-                    {auctionState.isForeign ? '🌍 FOREIGN' : '🇮🇳 INDIA'}
-                  </span>
-                </div>
-
-                <div className="space-y-3 text-center sm:text-left flex-1">
-                  <div>
-                    <span className="text-xs text-yellow-400 font-bold uppercase tracking-widest block">FEATURED PLAYER</span>
-                    <h3 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight font-broadcast">
-                      {auctionState.playerName}
-                    </h3>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs font-semibold text-gray-300">
-                    <span className="bg-gray-800/80 px-3 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
-                    <span className="bg-gray-800/80 px-3 py-1 rounded-lg border border-gray-700">Base: {formatCurrency(auctionState.basePrice)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Current Highest Bid Highlight */}
-              <div className="glass-card p-6 rounded-2xl border border-amber-500/40 text-center space-y-3 relative overflow-hidden">
-                <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-400 font-bold text-[10px] uppercase border-b border-l border-amber-500/20">
-                  Live Bidding Active
-                </div>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Current Highest Bid</p>
-                <p className="text-5xl font-black text-emerald-400 tracking-tight font-broadcast">
-                  {formatCurrency(auctionState.currentBid || auctionState.basePrice)}
-                </p>
-
-                {auctionState.highestBidderName ? (
-                  <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full gold-badge text-sm shadow-xl">
-                    <Flame className="w-5 h-5 text-black" />
-                    <span>Leading: {auctionState.highestBidderName} ({auctionState.highestBidderShort})</span>
+                {auctionState.timerEnabled === false ? (
+                  <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl border font-bold text-xs bg-gray-900 text-gray-400 border-gray-700">
+                    <TimerOff className="w-4 h-4 text-amber-400" />
+                    <span>Timer OFF</span>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400">Waiting for opening bid at base price of {formatCurrency(auctionState.basePrice)}</p>
+                  <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                    }`}>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                  </div>
                 )}
+              </div>
+
+              {/* 2-Column Partition Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                
+                {/* LEFT PARTITION: Featured Player Portrait & Details */}
+                <div className="bg-gray-900/80 p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col justify-between space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-5">
+                    <div className="relative shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                        alt={auctionState.playerName}
+                        className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl"
+                      />
+                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-black/90 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
+                        {auctionState.isForeign ? '🌍 FOREIGN' : '🇮🇳 INDIA'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-center sm:text-left flex-1">
+                      <span className="text-[10px] text-yellow-400 font-extrabold uppercase tracking-widest block">FEATURED PLAYER</span>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight font-broadcast leading-tight">
+                        {auctionState.playerName}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs font-semibold text-gray-300 pt-1">
+                        <span className="bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
+                        <span className="bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-700">Base: {formatCurrency(auctionState.basePrice)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT PARTITION: Current Highest Bid & Leading Team Showcase Card */}
+                <div className="glass-card p-5 sm:p-6 rounded-2xl border border-amber-500/40 text-center flex flex-col justify-between space-y-4 relative overflow-hidden bg-gray-900/90">
+                  <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/20 text-amber-300 font-extrabold text-[10px] uppercase border-b border-l border-amber-500/30 tracking-wider">
+                    Live Bidding Active
+                  </div>
+
+                  <div className="pt-2 space-y-1">
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Current Highest Bid</p>
+                    <p className="text-4xl sm:text-5xl font-black text-emerald-400 tracking-tight font-broadcast">
+                      {formatCurrency(auctionState.currentBid || auctionState.basePrice)}
+                    </p>
+                  </div>
+
+                  {/* Leading Franchise Showcase Box (Team Logo, Team Name, Short Code, Owner Name) */}
+                  {auctionState.highestBidderName ? (
+                    <div className="bg-gray-950/80 p-4 rounded-xl border border-yellow-500/30 flex items-center gap-4 text-left shadow-xl transition-all">
+                      <img
+                        src={auctionState.highestBidderLogo || leadingFranchise?.logo_url || 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=150&auto=format&fit=crop&q=80'}
+                        alt={auctionState.highestBidderName}
+                        className="w-14 h-14 rounded-xl object-cover border-2 border-yellow-500/60 shadow-md shrink-0"
+                      />
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
+                            CURRENT LEADING BIDDER
+                          </span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-white truncate leading-tight font-broadcast">
+                          {auctionState.highestBidderName} <span className="text-yellow-400 text-xs font-extrabold">({auctionState.highestBidderShort})</span>
+                        </h4>
+                        <p className="text-xs text-gray-400 font-semibold truncate">
+                          Owner: <span className="text-gray-200 font-bold">{auctionState.highestBidderOwner || leadingFranchise?.owner_name || 'Verified Owner'}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-950/60 p-4 rounded-xl border border-gray-800 text-center">
+                      <p className="text-xs text-gray-400 font-medium">
+                        Waiting for opening bid at base price of <span className="text-yellow-400 font-bold">{formatCurrency(auctionState.basePrice)}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : auctionState && (auctionState.status === 'sold' || auctionState.status === 'unsold') ? (

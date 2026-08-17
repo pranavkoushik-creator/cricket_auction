@@ -428,11 +428,13 @@ export function setupAuctionSocket(io: Server) {
     console.log('[AuctionEngine] Loading lot state for:', lotIdOrPlayerId);
     const lot = db.prepare(`
       SELECT al.*, p.name as player_name, p.group_name, p.role, p.is_foreign, p.base_price, p.photo_url,
-             f.name as bidder_name, f.short_name as bidder_short,
+             f.name as bidder_name, f.short_name as bidder_short, f.logo_url as bidder_logo,
+             u.name as bidder_owner,
              ases.timer_seconds as session_timer_seconds, ases.timer_enabled as session_timer_enabled
       FROM auction_lots al
       JOIN players p ON al.player_id = p.id
       LEFT JOIN franchises f ON al.current_bidder_id = f.id
+      LEFT JOIN users u ON f.owner_id = u.id
       JOIN auction_sessions ases ON ases.id = al.session_id
       WHERE al.id = ? OR al.player_id = ?
       LIMIT 1
@@ -460,6 +462,8 @@ export function setupAuctionSocket(io: Server) {
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,
+      highestBidderLogo: lot.bidder_logo || null,
+      highestBidderOwner: lot.bidder_owner || null,
       timer: timerDuration,
       timerDuration,
       timerEnabled,
@@ -613,10 +617,19 @@ export function setupAuctionSocket(io: Server) {
       }
 
       // Success! Update memory state
+      const franDetails = db.prepare(`
+        SELECT f.logo_url, u.name as owner_name
+        FROM franchises f
+        LEFT JOIN users u ON f.owner_id = u.id
+        WHERE f.id = ?
+      `).get(franchiseId) as any;
+
       activeAuctionState.currentBid = bidAmount;
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = txnResult.franchiseName;
       activeAuctionState.highestBidderShort = txnResult.franchiseShort;
+      activeAuctionState.highestBidderLogo = franDetails?.logo_url || null;
+      activeAuctionState.highestBidderOwner = franDetails?.owner_name || null;
       if (activeAuctionState.timerEnabled) {
         activeAuctionState.timer = activeAuctionState.timerDuration;
       }

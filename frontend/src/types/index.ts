@@ -129,6 +129,8 @@ export interface ActiveAuctionState {
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;
+  highestBidderLogo?: string | null;
+  highestBidderOwner?: string | null;
   timer: number;
   timerDuration: number;
   timerEnabled: boolean;
