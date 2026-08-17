@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { UserCheck, Check, X, Ban, UserPlus, Upload, Download, FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Check, X, Ban, UserPlus, Upload, Download, FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface SinglePlayerForm {
   name: string;
@@ -62,6 +62,21 @@ export const PlayerApprovalQueueView: React.FC = () => {
     })
       .then(() => loadPlayers())
       .catch(console.error);
+  };
+
+  const getEmptyStateMessage = () => {
+    switch (filterStatus) {
+      case 'pending':
+        return 'There are no Pending Players';
+      case 'approved':
+        return 'There are no Approved Players';
+      case 'rejected':
+        return 'There are no Rejected Players';
+      case 'suspended':
+        return 'There are no Suspended Players';
+      default:
+        return 'There are no players registered in the database';
+    }
   };
 
   // Submit Single Player Manual Form
@@ -254,69 +269,117 @@ export const PlayerApprovalQueueView: React.FC = () => {
       </div>
 
       {/* Players List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {players.map(p => (
-          <div key={p.id} className="glass-card p-5 rounded-2xl border border-gray-800 space-y-4 flex flex-col justify-between hover:border-gray-700 transition">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-700 shadow-md" />
+      {players.length === 0 ? (
+        <div className="glass-panel p-16 rounded-2xl border border-gray-800 text-center space-y-4 max-w-xl mx-auto mt-6">
+          <AlertCircle className="w-12 h-12 text-blue-500 mx-auto opacity-70 animate-pulse" />
+          <h3 className="text-lg font-bold text-white uppercase tracking-wider">{getEmptyStateMessage()}</h3>
+          <p className="text-xs text-gray-400">
+            {filterStatus === 'all'
+              ? 'Please add players using the manual registration form or bulk CSV ingestion.'
+              : 'Registered players will appear here once their approval status matches this filter.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {players.map(p => (
+            <div key={p.id} className="glass-card p-5 rounded-2xl border border-gray-800 space-y-4 flex flex-col justify-between hover:border-gray-700 transition">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-700 shadow-md" />
+                    <div>
+                      <h4 className="text-base font-bold text-white">{p.name}</h4>
+                      <p className="text-xs text-gray-400">{p.role} · {p.status}</p>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${p.approval_status === 'approved'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : p.approval_status === 'pending'
+                      ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                      : 'bg-red-500/20 text-red-300 border-red-500/30'
+                    }`}>
+                    {p.approval_status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-gray-900/80 p-2.5 rounded-xl border border-gray-800">
                   <div>
-                    <h4 className="text-base font-bold text-white">{p.name}</h4>
-                    <p className="text-xs text-gray-400">{p.role} · {p.status}</p>
+                    <span className="text-gray-500 block text-[10px]">Group</span>
+                    <span className="font-bold text-white">{p.group_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-[10px]">Base Price</span>
+                    <span className="font-bold text-yellow-400">{formatCurrency(p.base_price)}</span>
                   </div>
                 </div>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${p.approval_status === 'approved'
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                  : p.approval_status === 'pending'
-                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-                    : 'bg-red-500/20 text-red-300 border-red-500/30'
-                  }`}>
-                  {p.approval_status}
-                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs bg-gray-900/80 p-2.5 rounded-xl border border-gray-800">
-                <div>
-                  <span className="text-gray-500 block text-[10px]">Group</span>
-                  <span className="font-bold text-white">{p.group_name}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 block text-[10px]">Base Price</span>
-                  <span className="font-bold text-yellow-400">{formatCurrency(p.base_price)}</span>
-                </div>
+              {/* Actions Toolbar */}
+              <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-gray-800/80">
+                {p.approval_status === 'approved' ? (
+                  <>
+                    <span className="text-emerald-400 font-extrabold text-xs flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+                      Player Approved
+                    </span>
+
+                    <button
+                      onClick={() => handleAction(p.id, 'suspend')}
+                      className="py-1.5 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs border border-gray-700 flex items-center justify-center gap-1 transition ml-auto"
+                      title="Suspend Player"
+                    >
+                      <Ban className="w-3.5 h-3.5 text-red-400" />
+                      <span>Suspend</span>
+                    </button>
+                  </>
+                ) : p.approval_status === 'suspended' ? (
+                  <>
+                    <span className="text-red-400 font-extrabold text-xs flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4 text-red-400 animate-pulse" />
+                      Player Suspended
+                    </span>
+
+                    <button
+                      onClick={() => handleAction(p.id, 'approve')}
+                      className="py-1.5 px-3 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-xs border border-emerald-500/40 flex items-center justify-center gap-1 transition ml-auto"
+                      title="Re-Approve Player"
+                    >
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Approve</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleAction(p.id, 'approve')}
+                      className="flex-1 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-xs border border-emerald-500/40 flex items-center justify-center gap-1 transition"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Approve</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAction(p.id, 'reject')}
+                      className="py-1.5 px-2.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-300 font-bold text-xs border border-red-500/40 flex items-center justify-center gap-1 transition"
+                      title="Reject Player"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => handleAction(p.id, 'suspend')}
+                      className="py-1.5 px-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs border border-gray-700 flex items-center justify-center gap-1 transition"
+                      title="Suspend Player"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* Actions Toolbar */}
-            <div className="flex items-center gap-1.5 pt-2 border-t border-gray-800/80">
-              <button
-                onClick={() => handleAction(p.id, 'approve')}
-                className="flex-1 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-xs border border-emerald-500/40 flex items-center justify-center gap-1 transition"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Approve</span>
-              </button>
-
-              <button
-                onClick={() => handleAction(p.id, 'reject')}
-                className="py-1.5 px-2.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-300 font-bold text-xs border border-red-500/40 flex items-center justify-center gap-1 transition"
-                title="Reject Player"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                onClick={() => handleAction(p.id, 'suspend')}
-                className="py-1.5 px-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs border border-gray-700 flex items-center justify-center gap-1 transition"
-                title="Suspend Player"
-              >
-                <Ban className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* CREATE & INGEST PLAYERS MODAL */}
       {isModalOpen && (

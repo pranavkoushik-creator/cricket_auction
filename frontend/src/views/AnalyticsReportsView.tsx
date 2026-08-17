@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { BarChart3, Trophy, DollarSign, FileSpreadsheet } from 'lucide-react';
+import { Trophy, DollarSign, FileSpreadsheet } from 'lucide-react';
 
 export const AnalyticsReportsView: React.FC = () => {
   const { currentTournamentId } = useAuth();

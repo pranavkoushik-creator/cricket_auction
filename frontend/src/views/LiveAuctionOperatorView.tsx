@@ -116,20 +116,20 @@ export const LiveAuctionOperatorView: React.FC = () => {
     fetchLots();
   }, [fetchLots, auctionState?.status, lastRollbackTime]);
 
-  const handleStartLot = () => {
-    if (!selectedQueueLotId) {
-      alert('Please select a player lot from the dropdown first!');
-      return;
-    }
-    if (!isConnected) {
-      alert('WebSocket not connected. Please wait for connection...');
-      return;
-    }
-    setStartingLot(true);
-    operatorStartLot(selectedQueueLotId);
-    // Reset the starting state after a short delay
-    setTimeout(() => setStartingLot(false), 2000);
-  };
+  // const handleStartLot = () => {
+  //   if (!selectedQueueLotId) {
+  //     alert('Please select a player lot from the dropdown first!');
+  //     return;
+  //   }
+  //   if (!isConnected) {
+  //     alert('WebSocket not connected. Please wait for connection...');
+  //     return;
+  //   }
+  //   setStartingLot(true);
+  //   operatorStartLot(selectedQueueLotId);
+  //   // Reset the starting state after a short delay
+  //   setTimeout(() => setStartingLot(false), 2000);
+  // };
 
   const openTimerModal = () => {
     if (!selectedQueueLotId) {

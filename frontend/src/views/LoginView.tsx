@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Eye, EyeOff, Mail, Lock, Zap, Radio } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap, Radio } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginViewProps {

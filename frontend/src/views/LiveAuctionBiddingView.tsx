@@ -37,10 +37,18 @@ export const LiveAuctionBiddingView: React.FC = () => {
   const fetchFranchiseData = () => {
     apiRequest(`/franchises?tournamentId=${currentTournamentId}`)
       .then(res => {
-        setFranchises(res);
+        const sorted = [...res];
+        if (user?.franchise_id) {
+          sorted.sort((a, b) => {
+            if (a.id === user.franchise_id) return -1;
+            if (b.id === user.franchise_id) return 1;
+            return 0;
+          });
+        }
+        setFranchises(sorted);
         // If Franchise Owner, strictly pick their assigned franchise
         const ownerFranchiseId = isFranchiseOwner && user?.franchise_id ? user.franchise_id : selectedFranchiseId;
-        const active = res.find((f: any) => f.id === ownerFranchiseId) || res[0];
+        const active = sorted.find((f: any) => f.id === ownerFranchiseId) || sorted[0];
         if (active) {
           setCurrentFranchise(active);
           if (selectedFranchiseId !== active.id) setSelectedFranchiseId(active.id);
@@ -153,6 +161,18 @@ export const LiveAuctionBiddingView: React.FC = () => {
     }
     return [5000, 10000, 25000, 50000]; // Fallback defaults
   }, [tournament]);
+
+  if (franchises.length === 0) {
+    return (
+      <div className="glass-panel p-10 rounded-2xl border border-gray-800 text-center space-y-4 max-w-2xl mx-auto">
+        <Users className="w-16 h-16 text-blue-500 mx-auto opacity-70 animate-pulse" />
+        <h3 className="text-lg font-bold text-white">No Franchises Registered</h3>
+        <p className="text-sm text-gray-400">
+          There are no franchises registered in this tournament yet. Please contact the Super Admin to register franchises and owners.
+        </p>
+      </div>
+    );
+  }
 
   if (!currentFranchise) return <div className="p-8 text-center text-gray-400">Loading franchise bidding dashboard...</div>;
 
@@ -341,11 +361,10 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
                 {/* Dynamic Bid Validation Status Display */}
                 {hoveredBidAmount !== null && (
-                  <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${
-                    hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
+                  <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
                       ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                       : 'bg-red-950/60 border-red-500/40 text-red-300'
-                  }`}>
+                    }`}>
                     {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
                       <span>✓ BID ALLOWED</span>
                     ) : (
@@ -382,41 +401,37 @@ export const LiveAuctionBiddingView: React.FC = () => {
           <div className="grid grid-cols-4 gap-1 p-1 bg-gray-950/60 rounded-xl border border-gray-850">
             <button
               onClick={() => setRosterFilter('ALL')}
-              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
-                rosterFilter === 'ALL'
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'ALL'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
-              }`}
+                }`}
             >
               All
             </button>
             <button
               onClick={() => setRosterFilter('GROUP A')}
-              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
-                rosterFilter === 'GROUP A'
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP A'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
-              }`}
+                }`}
             >
               A ({countA}/2)
             </button>
             <button
               onClick={() => setRosterFilter('GROUP B')}
-              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
-                rosterFilter === 'GROUP B'
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP B'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
-              }`}
+                }`}
             >
               B ({countB}/2-3)
             </button>
             <button
               onClick={() => setRosterFilter('GROUP C')}
-              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${
-                rosterFilter === 'GROUP C'
+              className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP C'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
-              }`}
+                }`}
             >
               C ({countC}/2-3)
             </button>
@@ -424,15 +439,28 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
             {filteredSquad && filteredSquad.length > 0 ? (
-              filteredSquad.map((p: any) => (
-                <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">
-                  <div>
-                    <h4 className="font-bold text-white text-sm">{p.name}</h4>
-                    <p className="text-[11px] text-gray-400">{p.role} · {p.group_name}</p>
-                  </div>
-                  <span className="font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</span>
-                </div>
-              ))
+              (() => {
+                const firstGroupA = currentFranchise.squad?.find((player: any) => (player.group_name || '').toUpperCase() === 'GROUP A');
+                return filteredSquad.map((p: any) => {
+                  const isCaptain = firstGroupA && p.id === firstGroupA.id;
+                  return (
+                    <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">
+                      <div>
+                        <h4 className="font-bold text-white text-sm flex items-center gap-1.5">
+                          <span>{p.name}</span>
+                          {isCaptain && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
+                              👑 CAPT
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-[11px] text-gray-400">{p.role} · {p.group_name}</p>
+                      </div>
+                      <span className="font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</span>
+                    </div>
+                  );
+                });
+              })()
             ) : (
               <p className="text-xs text-gray-500 text-center py-10">
                 {rosterFilter === 'ALL' ? 'No players purchased yet.' : `No ${rosterFilter} players purchased yet.`}

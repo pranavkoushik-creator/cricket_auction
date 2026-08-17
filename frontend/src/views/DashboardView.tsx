@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Trophy, Shield, Users, Radio, CheckCircle, ArrowUpRight, DollarSign } from 'lucide-react';
+import { Shield, Users, Radio, CheckCircle, ArrowUpRight, DollarSign } from 'lucide-react';
 
 export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
   const { currentTournamentId } = useAuth();

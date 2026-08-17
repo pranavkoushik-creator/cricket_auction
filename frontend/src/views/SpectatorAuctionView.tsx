@@ -3,7 +3,7 @@ import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Radio, Eye, Flame, Trophy, Clock, Gavel, Sparkles, TrendingUp, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { Radio, Flame, Trophy, Clock, Gavel, Sparkles, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const SpectatorAuctionView: React.FC = () => {
@@ -286,7 +286,7 @@ export const SpectatorAuctionView: React.FC = () => {
                 const isSold = ev.type === 'sold';
                 const isUnsold = ev.type === 'unsold';
                 const isBid = ev.type === 'new_bid';
-                const isLotStart = ev.type === 'lot_started';
+                // const isLotStart = ev.type === 'lot_started';
 
                 if (isSold) {
                   return (

@@ -8,6 +8,13 @@ export function seedData() {
   const passwordHash = bcrypt.hashSync('password123', 10);
   const tId = 'tour-ipl-2026';
 
+  // Check if tournament already exists to avoid wiping user data on every startup
+  const tournamentExists = db.prepare('SELECT id FROM tournaments WHERE id = ?').get(tId);
+  if (tournamentExists) {
+    console.log('[Seeder] Tournament already initialized. Skipping seed data reset.');
+    return;
+  }
+
   // 1. Create Main Tournament Record if not exists
   db.prepare(`
     INSERT INTO tournaments (id, name, sport, format, dates, status)
@@ -15,7 +22,7 @@ export function seedData() {
     ON CONFLICT(id) DO NOTHING
   `).run(
     tId,
-    'TATA IPL 2026 Mega Auction',
+    'SAKHA Premier League 2026 Mega Auction',
     'Cricket',
     'T20',
     '2026-08-15 to 2026-10-15',
@@ -25,11 +32,6 @@ export function seedData() {
   // 2. Create Core Users
   const users = [
     { id: 'usr-admin', name: 'Pranav Koushik (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
-    { id: 'usr-owner-mi', name: 'Nita Ambani (MI Owner)', email: 'mi@franchise.com', role: 'Franchise Owner' },
-    { id: 'usr-owner-csk', name: 'N. Srinivasan (CSK Owner)', email: 'csk@franchise.com', role: 'Franchise Owner' },
-    { id: 'usr-owner-rcb', name: 'Anand K. (RCB Owner)', email: 'rcb@franchise.com', role: 'Franchise Owner' },
-    { id: 'usr-owner-dc', name: 'Parth Jindal (DC Owner)', email: 'dc@franchise.com', role: 'Franchise Owner' },
-    { id: 'usr-player', name: 'Virat Kohli (Registered Player)', email: 'player@cricket.com', role: 'Player' }
   ];
 
   const insertUser = db.prepare(`
@@ -92,37 +94,7 @@ export function seedData() {
       custom_rules_json = excluded.custom_rules_json
   `).run(uuidv4(), tId, basePriceTiers, incrementLadder, customRules);
 
-  // 4. Create 4 Franchises with ₹1,000,000 purse each
-  const initialPurse = 1000000;
-  const franchises = [
-    { id: 'fran-mi', name: 'Mumbai Strikers', short: 'MI', color: '#004BA0', secColor: '#D1AB3E', owner: 'usr-owner-mi' },
-    { id: 'fran-csk', name: 'Chennai Super Kings', short: 'CSK', color: '#FCCA06', secColor: '#00529C', owner: 'usr-owner-csk' },
-    { id: 'fran-rcb', name: 'Royal Challengers Bengaluru', short: 'RCB', color: '#EC1C24', secColor: '#000000', owner: 'usr-owner-rcb' },
-    { id: 'fran-dc', name: 'Delhi Capitals', short: 'DC', color: '#00008B', secColor: '#EF4123', owner: 'usr-owner-dc' }
-  ];
-
-  const insertFranchise = db.prepare(`
-    INSERT INTO franchises (id, tournament_id, name, short_name, logo_url, primary_color, secondary_color, owner_id, initial_purse, remaining_purse)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertLedger = db.prepare(`
-    INSERT INTO purse_ledger (id, franchise_id, transaction_type, amount, balance_after, note)
-    VALUES (?, ?, 'initial_credit', ?, ?, 'Initial Franchise Purse Allocation')
-  `);
-
-  for (const f of franchises) {
-    const logo = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=150&auto=format&fit=crop&q=80';
-    insertFranchise.run(f.id, tId, f.name, f.short, logo, f.color, f.secColor, f.owner, initialPurse, initialPurse);
-    insertLedger.run(uuidv4(), f.id, initialPurse, initialPurse);
-
-    // Init Points Table
-    db.prepare(`
-      INSERT INTO points_table (id, tournament_id, franchise_id, played, won, lost, tied, no_result, points, nrr, position)
-      VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0, 0.000, 1)
-      ON CONFLICT DO NOTHING
-    `).run(uuidv4(), tId, f.id);
-  }
+  // 4. Create 4 Franchises (Removed dummy franchises; allow clean creation through UI)
 
   // 5. Create 39 Players from PDF
   const playersData = [

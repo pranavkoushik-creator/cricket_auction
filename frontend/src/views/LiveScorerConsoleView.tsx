@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { Activity, Flame, Calendar, Trophy, RefreshCw, MapPin } from 'lucide-react';
+import { Flame, Calendar, Trophy, RefreshCw, MapPin } from 'lucide-react';
 
 export const LiveScorerConsoleView: React.FC = () => {
   const { currentTournamentId, token } = useAuth();
@@ -230,8 +230,8 @@ export const LiveScorerConsoleView: React.FC = () => {
                           key={runs}
                           onClick={() => recordBall(runs)}
                           className={`py-3.5 rounded-xl font-black text-base border transition ${runs === 4 || runs === 6
-                              ? 'bg-yellow-500 hover:bg-yellow-400 text-black border-yellow-400 shadow-lg shadow-yellow-500/20'
-                              : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
+                            ? 'bg-yellow-500 hover:bg-yellow-400 text-black border-yellow-400 shadow-lg shadow-yellow-500/20'
+                            : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
                             }`}
                         >
                           {runs === 0 ? 'DOT' : `+${runs} RUNS`}
@@ -320,10 +320,10 @@ export const LiveScorerConsoleView: React.FC = () => {
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span className="font-semibold text-gray-300">Match #{m.match_number} · {m.stage}</span>
                       <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${m.status === 'completed'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : m.status === 'live'
-                            ? 'bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse'
-                            : 'bg-gray-800 text-gray-400'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : m.status === 'live'
+                          ? 'bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse'
+                          : 'bg-gray-800 text-gray-400'
                         }`}>
                         {m.status}
                       </span>

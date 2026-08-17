@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { UserCheck, CheckCircle2, Send } from 'lucide-react';
+import { CheckCircle2, Send } from 'lucide-react';
 
 export const PlayerRegistrationView: React.FC = () => {
   const { currentTournamentId } = useAuth();

@@ -30,6 +30,7 @@ let activeAuctionState: ActiveLotState | null = null;
 let timerInterval: NodeJS.Timeout | null = null;
 
 function calculateDynamicMaxBid(franchiseId: string, playerGroup: string, remainingPurse: number, tournamentId: string): number {
+  // 1. Fetch currently purchased players for this franchise
   const squad = db.prepare(`
     SELECT p.group_name, al.sold_price 
     FROM auction_lots al
@@ -145,7 +146,7 @@ const placeBidTransaction = db.transaction((params: {
       AND al.id != ?
     GROUP BY p.group_name
   `);
-  
+
   const availableRows = availableQuery.all(tournamentId, lotId) as { group_name: string; cnt: number }[];
   const availableCounts: Record<string, number> = {};
   availableRows.forEach(row => {
@@ -153,7 +154,7 @@ const placeBidTransaction = db.transaction((params: {
   });
 
   const franchisesList = db.prepare('SELECT id FROM franchises WHERE tournament_id = ?').all(tournamentId) as { id: string }[];
-  
+
   for (const rule of groupRules) {
     const gName = rule.group_name.toUpperCase();
     let totalOutstanding = 0;

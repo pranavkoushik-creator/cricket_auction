@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
   const [currentTournamentId, setCurrentTournamentId] = useState<string>('tour-ipl-2026');
-  const [selectedFranchiseId, setSelectedFranchiseId] = useState<string>('fran-mi');
+  const [selectedFranchiseId, setSelectedFranchiseId] = useState<string>('');
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
   // Automatically update selectedFranchiseId if Franchise Owner

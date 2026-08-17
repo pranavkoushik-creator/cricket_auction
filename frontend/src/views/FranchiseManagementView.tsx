@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
-import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck, UserPlus, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 interface FranchiseFormData {
   name: string;
@@ -30,7 +30,7 @@ const DEFAULT_FORM: FranchiseFormData = {
   primary_color: '#3b82f6',
   secondary_color: '#1e40af',
   owner_id: '',
-  initial_purse: 10000 // 10k
+  initial_purse: 1000000 // 1000k (1M)
 };
 
 const DEFAULT_OWNER_FORM: OwnerFormData = {
@@ -41,7 +41,7 @@ const DEFAULT_OWNER_FORM: OwnerFormData = {
 };
 
 export const FranchiseManagementView: React.FC = () => {
-  const { currentTournamentId, currentRole } = useAuth();
+  const { currentTournamentId, currentRole, user } = useAuth();
   const isAdmin = currentRole === 'Super Admin';
 
   const [franchises, setFranchises] = useState<any[]>([]);
@@ -61,6 +61,7 @@ export const FranchiseManagementView: React.FC = () => {
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [isSubmittingOwner, setIsSubmittingOwner] = useState(false);
   const [ownerSuccessToast, setOwnerSuccessToast] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Delete Confirm State
   const [deletingFranchiseId, setDeletingFranchiseId] = useState<string | null>(null);
@@ -71,12 +72,20 @@ export const FranchiseManagementView: React.FC = () => {
   const loadFranchises = (selectId?: string) => {
     apiRequest(`/franchises?tournamentId=${currentTournamentId}`)
       .then(res => {
-        setFranchises(res);
-        const targetId = selectId || (selectedFranchise ? selectedFranchise.id : (res.length > 0 ? res[0].id : null));
-        if (targetId && res.some((f: any) => f.id === targetId)) {
+        const sorted = [...res];
+        if (user?.franchise_id) {
+          sorted.sort((a, b) => {
+            if (a.id === user.franchise_id) return -1;
+            if (b.id === user.franchise_id) return 1;
+            return 0;
+          });
+        }
+        setFranchises(sorted);
+        const targetId = selectId || (selectedFranchise ? selectedFranchise.id : (sorted.length > 0 ? sorted[0].id : null));
+        if (targetId && sorted.some((f: any) => f.id === targetId)) {
           loadFranchiseDetails(targetId);
-        } else if (res.length > 0) {
-          loadFranchiseDetails(res[0].id);
+        } else if (sorted.length > 0) {
+          loadFranchiseDetails(sorted[0].id);
         } else {
           setSelectedFranchise(null);
         }
@@ -340,18 +349,31 @@ export const FranchiseManagementView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-800/60">
                   {selectedFranchise.squad && selectedFranchise.squad.length > 0 ? (
-                    selectedFranchise.squad.map((p: any) => (
-                      <tr key={p.id} className="hover:bg-gray-900/40">
-                        <td className="py-3 px-3 font-bold text-white flex items-center space-x-2">
-                          <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover" />
-                          <span>{p.name}</span>
-                        </td>
-                        <td className="py-3 px-3 text-gray-300">{p.group_name}</td>
-                        <td className="py-3 px-3 text-gray-300">{p.role}</td>
-                        <td className="py-3 px-3 text-gray-400">{p.is_foreign ? 'Foreign' : 'Indian'}</td>
-                        <td className="py-3 px-3 text-right font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</td>
-                      </tr>
-                    ))
+                    (() => {
+                      const firstGroupA = selectedFranchise.squad.find((player: any) => (player.group_name || '').toUpperCase() === 'GROUP A');
+                      return selectedFranchise.squad.map((p: any) => {
+                        const isCaptain = firstGroupA && p.id === firstGroupA.id;
+                        return (
+                          <tr key={p.id} className="hover:bg-gray-900/40">
+                            <td className="py-3 px-3 font-bold text-white flex items-center space-x-2">
+                              <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-800" />
+                              <span className="flex items-center gap-1.5">
+                                <span>{p.name}</span>
+                                {isCaptain && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
+                                    👑 CAPT
+                                  </span>
+                                )}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-gray-300">{p.group_name}</td>
+                            <td className="py-3 px-3 text-gray-300">{p.role}</td>
+                            <td className="py-3 px-3 text-gray-400">{p.is_foreign ? 'Foreign' : 'Indian'}</td>
+                            <td className="py-3 px-3 text-right font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</td>
+                          </tr>
+                        );
+                      });
+                    })()
                   ) : (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-gray-500">No players acquired yet.</td>
@@ -659,13 +681,22 @@ export const FranchiseManagementView: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-gray-400">Default Password</label>
-                <input
-                  type="text"
-                  value={ownerFormData.password}
-                  onChange={e => setOwnerFormData({ ...ownerFormData, password: e.target.value })}
-                  className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 font-mono"
-                />
+                <label className="block text-xs font-semibold text-gray-400">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={ownerFormData.password}
+                    onChange={e => setOwnerFormData({ ...ownerFormData, password: e.target.value })}
+                    className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 pr-10 focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p className="text-[10px] text-gray-500">Default: password123 (Owner can log in with this email & password)</p>
               </div>
 
