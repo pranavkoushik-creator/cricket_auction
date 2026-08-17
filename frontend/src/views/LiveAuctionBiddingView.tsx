@@ -9,7 +9,7 @@ import confetti from 'canvas-confetti';
 export const LiveAuctionBiddingView: React.FC = () => {
   const { currentTournamentId, selectedFranchiseId, setSelectedFranchiseId, currentRole, user } = useAuth();
   const isFranchiseOwner = currentRole === 'Franchise Owner';
-  const { auctionState, bidError, placeBid, eventsLog } = useAuctionSocket();
+  const { auctionState, bidError, placeBid, eventsLog, socket } = useAuctionSocket();
 
   const [franchises, setFranchises] = useState<any[]>([]);
   const [currentFranchise, setCurrentFranchise] = useState<any>(null);
@@ -73,8 +73,22 @@ export const LiveAuctionBiddingView: React.FC = () => {
     }
   }, [auctionState?.status]);
 
+  // Listen for franchise bidding toggles in real-time
+  useEffect(() => {
+    if (!socket) return;
+    const handleToggle = () => {
+      fetchFranchiseData();
+    };
+    socket.on('franchise:bidding_toggle', handleToggle);
+    socket.on('franchise:bidding_toggle_all', handleToggle);
+    return () => {
+      socket.off('franchise:bidding_toggle', handleToggle);
+      socket.off('franchise:bidding_toggle_all', handleToggle);
+    };
+  }, [socket]);
+
   const { dynamicMaxBid, minimumFutureReserve } = useMemo(() => {
-    if (!auctionState || auctionState.status !== 'live' || !currentFranchise || !currentFranchise.squad) {
+    if (!auctionState || auctionState.status !== 'live' || !currentFranchise || !currentFranchise.squad || currentFranchise.is_bidding_enabled === 0) {
       return { dynamicMaxBid: -1, minimumFutureReserve: 0 };
     }
 
@@ -147,19 +161,20 @@ export const LiveAuctionBiddingView: React.FC = () => {
   }, [auctionState, currentFranchise, tournament]);
 
   const bidIncrements = useMemo(() => {
+    let increments = [5000, 10000, 25000]; // Fallback defaults without 50000
     try {
       if (tournament?.rules?.custom_rules_json) {
         const parsed = typeof tournament.rules.custom_rules_json === 'string'
           ? JSON.parse(tournament.rules.custom_rules_json)
           : tournament.rules.custom_rules_json;
         if (parsed?.bid_increments) {
-          return parsed.bid_increments.map(Number);
+          increments = parsed.bid_increments.map(Number);
         }
       }
     } catch (e) {
       console.error('Failed to parse bid increments:', e);
     }
-    return [5000, 10000, 25000, 50000]; // Fallback defaults
+    return increments.filter(inc => inc !== 50000);
   }, [tournament]);
 
   if (franchises.length === 0) {
@@ -262,7 +277,7 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
               {/* Side-by-Side 2-Column Partition Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                
+
                 {/* LEFT PARTITION: Player Photo, Bio & Live Timer */}
                 <div className="bg-gray-900/60 p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col justify-between space-y-5">
                   <div>
@@ -301,9 +316,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
                       <span className="text-amber-400 font-extrabold">OFF (Operator Closes Manually)</span>
                     </div>
                   ) : (
-                    <div className={`flex items-center justify-between p-4 rounded-xl border font-bold text-xs sm:text-sm ${
-                      auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-950 text-yellow-400 border-yellow-500/30'
-                    }`}>
+                    <div className={`flex items-center justify-between p-4 rounded-xl border font-bold text-xs sm:text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-950 text-yellow-400 border-yellow-500/30'
+                      }`}>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 animate-spin text-yellow-400" />
                         <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Timer Remaining:</span>
@@ -381,8 +395,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
                   {/* Dynamic Bid Validation Status Display */}
                   {hoveredBidAmount !== null && (
                     <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
-                        ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                        : 'bg-red-950/60 border-red-500/40 text-red-300'
+                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                      : 'bg-red-950/60 border-red-500/40 text-red-300'
                       }`}>
                       {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
                         <span>✓ BID ALLOWED</span>
@@ -422,8 +436,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
             <button
               onClick={() => setRosterFilter('ALL')}
               className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'ALL'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
                 }`}
             >
               All
@@ -431,8 +445,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
             <button
               onClick={() => setRosterFilter('GROUP A')}
               className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP A'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
                 }`}
             >
               A ({countA}/2)
@@ -440,8 +454,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
             <button
               onClick={() => setRosterFilter('GROUP B')}
               className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP B'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
                 }`}
             >
               B ({countB}/2-3)
@@ -449,8 +463,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
             <button
               onClick={() => setRosterFilter('GROUP C')}
               className={`py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all duration-200 ${rosterFilter === 'GROUP C'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
                 }`}
             >
               C ({countC}/2-3)

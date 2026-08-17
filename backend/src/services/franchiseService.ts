@@ -163,3 +163,17 @@ export function deleteFranchise(id: string) {
   return { success: true, message: `Franchise ${existing.name} deleted successfully.` };
 }
 
+export function toggleFranchiseBidding(id: string) {
+  const f = db.prepare('SELECT is_bidding_enabled FROM franchises WHERE id = ?').get(id) as any;
+  if (!f) throw new Error('Franchise not found');
+  const newVal = f.is_bidding_enabled === 1 ? 0 : 1;
+  db.prepare('UPDATE franchises SET is_bidding_enabled = ? WHERE id = ?').run(newVal, id);
+  return getFranchiseById(id);
+}
+
+export function toggleAllFranchisesBidding(tournamentId: string, enabled: boolean) {
+  const val = enabled ? 1 : 0;
+  db.prepare('UPDATE franchises SET is_bidding_enabled = ? WHERE tournament_id = ?').run(val, tournamentId);
+  return getFranchises(tournamentId);
+}
+
