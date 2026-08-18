@@ -7,18 +7,18 @@ export function seedData() {
 
   // Group A players' photo URLs mapping (Zoho People/Contacts and local images)
   const groupAPhotos: Record<string, string> = {
-    'Ajey Simha': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000000348808&mode=1&avatarid=86',
-    'Punith N': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000000334161&mode=1&avatarid=6',
-    'Dushyanth S J': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000000345817&mode=1&avatarid=655',
-    'HEMANTH R': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000001591353&mode=1&avatarid=62',
-    'Manoj M R': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000000346237&mode=1&avatarid=60',
-    'Rishav D Raj': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000002437653&mode=1&avatarid=462',
-    'Santhosh M': 'https://contacts.zoho.in/file?ID=60011427541&fs=original',
+    'Ajey Simha': '/images/ajey.jpg',
+    'Punith N': '/images/punith.jpg',
+    'Dushyanth S J': '/images/dushyanth.jpg',
+    'HEMANTH R': '/images/hemanth.jpg',
+    'Manoj M R': '/images/manoj_m_r.jpg',
+    'Rishav D Raj': '/images/rishav.jpg',
+    'Santhosh M': '/images/santhosh.jpg',
     'SAYAM D jAIN': '/images/sayam.jpg',
-    'Srivathsa E R': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000002384840&mode=1&avatarid=367',
-    'Suhas Gowda': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000000345757&mode=1&avatarid=8',
+    'Srivathsa E R': '/images/srivathsa.jpg',
+    'Suhas Gowda': '/images/suhas.jpg',
     'Sujan Shetty': '/images/sujan.jpg',
-    'Surya H R': 'https://people.zoho.in/sakhatech/viewPhoto?erecno=51286000002461541&mode=1&avatarid=553'
+    'Surya H R': '/images/surya.jpg'
   };
 
   // Restore Zoho photo URLs for Group A players in the database if they were previously migrated to Unsplash
