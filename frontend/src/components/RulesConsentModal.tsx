@@ -48,7 +48,7 @@ export const RulesConsentModal: React.FC<RulesConsentModalProps> = ({
             <ShieldCheck className="w-7 h-7 text-black shrink-0" />
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-black uppercase tracking-wider font-broadcast">
-                SAKHA PREMIER LEAGUE 2026 — RULES OF THE GAME
+                SAKHA PREMIER LEAGUE 2026 — RULES OF THE AUCTION
               </h2>
               <p className="text-xs font-bold text-gray-900">
                 {isMandatory ? 'Mandatory Franchise Owner Rules Review & Agreement' : 'Official Tournament Rules & Regulations Reference'}

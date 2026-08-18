@@ -76,15 +76,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
               </div>
             </div>
 
-            {/* Rules of the Game Reference Button */}
+            {/* Rules of the Auction Reference Button */}
             {onOpenRules && (
               <button
                 onClick={onOpenRules}
                 className="px-3 py-1.5 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 transition flex items-center gap-1.5 text-xs font-bold"
-                title="View Rules of the Game"
+                title="View Rules of the Auction"
               >
                 <span>📜</span>
-                <span className="hidden sm:inline">Rules of the Game</span>
+                <span className="hidden sm:inline">Rules of the Auction</span>
               </button>
             )}
 
