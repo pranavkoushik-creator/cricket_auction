@@ -100,16 +100,10 @@ export interface Player {
   document_url?: string;
   is_captain?: number;
   stats?: {
-    matches?: number;
-    runs?: number;
-    wickets?: number;
-    avg?: number;
-    sr?: number;
-    economy?: number;
     Innings?: number;
+    Runs?: number;
     "Strike Rate"?: number;
     Wickets?: number;
-    Runs?: number;
   };
   lot_status?: string;
   sold_price?: number;
@@ -130,6 +124,12 @@ export interface ActiveAuctionState {
   currentBid: number;
   minNextBid: number;
   photoUrl?: string;
+  stats?: {
+    Innings?: number;
+    Runs?: number;
+    "Strike Rate"?: number;
+    Wickets?: number;
+  } | null;
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;

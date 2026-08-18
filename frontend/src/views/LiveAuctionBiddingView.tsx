@@ -335,13 +335,13 @@ export const LiveAuctionBiddingView: React.FC = () => {
                       <span className="text-amber-400 font-extrabold">OFF (Operator Closes Manually)</span>
                     </div>
                   ) : (
-                    <div className={`flex items-center justify-between p-4 rounded-xl border font-bold text-xs sm:text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-950 text-yellow-400 border-yellow-500/30'
+                    <div className={`flex items-center justify-between p-5 rounded-xl border-2 font-bold text-sm ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger shadow-lg shadow-red-500/10' : 'bg-gray-950 text-yellow-400 border-yellow-500/50 shadow-lg shadow-yellow-500/5'
                       }`}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 animate-spin text-yellow-400" />
-                        <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Timer Remaining:</span>
+                      <div className="flex items-center gap-2.5">
+                        <Clock className="w-5 h-5 animate-spin text-yellow-400" />
+                        <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">Timer Remaining:</span>
                       </div>
-                      <span className="text-lg font-black">00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
+                      <span className="text-2xl font-black font-mono">00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                     </div>
                   )}
                 </div>
@@ -399,9 +399,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
                             key={index}
                             onClick={() => placeBid(currentFranchise.id, bidVal)}
                             disabled={isLeading || bidVal > dynamicMaxBid || dynamicMaxBid === -1}
-                            className={`py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs sm:text-sm border border-gray-700 disabled:opacity-40 transition ${
-                              isLastOdd ? 'col-span-2' : ''
-                            }`}
+                            className={`py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs sm:text-sm border border-gray-700 disabled:opacity-40 transition ${isLastOdd ? 'col-span-2' : ''
+                              }`}
                           >
                             + {formatCurrency(inc)} ({formatCurrency(bidVal)})
                           </button>

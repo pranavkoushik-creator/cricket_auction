@@ -35,6 +35,15 @@ export const SpectatorAuctionView: React.FC = () => {
     f.short_name === auctionState?.highestBidderShort
   );
 
+  const hasNonZeroStats = (stats: any) => {
+    if (!stats) return false;
+    const innings = stats.Innings ?? stats.innings ?? 0;
+    const runs = stats.Runs ?? stats.runs ?? 0;
+    const sr = stats["Strike Rate"] ?? stats.sr ?? stats.strikeRate ?? 0;
+    const wickets = stats.Wickets ?? stats.wickets ?? 0;
+    return innings !== 0 || runs !== 0 || sr !== 0 || wickets !== 0;
+  };
+
   // Trigger confetti when a lot is marked SOLD
   useEffect(() => {
     if (auctionState?.status === 'sold') {
@@ -123,9 +132,9 @@ export const SpectatorAuctionView: React.FC = () => {
                     <span>Timer OFF</span>
                   </div>
                 ) : (
-                  <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-sm font-black ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger' : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                  <div className={`flex items-center space-x-2.5 px-5 py-2 rounded-xl border-2 text-2xl font-black shadow-md shrink-0 ${auctionState.timer <= 5 ? 'bg-red-950 text-red-400 border-red-500 timer-danger shadow-red-500/10' : 'bg-gray-900 text-yellow-400 border-yellow-500/50 shadow-yellow-500/5'
                     }`}>
-                    <Clock className="w-4 h-4 animate-spin" />
+                    <Clock className="w-6 h-6 animate-spin text-yellow-400" />
                     <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                   </div>
                 )}
@@ -143,9 +152,6 @@ export const SpectatorAuctionView: React.FC = () => {
                         alt={auctionState.playerName}
                         className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl"
                       />
-                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-black/90 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
-                        {auctionState.isForeign ? '🌍 FOREIGN' : '🇮🇳 INDIA'}
-                      </span>
                     </div>
 
                     <div className="space-y-2 text-center sm:text-left flex-1">
@@ -293,6 +299,46 @@ export const SpectatorAuctionView: React.FC = () => {
               </div>
             </div>
           )}
+
+          {auctionState &&
+            (auctionState.status === 'live' ||
+              auctionState.status === 'sold' ||
+              auctionState.status === 'unsold') &&
+            hasNonZeroStats(auctionState.stats) && (
+              <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-gray-800 shadow-xl space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-800 pb-3">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider font-broadcast">Player Stats</h4>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Innings</span>
+                    <span className="text-lg sm:text-xl font-black text-white mt-1 block">
+                      {auctionState.stats?.Innings ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Runs</span>
+                    <span className="text-lg sm:text-xl font-black text-white mt-1 block">
+                      {auctionState.stats?.Runs ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Strike Rate</span>
+                    <span className="text-lg sm:text-xl font-black text-yellow-400 mt-1 block">
+                      {auctionState.stats?.["Strike Rate"] ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Wickets</span>
+                    <span className="text-lg sm:text-xl font-black text-emerald-400 mt-1 block">
+                      {auctionState.stats?.Wickets ?? 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
 
         {/* Activity Center Stream (Right Col - Inspired by Screenshot 2!) */}

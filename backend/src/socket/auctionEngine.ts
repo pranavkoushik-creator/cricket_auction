@@ -16,6 +16,12 @@ interface ActiveLotState {
   basePrice: number;
   currentBid: number;
   photoUrl?: string;
+  stats?: {
+    Innings?: number;
+    Runs?: number;
+    "Strike Rate"?: number;
+    Wickets?: number;
+  } | null;
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;
@@ -437,7 +443,7 @@ export function setupAuctionSocket(io: Server) {
   function loadLotState(lotIdOrPlayerId: string): ActiveLotState {
     console.log('[AuctionEngine] Loading lot state for:', lotIdOrPlayerId);
     const lot = db.prepare(`
-      SELECT al.*, p.name as player_name, p.group_name, p.is_foreign, p.base_price, p.photo_url,
+      SELECT al.*, p.name as player_name, p.group_name, p.is_foreign, p.base_price, p.photo_url, p.stats_json,
              f.name as bidder_name, f.short_name as bidder_short, f.logo_url as bidder_logo,
              u.name as bidder_owner,
              ases.timer_seconds as session_timer_seconds, ases.timer_enabled as session_timer_enabled
@@ -458,6 +464,15 @@ export function setupAuctionSocket(io: Server) {
       ? true
       : Boolean(lot.session_timer_enabled);
 
+    let parsedStats = null;
+    try {
+      if (lot.stats_json) {
+        parsedStats = JSON.parse(lot.stats_json);
+      }
+    } catch (e) {
+      console.error('[AuctionEngine] Error parsing stats_json:', e);
+    }
+
     return {
       lotId: lot.id,
       sessionId: lot.session_id,
@@ -469,6 +484,7 @@ export function setupAuctionSocket(io: Server) {
       basePrice: lot.base_price,
       currentBid: lot.current_highest_bid || 0,
       photoUrl: lot.photo_url || null,
+      stats: parsedStats,
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,

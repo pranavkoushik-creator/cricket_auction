@@ -224,11 +224,11 @@ export const LiveAuctionOperatorView: React.FC = () => {
                     <span>Timer Off · Close Manually</span>
                   </div>
                 ) : (
-                  <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-xl border text-base font-extrabold ${auctionState.timer <= 5
-                    ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger'
-                    : 'bg-gray-900 text-yellow-400 border-yellow-500/30'
+                  <div className={`flex items-center space-x-2.5 px-5 py-2 rounded-xl border-2 text-2xl font-black shadow-md ${auctionState.timer <= 5
+                    ? 'bg-red-950/80 text-red-400 border-red-500 timer-danger shadow-red-500/10'
+                    : 'bg-gray-900 text-yellow-400 border-yellow-500/50 shadow-yellow-500/5'
                     }`}>
-                    <Clock className="w-5 h-5" />
+                    <Clock className="w-6 h-6 text-yellow-400" />
                     <span>00:{auctionState.timer < 10 ? `0${auctionState.timer}` : auctionState.timer}</span>
                   </div>
                 )}
