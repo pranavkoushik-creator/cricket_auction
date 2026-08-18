@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getPhotoUrl } from '../utils/formatters';
 import { Clock, TimerOff, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -111,8 +111,8 @@ export const LiveAuctionBiddingView: React.FC = () => {
     // Load group rules from tournament
     let groupRules = [
       { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-      { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+      { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
     ];
 
     try {
@@ -142,16 +142,37 @@ export const LiveAuctionBiddingView: React.FC = () => {
     const hypotheticalCounts = { ...currentGroupCounts };
     hypotheticalCounts[activeGroup] = (hypotheticalCounts[activeGroup] || 0) + 1;
 
-    // Calculate future reserve
-    let totalReserve = 0;
-    groupRules.forEach(rule => {
-      const gName = rule.group_name.toUpperCase();
-      const owned = hypotheticalCounts[gName] || 0;
-      const minRequired = rule.min_players;
-      const remaining = Math.max(0, minRequired - owned);
-      totalReserve += remaining * rule.base_price;
-    });
+    // Calculate future reserve using optimized math to fill remaining slots to reach 7 players
+    const ruleA = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP A') || { base_price: 100000, min_players: 2, max_players: 2 };
+    const ruleB = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP B') || { base_price: 50000, min_players: 2, max_players: 3 };
+    const ruleC = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP C') || { base_price: 25000, min_players: 2, max_players: 3 };
 
+    const a_hyp = hypotheticalCounts['GROUP A'] || 0;
+    const b_hyp = hypotheticalCounts['GROUP B'] || 0;
+    const c_hyp = hypotheticalCounts['GROUP C'] || 0;
+
+    const a_needed = Math.max(0, ruleA.min_players - a_hyp);
+    const b_needed = Math.max(0, ruleB.min_players - b_hyp);
+    const c_needed = Math.max(0, ruleC.min_players - c_hyp);
+
+    let a_reserve = a_needed * ruleA.base_price;
+    let b_reserve = b_needed * ruleB.base_price;
+    let c_reserve = c_needed * ruleC.base_price;
+
+    let total_hyp = a_hyp + b_hyp + c_hyp;
+    let slotsToFill = Math.max(0, 7 - total_hyp);
+    let extraSlots = Math.max(0, slotsToFill - (a_needed + b_needed + c_needed));
+
+    if (extraSlots > 0) {
+      const maxGroupCExtra = Math.max(0, (ruleC.max_players || 3) - (c_hyp + c_needed));
+      const cExtra = Math.min(extraSlots, maxGroupCExtra);
+      const bExtra = extraSlots - cExtra;
+
+      c_reserve += cExtra * ruleC.base_price;
+      b_reserve += bExtra * ruleB.base_price;
+    }
+
+    let totalReserve = a_reserve + b_reserve + c_reserve;
     const hardSafeLimit = Math.max(0, remainingPurse - totalReserve);
 
     return {
@@ -284,7 +305,7 @@ export const LiveAuctionBiddingView: React.FC = () => {
                     {/* Header Tag */}
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
-                        {auctionState.group_name} Set · {auctionState.role}
+                        {auctionState.group_name} Set
                       </span>
                       <span className="text-xs text-gray-400 font-semibold">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>
                     </div>
@@ -292,14 +313,13 @@ export const LiveAuctionBiddingView: React.FC = () => {
                     {/* Player Image & Name */}
                     <div className="flex flex-col sm:flex-row items-center gap-5">
                       <img
-                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                        src={getPhotoUrl(auctionState.photoUrl)}
                         alt={auctionState.playerName}
                         className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl shrink-0"
                       />
                       <div className="space-y-2 text-center sm:text-left flex-1">
                         <h3 className="text-3xl sm:text-4xl font-black text-white leading-tight">{auctionState.playerName}</h3>
                         <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs text-gray-300">
-                          <span className="bg-gray-800 px-3 py-1 rounded-lg border border-gray-700 font-medium">Role: {auctionState.role}</span>
                           <span className="bg-gray-800 px-3 py-1 rounded-lg border border-gray-700 font-medium">Base: {formatCurrency(auctionState.basePrice)}</span>
                         </div>
                       </div>
@@ -473,28 +493,25 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
             {filteredSquad && filteredSquad.length > 0 ? (
-              (() => {
-                const firstGroupA = currentFranchise.squad?.find((player: any) => (player.group_name || '').toUpperCase() === 'GROUP A');
-                return filteredSquad.map((p: any) => {
-                  const isCaptain = firstGroupA && p.id === firstGroupA.id;
-                  return (
-                    <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">
-                      <div>
-                        <h4 className="font-bold text-white text-sm flex items-center gap-1.5">
-                          <span>{p.name}</span>
-                          {isCaptain && (
-                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
-                              👑 CAPT
-                            </span>
-                          )}
-                        </h4>
-                        <p className="text-[11px] text-gray-400">{p.role} · {p.group_name}</p>
-                      </div>
-                      <span className="font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</span>
+              filteredSquad.map((p: any) => {
+                const isCaptain = p.is_captain === 1;
+                return (
+                  <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">
+                    <div>
+                      <h4 className="font-bold text-white text-sm flex items-center gap-1.5">
+                        <span>{p.name}</span>
+                        {isCaptain && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
+                            👑 CAPT
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-gray-400">{p.group_name}</p>
                     </div>
-                  );
-                });
-              })()
+                    <span className="font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</span>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-xs text-gray-500 text-center py-10">
                 {rosterFilter === 'ALL' ? 'No players purchased yet.' : `No ${rosterFilter} players purchased yet.`}

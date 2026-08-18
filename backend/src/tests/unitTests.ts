@@ -4,8 +4,8 @@ import { calculateHardSafeLimit } from '../services/hardSafeLimitCalculator';
 const customRulesJson = {
   group_rules: [
     { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
   ],
   bid_increments: [5000, 10000, 25000, 50000]
 };
@@ -15,9 +15,9 @@ function runUnitTests() {
 
   // Case 1 & Case 2: Initial state, exact limit and limit + 1
   // Wallet = 1,000,000, squad = empty, currentPlayer = GROUP A
-  // Reserve required after purchase: A = 1, B = 2, C = 3
-  // Reserve cost: 1 * 100,000 + 2 * 50,000 + 3 * 25,000 = 275,000
-  // Hard limit = 1,000,000 - 275,000 = 725,000
+  // Reserve required after purchase: A = 1, B = 2, C = 2
+  // Reserve cost: 1 * 100,000 + 2 * 50,000 + 2 * 25,000 = 250,000
+  // Hard limit = 1,000,000 - 250,000 = 750,000
   {
     const params = {
       wallet: 1000000,
@@ -26,21 +26,21 @@ function runUnitTests() {
       customRulesJson
     };
     const res = calculateHardSafeLimit(params);
-    assert.strictEqual(res.minimumFutureReserve, 275000, 'Case 1 Reserve should be 275k');
-    assert.strictEqual(res.hardSafeLimit, 725000, 'Case 1 Limit should be 725k');
-    
+    assert.strictEqual(res.minimumFutureReserve, 250000, 'Case 1 Reserve should be 250k');
+    assert.strictEqual(res.hardSafeLimit, 750000, 'Case 1 Limit should be 750k');
+
     // Exact limit
-    assert.ok(725000 <= res.hardSafeLimit, 'Case 1: Bid of 725k should be ALLOWED');
+    assert.ok(750000 <= res.hardSafeLimit, 'Case 1: Bid of 750k should be ALLOWED');
     // Limit + 1
-    assert.ok(725001 > res.hardSafeLimit, 'Case 2: Bid of 725,001 should be BLOCKED');
+    assert.ok(750001 > res.hardSafeLimit, 'Case 2: Bid of 750,001 should be BLOCKED');
     console.log('✔ Case 1 & 2 (Exact limit & limit + 1) passed.');
   }
 
   // Let's test a case where we have: A = 1, B = 0, C = 0, Wallet = 800,000
   // Current player = GROUP A
   // After purchase: A = 2
-  // Future reserve required: B = 2, C = 3 -> 175,000
-  // Limit: 800,000 - 175,000 = 625,000
+  // Future reserve required: B = 2, C = 2 -> 150,000
+  // Limit: 800,000 - 150,000 = 650,000
   {
     const params = {
       wallet: 800000,
@@ -49,8 +49,8 @@ function runUnitTests() {
       customRulesJson
     };
     const res = calculateHardSafeLimit(params);
-    assert.strictEqual(res.minimumFutureReserve, 175000, 'Case 4 Reserve should be 175k');
-    assert.strictEqual(res.hardSafeLimit, 625000, 'Case 4 Limit should be 625k');
+    assert.strictEqual(res.minimumFutureReserve, 150000, 'Case 4 Reserve should be 150k');
+    assert.strictEqual(res.hardSafeLimit, 650000, 'Case 4 Limit should be 650k');
     console.log('✔ Case 4 (Limit calculation with A=1) passed.');
   }
 
@@ -81,14 +81,14 @@ function runUnitTests() {
   }
 
   // Case 6: Wallet exactly equals reserve (hard limit = 0)
-  // Wallet = 125,000, B = 0, C = 0. Squad has A=2
+  // Wallet = 100,000, B = 0, C = 0. Squad has A=2
   // Current player = GROUP B
-  // After purchase: B = 1. Remaining required: B = 1, C = 3
-  // Future reserve required: 1 * 50,000 + 3 * 25,000 = 125,000
-  // Limit: 125,000 - 125,000 = 0
+  // After purchase: B = 1. Remaining required: B = 1, C = 2
+  // Future reserve required: 1 * 50,000 + 2 * 25,000 = 100,000
+  // Limit: 100,000 - 100,000 = 0
   {
     const params = {
-      wallet: 125000,
+      wallet: 100000,
       squad: [
         { group_name: 'GROUP A', sold_price: 400000 },
         { group_name: 'GROUP A', sold_price: 425000 }
@@ -97,13 +97,13 @@ function runUnitTests() {
       customRulesJson
     };
     const res = calculateHardSafeLimit(params);
-    assert.strictEqual(res.minimumFutureReserve, 125000, 'Reserve should be 125k');
+    assert.strictEqual(res.minimumFutureReserve, 100000, 'Reserve should be 100k');
     assert.strictEqual(res.hardSafeLimit, 0, 'Limit should be 0');
     console.log('✔ Case 6 (Wallet exactly equals reserve) passed.');
   }
 
   // Case 7: Wallet below reserve (Financial Risk)
-  // Wallet = 100,000, reserve = 125,000
+  // Wallet = 10,000, reserve = 100,000
   // limit is 0, wallet < reserve (financial risk check)
   {
     const params = {
@@ -116,7 +116,7 @@ function runUnitTests() {
       customRulesJson
     };
     const res = calculateHardSafeLimit(params);
-    assert.strictEqual(res.minimumFutureReserve, 125000, 'Reserve should be 125k');
+    assert.strictEqual(res.minimumFutureReserve, 100000, 'Reserve should be 100k');
     assert.strictEqual(res.hardSafeLimit, 0, 'Limit should be 0');
     assert.ok(res.currentWallet < res.minimumFutureReserve, 'Current wallet should be less than reserve');
     console.log('✔ Case 7 (Wallet below reserve) passed.');

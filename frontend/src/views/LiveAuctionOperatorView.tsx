@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getPhotoUrl } from '../utils/formatters';
 import { Radio, Play, Pause, CheckCircle, XCircle, RotateCcw, SkipForward, Flame, Clock, Timer, TimerOff, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
 import { AuctionTimerUpdateModal } from './AuctionTimerUpdateModal';
 
@@ -214,7 +214,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
               {/* Top Bar: Timer & Category */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 uppercase tracking-wider">
-                  {auctionState.group_name} Set · {auctionState.role}
+                  {auctionState.group_name} Set
                 </span>
 
                 {/* Countdown Timer Badge */}
@@ -237,7 +237,7 @@ export const LiveAuctionOperatorView: React.FC = () => {
               {/* Player Card Big Display */}
               <div className="flex flex-col sm:flex-row items-center gap-6 bg-gray-900/60 p-5 rounded-xl border border-gray-800">
                 <img
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                  src={getPhotoUrl(auctionState.photoUrl)}
                   alt={auctionState.playerName}
                   className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-xl"
                 />
@@ -247,7 +247,6 @@ export const LiveAuctionOperatorView: React.FC = () => {
                   </div>
                   <h3 className="text-3xl font-black text-white">{auctionState.playerName}</h3>
                   <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                    <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
                     <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Base Price: {formatCurrency(auctionState.basePrice)}</span>
                     <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-700">Group: {auctionState.group_name}</span>
                   </div>

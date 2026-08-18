@@ -14,10 +14,11 @@ export function getFranchises(tournamentId: string) {
   for (const f of franchises) {
     // Get squad count and bought players
     const squad = db.prepare(`
-      SELECT al.*, p.name, p.group_name, p.role, p.is_foreign, p.status, p.photo_url
+      SELECT al.*, p.name, p.group_name, p.is_foreign, p.status, p.photo_url, p.is_captain
       FROM auction_lots al
       JOIN players p ON al.player_id = p.id
       WHERE al.buyer_id = ? AND al.status = 'sold'
+      ORDER BY al.updated_at ASC
     `).all(f.id) as any[];
 
     f.squad = squad;
@@ -40,10 +41,11 @@ export function getFranchiseById(id: string) {
   if (!f) throw new Error('Franchise not found');
 
   const squad = db.prepare(`
-    SELECT al.*, p.name, p.group_name, p.role, p.is_foreign, p.status, p.photo_url, p.base_price
+    SELECT al.*, p.name, p.group_name, p.is_foreign, p.status, p.photo_url, p.base_price, p.is_captain
     FROM auction_lots al
     JOIN players p ON al.player_id = p.id
     WHERE al.buyer_id = ? AND al.status = 'sold'
+    ORDER BY al.updated_at ASC
   `).all(f.id) as any[];
 
   const purseData = getFranchisePurse(id);

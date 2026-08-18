@@ -74,12 +74,13 @@ export interface SquadPlayer {
   player_id: string;
   name: string;
   group_name: string;
-  role: string;
+  role?: string;
   is_foreign: number;
   status: string;
   photo_url?: string;
   sold_price: number;
   base_price?: number;
+  is_captain?: number;
 }
 
 export interface Player {
@@ -88,7 +89,7 @@ export interface Player {
   user_id?: string;
   name: string;
   group_name: string;
-  role: string;
+  role?: string;
   is_foreign: number;
   status: string;
   base_price: number;
@@ -96,6 +97,7 @@ export interface Player {
   approval_reason?: string;
   photo_url?: string;
   document_url?: string;
+  is_captain?: number;
   stats?: {
     matches?: number;
     runs?: number;
@@ -121,11 +123,12 @@ export interface ActiveAuctionState {
   playerId: string;
   playerName: string;
   group_name: string;
-  role: string;
+  role?: string;
   isForeign: boolean;
   basePrice: number;
   currentBid: number;
   minNextBid: number;
+  photoUrl?: string;
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;

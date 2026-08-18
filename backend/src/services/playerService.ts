@@ -36,7 +36,6 @@ export function registerPlayer(data: {
   user_id?: string;
   name: string;
   group_name: string;
-  role: string;
   is_foreign: number;
   status?: string;
   base_price: number;
@@ -48,15 +47,14 @@ export function registerPlayer(data: {
   const statsStr = data.stats ? JSON.stringify(data.stats) : JSON.stringify({ matches: 0, runs: 0, wickets: 0 });
 
   db.prepare(`
-    INSERT INTO players (id, user_id, tournament_id, name, group_name, role, is_foreign, status, base_price, approval_status, stats_json, photo_url, document_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+    INSERT INTO players (id, user_id, tournament_id, name, group_name, is_foreign, status, base_price, approval_status, stats_json, photo_url, document_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
   `).run(
     id,
     data.user_id || null,
     data.tournament_id,
     data.name,
     data.group_name,
-    data.role,
     data.is_foreign ? 1 : 0,
     data.status || 'Newcomer',
     data.base_price,
@@ -103,7 +101,6 @@ export function createSinglePlayer(data: {
   tournament_id: string;
   name: string;
   group_name: string;
-  role: string;
   is_foreign?: number | boolean;
   status?: string;
   base_price: number;
@@ -118,9 +115,9 @@ export function createSinglePlayer(data: {
   const statsStr = JSON.stringify({ matches: 0, runs: 0, wickets: 0 });
 
   db.prepare(`
-    INSERT INTO players (id, tournament_id, name, group_name, role, is_foreign, status, base_price, approval_status, stats_json, photo_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.tournament_id, data.name, data.group_name, data.role, isForeign, statusVal, data.base_price, status, statsStr, photoUrl);
+    INSERT INTO players (id, tournament_id, name, group_name, is_foreign, status, base_price, approval_status, stats_json, photo_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, data.tournament_id, data.name, data.group_name, isForeign, statusVal, data.base_price, status, statsStr, photoUrl);
 
   if (status === 'approved') {
     let session = db.prepare('SELECT id FROM auction_sessions WHERE tournament_id = ?').get(data.tournament_id) as any;
@@ -159,8 +156,8 @@ export function bulkImportPlayers(tournamentId: string, playersList: any[]) {
   let nextSeq = (lastSeqRecord?.max_seq || 0) + 1;
 
   const insertPlayerStmt = db.prepare(`
-    INSERT INTO players (id, tournament_id, name, group_name, role, is_foreign, status, base_price, approval_status, stats_json, photo_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
+    INSERT INTO players (id, tournament_id, name, group_name, is_foreign, status, base_price, approval_status, stats_json, photo_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
   `);
 
   const insertLotStmt = db.prepare(`
@@ -178,16 +175,15 @@ export function bulkImportPlayers(tournamentId: string, playersList: any[]) {
       const photoUrl = p.photo_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80';
       const statsStr = JSON.stringify({ matches: 0, runs: 0, wickets: 0 });
       const basePrice = Number(p.base_price) || 20000000;
-      const role = p.role || 'Batsman';
       const groupName = p.group_name || 'GROUP A';
 
-      insertPlayerStmt.run(pid, tournamentId, p.name, groupName, role, isForeign, statusVal, basePrice, statsStr, photoUrl);
+      insertPlayerStmt.run(pid, tournamentId, p.name, groupName, isForeign, statusVal, basePrice, statsStr, photoUrl);
 
       const lotId = `lot-${uuidv4().substring(0, 8)}`;
       insertLotStmt.run(lotId, session.id, tournamentId, pid, nextSeq, groupName);
       nextSeq++;
 
-      createdPlayers.push({ id: pid, name: p.name, role, group_name: groupName, base_price: basePrice });
+      createdPlayers.push({ id: pid, name: p.name, group_name: groupName, base_price: basePrice });
     }
   });
 
@@ -197,5 +193,29 @@ export function bulkImportPlayers(tournamentId: string, playersList: any[]) {
     importedCount: createdPlayers.length,
     players: createdPlayers
   };
+}
+
+export function updatePlayer(id: string, data: {
+  name: string;
+  group_name: string;
+  base_price: number;
+  status: string;
+  is_foreign: number | boolean;
+  photo_url?: string;
+}) {
+  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(id) as any;
+  if (!player) throw new Error('Player not found');
+
+  const isForeign = data.is_foreign ? 1 : 0;
+
+  db.prepare(`
+    UPDATE players 
+    SET name = ?, group_name = ?, base_price = ?, status = ?, is_foreign = ?, photo_url = ?
+    WHERE id = ?
+  `).run(data.name, data.group_name, data.base_price, data.status, isForeign, data.photo_url || player.photo_url, id);
+
+  db.prepare('UPDATE auction_lots SET set_name = ? WHERE player_id = ?').run(data.group_name, id);
+
+  return db.prepare('SELECT * FROM players WHERE id = ?').get(id);
 }
 

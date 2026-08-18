@@ -24,8 +24,8 @@ export function parseGroupRules(customRulesJson: any): GroupRule[] {
   // Default rules according to business specification
   return [
     { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
   ];
 }
 
@@ -57,21 +57,47 @@ export function calculateMinimumFutureReserve(
     hypotheticalCounts[curGroupUpper]++;
   }
 
-  let totalReserve = 0;
   const remainingRequirements: Record<string, number> = {};
   const groupReserves: Record<string, number> = {};
 
-  groupRules.forEach(rule => {
-    const gName = rule.group_name.toUpperCase();
-    const owned = hypotheticalCounts[gName] || 0;
-    const minRequired = rule.min_players;
-    const remaining = Math.max(0, minRequired - owned);
+  const ruleA = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP A') || { base_price: 100000, min_players: 2, max_players: 2 };
+  const ruleB = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP B') || { base_price: 50000, min_players: 2, max_players: 3 };
+  const ruleC = groupRules.find(r => r.group_name.toUpperCase() === 'GROUP C') || { base_price: 25000, min_players: 2, max_players: 3 };
 
-    remainingRequirements[gName] = remaining;
-    const reserve = remaining * rule.base_price;
-    groupReserves[gName] = reserve;
-    totalReserve += reserve;
-  });
+  const a_hyp = hypotheticalCounts['GROUP A'] || 0;
+  const b_hyp = hypotheticalCounts['GROUP B'] || 0;
+  const c_hyp = hypotheticalCounts['GROUP C'] || 0;
+
+  const a_needed = Math.max(0, ruleA.min_players - a_hyp);
+  const b_needed = Math.max(0, ruleB.min_players - b_hyp);
+  const c_needed = Math.max(0, ruleC.min_players - c_hyp);
+
+  let a_reserve = a_needed * ruleA.base_price;
+  let b_reserve = b_needed * ruleB.base_price;
+  let c_reserve = c_needed * ruleC.base_price;
+
+  let total_hyp = a_hyp + b_hyp + c_hyp;
+  let slotsToFill = Math.max(0, 7 - total_hyp);
+  let extraSlots = Math.max(0, slotsToFill - (a_needed + b_needed + c_needed));
+
+  if (extraSlots > 0) {
+    const maxGroupCExtra = Math.max(0, (ruleC.max_players || 3) - (c_hyp + c_needed));
+    const cExtra = Math.min(extraSlots, maxGroupCExtra);
+    const bExtra = extraSlots - cExtra;
+
+    c_reserve += cExtra * ruleC.base_price;
+    b_reserve += bExtra * ruleB.base_price;
+  }
+
+  let totalReserve = a_reserve + b_reserve + c_reserve;
+
+  remainingRequirements['GROUP A'] = a_needed;
+  remainingRequirements['GROUP B'] = b_needed;
+  remainingRequirements['GROUP C'] = c_needed;
+
+  groupReserves['GROUP A'] = a_reserve;
+  groupReserves['GROUP B'] = b_reserve;
+  groupReserves['GROUP C'] = c_reserve;
 
   const hardSafeLimit = Math.max(0, franchiseState.remainingPurse - totalReserve);
 

@@ -12,10 +12,10 @@ interface ActiveLotState {
   playerId: string;
   playerName: string;
   group_name: string;
-  role: string;
   isForeign: boolean;
   basePrice: number;
   currentBid: number;
+  photoUrl?: string;
   highestBidderId: string | null;
   highestBidderName: string | null;
   highestBidderShort: string | null;
@@ -54,8 +54,8 @@ function calculateDynamicMaxBid(franchiseId: string, playerGroup: string, remain
   const parsedRules = typeof customRulesJson === 'string' ? JSON.parse(customRulesJson) : customRulesJson;
   const groupRules = parsedRules?.group_rules || [
     { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
   ];
 
   const groupRule = groupRules.find((r: any) => r.group_name.toUpperCase() === playerGroup.toUpperCase());
@@ -128,8 +128,8 @@ const placeBidTransaction = db.transaction((params: {
   const parsedRules = typeof rules?.custom_rules_json === 'string' ? JSON.parse(rules.custom_rules_json) : rules?.custom_rules_json;
   const groupRules = parsedRules?.group_rules || [
     { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-    { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+    { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+    { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
   ];
 
   const groupRule = groupRules.find((r: any) => r.group_name.toUpperCase() === playerGroup.toUpperCase());
@@ -437,7 +437,7 @@ export function setupAuctionSocket(io: Server) {
   function loadLotState(lotIdOrPlayerId: string): ActiveLotState {
     console.log('[AuctionEngine] Loading lot state for:', lotIdOrPlayerId);
     const lot = db.prepare(`
-      SELECT al.*, p.name as player_name, p.group_name, p.role, p.is_foreign, p.base_price, p.photo_url,
+      SELECT al.*, p.name as player_name, p.group_name, p.is_foreign, p.base_price, p.photo_url,
              f.name as bidder_name, f.short_name as bidder_short, f.logo_url as bidder_logo,
              u.name as bidder_owner,
              ases.timer_seconds as session_timer_seconds, ases.timer_enabled as session_timer_enabled
@@ -465,10 +465,10 @@ export function setupAuctionSocket(io: Server) {
       playerId: lot.player_id,
       playerName: lot.player_name,
       group_name: lot.group_name,
-      role: lot.role,
       isForeign: Boolean(lot.is_foreign),
       basePrice: lot.base_price,
       currentBid: lot.current_highest_bid || 0,
+      photoUrl: lot.photo_url || null,
       highestBidderId: lot.current_bidder_id || null,
       highestBidderName: lot.bidder_name || null,
       highestBidderShort: lot.bidder_short || null,
@@ -480,6 +480,26 @@ export function setupAuctionSocket(io: Server) {
       isPaused: false,
       status: lot.status
     };
+  }
+
+  function updateFranchiseCaptainStatus(franchiseId: string) {
+    // Find all sold GROUP A players for this franchise ordered by updated_at (chronologically)
+    const soldGroupAPlayers = db.prepare(`
+    SELECT p.id, al.id as lot_id
+    FROM auction_lots al
+    JOIN players p ON al.player_id = p.id
+    WHERE al.buyer_id = ? AND al.status = 'sold' AND p.group_name = 'GROUP A'
+    ORDER BY al.updated_at ASC
+  `).all(franchiseId) as any[];
+
+    if (soldGroupAPlayers.length > 0) {
+      // The first one is the CAPTAIN
+      db.prepare("UPDATE players SET is_captain = 1 WHERE id = ?").run(soldGroupAPlayers[0].id);
+      // The rest are NOT CAPTAIN
+      for (let i = 1; i < soldGroupAPlayers.length; i++) {
+        db.prepare("UPDATE players SET is_captain = 0 WHERE id = ?").run(soldGroupAPlayers[i].id);
+      }
+    }
   }
 
   io.on('connection', (socket: Socket) => {
@@ -634,6 +654,7 @@ export function setupAuctionSocket(io: Server) {
         WHERE f.id = ?
       `).get(franchiseId) as any;
 
+      const previousBid = activeAuctionState.currentBid;
       activeAuctionState.currentBid = bidAmount;
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = txnResult.franchiseName;
@@ -654,9 +675,16 @@ export function setupAuctionSocket(io: Server) {
 
       broadcastState();
 
+      let raiseAmount = bidAmount;
+      if (previousBid > 0) {
+        raiseAmount = bidAmount - previousBid;
+      } else if (bidAmount > activeAuctionState.basePrice) {
+        raiseAmount = bidAmount - activeAuctionState.basePrice;
+      }
+
       io.to(auctionRoom).emit('auction:event', {
         type: 'new_bid',
-        message: `💰 ${txnResult.franchiseShort} bid ₹${bidAmount} rs for ${activeAuctionState.playerName}`
+        message: `💰 ${txnResult.franchiseShort} bid ₹${raiseAmount} rs for ${activeAuctionState.playerName}`
       });
     });
 
@@ -677,7 +705,7 @@ export function setupAuctionSocket(io: Server) {
 
       db.prepare(`
         UPDATE auction_lots
-        SET status = 'sold', sold_price = ?, buyer_id = ?
+        SET status = 'sold', sold_price = ?, buyer_id = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(finalPrice, buyerId, lotId);
 
@@ -689,6 +717,12 @@ export function setupAuctionSocket(io: Server) {
         lotId,
         `Purchased ${activeAuctionState.playerName} for ₹${finalPrice} rs`
       );
+
+      // Recalculate captain status if player belongs to GROUP A
+      const playerObj = db.prepare('SELECT p.* FROM players p JOIN auction_lots al ON p.id = al.player_id WHERE al.id = ?').get(lotId) as any;
+      if (playerObj && playerObj.group_name === 'GROUP A') {
+        updateFranchiseCaptainStatus(buyerId);
+      }
 
       activeAuctionState.status = 'sold';
       resetTimerEnabledForNextLot(activeAuctionState.sessionId);
@@ -855,6 +889,15 @@ export function setupAuctionSocket(io: Server) {
 
         // Reset lot state in DB
         db.prepare("UPDATE auction_lots SET status = 'queued', current_highest_bid = 0, current_bidder_id = null, sold_price = null, buyer_id = null WHERE id = ?").run(lotId);
+
+        // Reset rolled back player's captain status to 0
+        db.prepare("UPDATE players SET is_captain = 0 WHERE id = ?").run(lot.player_id);
+
+        // If rolled back player was GROUP A, recalculate captain status for the franchise
+        const playerObj = db.prepare('SELECT group_name FROM players WHERE id = ?').get(lot.player_id) as any;
+        if (playerObj && playerObj.group_name === 'GROUP A' && buyerId) {
+          updateFranchiseCaptainStatus(buyerId);
+        }
 
         // Record compensating refund in ledger
         recordPurseTransaction(

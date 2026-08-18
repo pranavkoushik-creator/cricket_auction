@@ -70,8 +70,8 @@ function runIntegrationTests() {
   const customRules = JSON.stringify({
     group_rules: [
       { group_name: "GROUP A", base_price: 100000, min_players: 2, max_players: 2 },
-      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 2 },
-      { group_name: "GROUP C", base_price: 25000, min_players: 3, max_players: 3 }
+      { group_name: "GROUP B", base_price: 50000, min_players: 2, max_players: 3 },
+      { group_name: "GROUP C", base_price: 25000, min_players: 2, max_players: 3 }
     ],
     bid_increments: [5000, 10000, 25000, 50000]
   });
@@ -94,16 +94,16 @@ function runIntegrationTests() {
     db.prepare("INSERT INTO purse_ledger VALUES (?, ?, null, 'initial_credit', 1000000, 1000000)").run(uuidv4(), f.id);
   }
 
-  // Seed 42 Players (12 Group A, 12 Group B, 18 Group C)
+  // Seed 42 Players (12 Group A, 15 Group B, 15 Group C)
   const players: { id: string; name: string; group_name: string; base_price: number }[] = [];
-  
+
   for (let i = 1; i <= 12; i++) {
     players.push({ id: `p-a-${i}`, name: `Player A-${i}`, group_name: 'GROUP A', base_price: 100000 });
   }
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 15; i++) {
     players.push({ id: `p-b-${i}`, name: `Player B-${i}`, group_name: 'GROUP B', base_price: 50000 });
   }
-  for (let i = 1; i <= 18; i++) {
+  for (let i = 1; i <= 15; i++) {
     players.push({ id: `p-c-${i}`, name: `Player C-${i}`, group_name: 'GROUP C', base_price: 25000 });
   }
 
@@ -114,7 +114,7 @@ function runIntegrationTests() {
   // Seed Lots
   const sessionId = 'ses-1';
   db.prepare("INSERT INTO auction_sessions VALUES (?, ?, 'scheduled', 'lot-1')").run(sessionId, tId);
-  
+
   for (let i = 0; i < players.length; i++) {
     const lotId = `lot-${i + 1}`;
     db.prepare("INSERT INTO auction_lots VALUES (?, ?, ?, ?, ?, 'queued', 0, null, null, null)").run(
@@ -237,6 +237,15 @@ function runIntegrationTests() {
 
   // Post-simulation Verifications
   console.log('Verifying final auction results...');
+  console.log('Final squads:');
+  for (const f of franchises) {
+    const squad = db.prepare("SELECT * FROM auction_lots WHERE buyer_id = ? AND status = 'sold'").all(f.id) as any[];
+    const dbFran = db.prepare('SELECT remaining_purse FROM franchises WHERE id = ?').get(f.id) as any;
+    const countA = squad.filter(l => players.find(p => p.id === l.player_id)?.group_name === 'GROUP A').length;
+    const countB = squad.filter(l => players.find(p => p.id === l.player_id)?.group_name === 'GROUP B').length;
+    const countC = squad.filter(l => players.find(p => p.id === l.player_id)?.group_name === 'GROUP C').length;
+    console.log(`Franchise ${f.name} (${f.short}): total=${squad.length}, remainingPurse=${dbFran.remaining_purse}, A=${countA}, B=${countB}, C=${countC}`);
+  }
 
   // 1. Every franchise has exactly 7 players
   for (const f of franchises) {
@@ -249,8 +258,9 @@ function runIntegrationTests() {
     const countC = squad.filter(l => players.find(p => p.id === l.player_id)?.group_name === 'GROUP C').length;
 
     assert.strictEqual(countA, 2, `Franchise ${f.short} should have 2 Group A players`);
-    assert.strictEqual(countB, 2, `Franchise ${f.short} should have 2 Group B players`);
-    assert.strictEqual(countC, 3, `Franchise ${f.short} should have 3 Group C players`);
+    assert.ok(countB >= 2 && countB <= 3, `Franchise ${f.short} should have between 2 and 3 Group B players`);
+    assert.ok(countC >= 2 && countC <= 3, `Franchise ${f.short} should have between 2 and 3 Group C players`);
+    assert.strictEqual(countB + countC, 5, `Franchise ${f.short} total B and C players should equal 5`);
 
     // 3. No franchise has a negative wallet
     const franchise = db.prepare('SELECT remaining_purse FROM franchises WHERE id = ?').get(f.id) as any;

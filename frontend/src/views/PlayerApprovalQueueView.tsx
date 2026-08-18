@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { formatCurrency } from '../utils/formatters';
-import { Check, X, Ban, UserPlus, Upload, Download, FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { formatCurrency, getPhotoUrl } from '../utils/formatters';
+import { Check, X, Ban, UserPlus, Upload, Download, FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle, Edit3 } from 'lucide-react';
 
 interface SinglePlayerForm {
   name: string;
-  role: string;
   group_name: string;
   base_price: number;
   status: string;
@@ -17,9 +16,8 @@ interface SinglePlayerForm {
 
 const DEFAULT_SINGLE_PLAYER: SinglePlayerForm = {
   name: '',
-  role: 'Batsman',
   group_name: 'GROUP A',
-  base_price: 100, // 100 rs
+  base_price: 100000,
   status: 'Newcomer',
   is_foreign: false,
   photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
@@ -33,10 +31,28 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'update'>('create');
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'single' | 'bulk'>('single');
   const [singleForm, setSingleForm] = useState<SinglePlayerForm>(DEFAULT_SINGLE_PLAYER);
   const [isSubmittingSingle, setIsSubmittingSingle] = useState(false);
   const [singleError, setSingleError] = useState<string | null>(null);
+
+  const handleOpenUpdateModal = (p: any) => {
+    setModalMode('update');
+    setEditingPlayerId(p.id);
+    setSingleForm({
+      name: p.name,
+      group_name: p.group_name,
+      base_price: p.base_price,
+      status: p.status,
+      is_foreign: p.is_foreign === 1 || p.is_foreign === true,
+      photo_url: p.photo_url || '',
+      approval_status: p.approval_status
+    });
+    setSingleError(null);
+    setIsModalOpen(true);
+  };
 
   // Bulk CSV Ingestion States
   const [parsedCsvPlayers, setParsedCsvPlayers] = useState<any[]>([]);
@@ -79,6 +95,36 @@ export const PlayerApprovalQueueView: React.FC = () => {
     }
   };
 
+  const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64Data = evt.target?.result as string;
+      if (!base64Data) return;
+
+      apiRequest('/players/upload-image', {
+        method: 'POST',
+        body: JSON.stringify({
+          image: base64Data,
+          name: singleForm.name || 'player_photo',
+          originalName: file.name
+        })
+      })
+        .then(res => {
+          if (res && res.url) {
+            setSingleForm(prev => ({ ...prev, photo_url: res.url }));
+          }
+        })
+        .catch(err => {
+          console.error('[Upload] Image upload failed:', err);
+          setSingleError(err.message || 'Image upload failed.');
+        });
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Submit Single Player Manual Form
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,8 +136,12 @@ export const PlayerApprovalQueueView: React.FC = () => {
     setIsSubmittingSingle(true);
     setSingleError(null);
 
-    apiRequest('/players/create-single', {
-      method: 'POST',
+    const isUpdate = modalMode === 'update';
+    const endpoint = isUpdate ? `/players/${editingPlayerId}` : '/players/create-single';
+    const method = isUpdate ? 'PUT' : 'POST';
+
+    apiRequest(endpoint, {
+      method,
       body: JSON.stringify({
         tournament_id: currentTournamentId,
         ...singleForm
@@ -101,12 +151,12 @@ export const PlayerApprovalQueueView: React.FC = () => {
         setIsSubmittingSingle(false);
         setIsModalOpen(false);
         setSingleForm(DEFAULT_SINGLE_PLAYER);
-        setSuccessToast(`Player "${singleForm.name}" created & queued for auction!`);
+        setSuccessToast(isUpdate ? `Player "${singleForm.name}" updated successfully!` : `Player "${singleForm.name}" created & queued for auction!`);
         loadPlayers();
         setTimeout(() => setSuccessToast(null), 4000);
       })
       .catch(err => {
-        setSingleError(err.message || 'Failed to create player.');
+        setSingleError(err.message || (isUpdate ? 'Failed to update player.' : 'Failed to create player.'));
         setIsSubmittingSingle(false);
       });
   };
@@ -132,7 +182,6 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
         const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         const nameIdx = headers.findIndex(h => h.includes('name'));
-        const roleIdx = headers.findIndex(h => h.includes('role'));
         const groupNameIdx = headers.findIndex(h => h.includes('group_name') || h.includes('group'));
         const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('base'));
         const statusIdx = headers.findIndex(h => h.includes('status'));
@@ -153,7 +202,6 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
           parsedRows.push({
             name: cols[nameIdx],
-            role: roleIdx !== -1 && cols[roleIdx] ? cols[roleIdx] : 'Batsman',
             group_name: groupNameIdx !== -1 && cols[groupNameIdx] ? cols[groupNameIdx] : 'GROUP A',
             base_price: priceIdx !== -1 && !isNaN(Number(cols[priceIdx])) ? Number(cols[priceIdx]) : 20000000,
             status: statusIdx !== -1 && cols[statusIdx] ? cols[statusIdx] : 'Newcomer',
@@ -206,7 +254,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
   // Download Sample CSV Template
   const handleDownloadSampleCsv = () => {
-    const csvContent = `name,role,group_name,base_price,status,is_foreign,photo_url\nSanju Samson,Wicket-Keeper,GROUP A,20000000,Returning,0,https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80\nMitchell Starc,Bowler,GROUP A,20000000,Returning,1,https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80\nShreyas Iyer,Batsman,GROUP A,15000000,Newcomer,0,https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`;
+    const csvContent = `name,group_name,base_price,status,is_foreign,photo_url\nSanju Samson,GROUP A,20000000,Returning,0,https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80\nMitchell Starc,GROUP A,20000000,Returning,1,https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80\nShreyas Iyer,GROUP A,15000000,Newcomer,0,https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -243,7 +291,13 @@ export const PlayerApprovalQueueView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* CREATE / INGEST PLAYERS BUTTON */}
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setModalMode('create');
+              setEditingPlayerId(null);
+              setSingleForm(DEFAULT_SINGLE_PLAYER);
+              setSingleError(null);
+              setIsModalOpen(true);
+            }}
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition"
           >
             <UserPlus className="w-4 h-4" />
@@ -286,10 +340,10 @@ export const PlayerApprovalQueueView: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-700 shadow-md" />
+                    <img src={getPhotoUrl(p.photo_url)} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-700 shadow-md" />
                     <div>
                       <h4 className="text-base font-bold text-white">{p.name}</h4>
-                      <p className="text-xs text-gray-400">{p.role} · {p.status}</p>
+                      <p className="text-xs text-gray-400">{p.status}</p>
                     </div>
                   </div>
                   <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${p.approval_status === 'approved'
@@ -324,8 +378,17 @@ export const PlayerApprovalQueueView: React.FC = () => {
                     </span>
 
                     <button
-                      onClick={() => handleAction(p.id, 'suspend')}
+                      onClick={() => handleOpenUpdateModal(p)}
                       className="py-1.5 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs border border-gray-700 flex items-center justify-center gap-1 transition ml-auto"
+                      title="Update Player"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Update</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAction(p.id, 'suspend')}
+                      className="py-1.5 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs border border-gray-700 flex items-center justify-center gap-1 transition"
                       title="Suspend Player"
                     >
                       <Ban className="w-3.5 h-3.5 text-red-400" />
@@ -389,7 +452,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
               <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-blue-400" />
-                <span>Add / Ingest Players to Database</span>
+                <span>{modalMode === 'create' ? 'Add / Ingest Players to Database' : 'Update Players To Database'}</span>
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -397,31 +460,33 @@ export const PlayerApprovalQueueView: React.FC = () => {
             </div>
 
             {/* Tab Selection Switcher */}
-            <div className="flex items-center gap-2 bg-gray-900/80 p-1.5 rounded-xl border border-gray-800">
-              <button
-                onClick={() => setActiveTab('single')}
-                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'single'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white'
-                  }`}
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Single Player (Manual)</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('bulk')}
-                className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'bulk'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white'
-                  }`}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Bulk Ingest (CSV Upload)</span>
-              </button>
-            </div>
+            {modalMode === 'create' && (
+              <div className="flex items-center gap-2 bg-gray-900/80 p-1.5 rounded-xl border border-gray-800">
+                <button
+                  onClick={() => setActiveTab('single')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'single'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Single Player (Manual)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('bulk')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-2 ${activeTab === 'bulk'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Bulk Ingest (CSV Upload)</span>
+                </button>
+              </div>
+            )}
 
             {/* TAB 1: SINGLE PLAYER FORM */}
-            {activeTab === 'single' && (
+            {(activeTab === 'single' || modalMode === 'update') && (
               <form onSubmit={handleSingleSubmit} className="space-y-4">
                 {singleError && (
                   <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center gap-2">
@@ -442,33 +507,24 @@ export const PlayerApprovalQueueView: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-400">Playing Role *</label>
-                    <select
-                      value={singleForm.role}
-                      onChange={e => setSingleForm({ ...singleForm, role: e.target.value })}
-                      className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="Batsman">Batsman</option>
-                      <option value="Bowler">Bowler</option>
-                      <option value="All-Rounder">All-Rounder</option>
-                      <option value="Wicket-Keeper">Wicket-Keeper</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-400">Auction Group *</label>
-                    <select
-                      value={singleForm.group_name}
-                      onChange={e => setSingleForm({ ...singleForm, group_name: e.target.value })}
-                      className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="GROUP A">GROUP A</option>
-                      <option value="GROUP B">GROUP B</option>
-                      <option value="GROUP C">GROUP C</option>
-                    </select>
-                  </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-400">Auction Group *</label>
+                  <select
+                    value={singleForm.group_name}
+                    onChange={e => {
+                      const group = e.target.value;
+                      let basePrice = singleForm.base_price;
+                      if (group === 'GROUP A') basePrice = 100000;
+                      else if (group === 'GROUP B') basePrice = 50000;
+                      else if (group === 'GROUP C') basePrice = 25000;
+                      setSingleForm({ ...singleForm, group_name: group, base_price: basePrice });
+                    }}
+                    className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="GROUP A">GROUP A</option>
+                    <option value="GROUP B">GROUP B</option>
+                    <option value="GROUP C">GROUP C</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1">
@@ -484,14 +540,14 @@ export const PlayerApprovalQueueView: React.FC = () => {
 
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] text-gray-400">Presets:</span>
-                    {[100, 50, 25].map(val => (
+                    {[100000, 50000, 25000].map(val => (
                       <button
                         key={val}
                         type="button"
                         onClick={() => setSingleForm({ ...singleForm, base_price: val })}
                         className="text-[10px] px-2 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono border border-gray-700"
                       >
-                        {formatCurrency(val)}
+                        {val === 100000 ? '1 Lakh' : val === 50000 ? '50K' : '25K'}
                       </button>
                     ))}
                   </div>
@@ -510,7 +566,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="pt-4 flex items-center space-x-2">
+                  {/* <div className="pt-4 flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="is_foreign"
@@ -521,17 +577,29 @@ export const PlayerApprovalQueueView: React.FC = () => {
                     <label htmlFor="is_foreign" className="text-xs font-semibold text-gray-300 cursor-pointer">
                       Is Overseas / Foreign Player?
                     </label>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-gray-400">Photo URL</label>
-                  <input
-                    type="url"
-                    value={singleForm.photo_url}
-                    onChange={e => setSingleForm({ ...singleForm, photo_url: e.target.value })}
-                    className="w-full bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="https://... or choose local file"
+                      value={singleForm.photo_url}
+                      onChange={e => setSingleForm({ ...singleForm, photo_url: e.target.value })}
+                      className="flex-1 bg-gray-900 text-white text-xs border border-gray-700 rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                    />
+                    <label className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold rounded-xl border border-gray-700 cursor-pointer flex items-center justify-center shrink-0">
+                      <span>Choose Image File</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLocalFileChange}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-gray-800">
@@ -547,14 +615,16 @@ export const PlayerApprovalQueueView: React.FC = () => {
                     disabled={isSubmittingSingle}
                     className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold shadow-lg shadow-blue-500/20 disabled:opacity-50"
                   >
-                    {isSubmittingSingle ? 'Creating...' : 'Create & Queue Player'}
+                    {modalMode === 'create'
+                      ? (isSubmittingSingle ? 'Creating...' : 'Create & Queue Player')
+                      : (isSubmittingSingle ? 'Updating...' : 'Update Player')}
                   </button>
                 </div>
               </form>
             )}
 
             {/* TAB 2: BULK CSV INGESTION */}
-            {activeTab === 'bulk' && (
+            {activeTab === 'bulk' && modalMode === 'create' && (
               <div className="space-y-4">
                 {bulkError && (
                   <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center gap-2">
@@ -566,7 +636,7 @@ export const PlayerApprovalQueueView: React.FC = () => {
                 <div className="flex items-center justify-between bg-blue-950/40 p-3 rounded-xl border border-blue-500/30 text-xs">
                   <div className="space-y-0.5">
                     <span className="font-bold text-blue-200 block">Download Template CSV</span>
-                    <span className="text-[11px] text-gray-400">Sample file format with columns: name, role, group_name, base_price, status, is_foreign</span>
+                    <span className="text-[11px] text-gray-400">Sample file format with columns: name, group_name, base_price, status, is_foreign</span>
                   </div>
                   <button
                     onClick={handleDownloadSampleCsv}
@@ -618,7 +688,6 @@ export const PlayerApprovalQueueView: React.FC = () => {
                         <thead>
                           <tr className="border-b border-gray-800 text-gray-400 uppercase font-semibold">
                             <th className="py-2 px-3">Player Name</th>
-                            <th className="py-2 px-3">Role</th>
                             <th className="py-2 px-3">Group</th>
                             <th className="py-2 px-3">Base Price</th>
                             <th className="py-2 px-3">Status</th>
@@ -628,7 +697,6 @@ export const PlayerApprovalQueueView: React.FC = () => {
                           {parsedCsvPlayers.map((p, idx) => (
                             <tr key={idx} className="hover:bg-gray-800/40">
                               <td className="py-2 px-3 font-bold text-white">{p.name}</td>
-                              <td className="py-2 px-3 text-gray-300">{p.role}</td>
                               <td className="py-2 px-3 text-gray-300">{p.group_name}</td>
                               <td className="py-2 px-3 text-yellow-400 font-bold">{formatCurrency(p.base_price)}</td>
                               <td className="py-2 px-3 text-gray-400">{p.status}</td>

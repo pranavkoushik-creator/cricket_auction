@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getPhotoUrl } from '../utils/formatters';
 import { Radio, Flame, Trophy, Clock, Gavel, Sparkles, XCircle, TimerOff } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -108,7 +108,7 @@ export const SpectatorAuctionView: React.FC = () => {
               {/* Header Badges */}
               <div className="flex items-center justify-between border-b border-gray-800 pb-4">
                 <span className="text-xs font-black px-3.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 uppercase tracking-wider">
-                  SET {auctionState.group_name?.toUpperCase()} · {auctionState.role?.toUpperCase()}
+                  SET {auctionState.group_name?.toUpperCase()}
                 </span>
 
                 {auctionState.timerEnabled === false ? (
@@ -127,13 +127,13 @@ export const SpectatorAuctionView: React.FC = () => {
 
               {/* 2-Column Partition Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                
+
                 {/* LEFT PARTITION: Featured Player Portrait & Details */}
                 <div className="bg-gray-900/80 p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col justify-between space-y-4">
                   <div className="flex flex-col sm:flex-row items-center gap-5">
                     <div className="relative shrink-0">
                       <img
-                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                        src={getPhotoUrl(auctionState.photoUrl)}
                         alt={auctionState.playerName}
                         className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-2xl"
                       />
@@ -148,7 +148,6 @@ export const SpectatorAuctionView: React.FC = () => {
                         {auctionState.playerName}
                       </h3>
                       <div className="flex flex-wrap gap-2 justify-center sm:justify-start text-xs font-semibold text-gray-300 pt-1">
-                        <span className="bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-700">Role: {auctionState.role}</span>
                         <span className="bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-700">Base: {formatCurrency(auctionState.basePrice)}</span>
                       </div>
                     </div>
@@ -226,13 +225,13 @@ export const SpectatorAuctionView: React.FC = () => {
                   {/* Left: Player Portrait */}
                   <div className="flex items-center gap-4 bg-gray-900/60 p-4 rounded-2xl border border-gray-800">
                     <img
-                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+                      src={getPhotoUrl(auctionState.photoUrl)}
                       alt={auctionState.playerName}
                       className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-lg"
                     />
                     <div>
                       <span className="text-[10px] text-yellow-400 font-extrabold uppercase tracking-wider block">
-                        {auctionState.group_name} · {auctionState.role}
+                        {auctionState.group_name}
                       </span>
                       <h4 className="text-xl font-black text-white font-broadcast">{auctionState.playerName}</h4>
                       <span className="text-xs text-gray-400">{auctionState.isForeign ? 'Foreign Player' : 'Indian Player'}</span>

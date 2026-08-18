@@ -90,7 +90,6 @@ export function initDatabase() {
       tournament_id TEXT NOT NULL,
       name TEXT NOT NULL,
       group_name TEXT NOT NULL, -- GROUP A, GROUP B, GROUP C
-      role TEXT NOT NULL, -- Batsman, Bowler, All-Rounder, Wicket-Keeper
       is_foreign INTEGER DEFAULT 0, -- 0 or 1
       status TEXT DEFAULT 'Newcomer', -- Returning, Newcomer
       base_price REAL NOT NULL,
@@ -99,6 +98,7 @@ export function initDatabase() {
       approval_status TEXT DEFAULT 'pending', -- pending, approved, rejected, changes_requested, suspended
       approval_reason TEXT,
       stats_json TEXT, -- flexible stats (matches, runs, wickets, avg, sr)
+      is_captain INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -257,6 +257,11 @@ export function initDatabase() {
   }
   try {
     db.exec("ALTER TABLE franchises ADD COLUMN is_bidding_enabled INTEGER DEFAULT 1");
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec("ALTER TABLE players ADD COLUMN is_captain INTEGER DEFAULT 0");
   } catch (e) {
     // Column already exists
   }

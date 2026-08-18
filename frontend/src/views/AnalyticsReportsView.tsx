@@ -21,9 +21,9 @@ export const AnalyticsReportsView: React.FC = () => {
   if (!report) return <div className="p-8 text-center text-gray-400">Loading auction analytics & reports...</div>;
 
   const exportCSV = () => {
-    let csv = 'Player Name,Group,Role,Buyer Franchise,Sold Price (INR)\n';
+    let csv = 'Player Name,Group,Buyer Franchise,Sold Price (INR)\n';
     report.sold_lots.forEach((l: any) => {
-      csv += `"${l.player_name}","${l.group_name}","${l.role}","${l.buyer_name}",${l.sold_price}\n`;
+      csv += `"${l.player_name}","${l.group_name}","${l.buyer_name}",${l.sold_price}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -128,7 +128,7 @@ export const AnalyticsReportsView: React.FC = () => {
                     </span>
                     <div>
                       <p className="font-bold text-white">{lot.player_name}</p>
-                      <p className="text-[11px] text-gray-400">{lot.role} · Bought by {lot.buyer_name}</p>
+                      <p className="text-[11px] text-gray-400">Bought by {lot.buyer_name}</p>
                     </div>
                   </div>
                   <span className="font-extrabold text-yellow-400">{formatCurrency(lot.sold_price)}</span>

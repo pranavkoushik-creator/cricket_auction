@@ -8,7 +8,6 @@ export const PlayerRegistrationView: React.FC = () => {
   const [formData, setFormData] = useState({
     name: 'Shreyas Iyer',
     group_name: 'GROUP A',
-    role: 'Batsman',
     is_foreign: 0,
     status: 'Newcomer',
     base_price: 200,
@@ -109,20 +108,6 @@ export const PlayerRegistrationView: React.FC = () => {
                 <option value="GROUP A">GROUP A</option>
                 <option value="GROUP B">GROUP B</option>
                 <option value="GROUP C">GROUP C</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Player Specialization Role</label>
-              <select
-                value={formData.role}
-                onChange={e => setFormData({ ...formData, role: e.target.value })}
-                className="w-full bg-gray-900 text-white text-sm border border-gray-800 rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
-              >
-                <option value="Batsman">Batsman</option>
-                <option value="Bowler">Bowler</option>
-                <option value="All-Rounder">All-Rounder</option>
-                <option value="Wicket-Keeper">Wicket-Keeper</option>
               </select>
             </div>
 

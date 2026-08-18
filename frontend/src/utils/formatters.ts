@@ -26,3 +26,14 @@ export function formatRoleColor(role: string): string {
       return 'bg-gray-800 text-gray-300 border-gray-700';
   }
 }
+
+export function getPhotoUrl(url: string | undefined): string {
+  if (!url) return 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80';
+  if (url.startsWith('/images/')) {
+    const host = typeof window !== 'undefined' && window.location && window.location.hostname
+      ? window.location.hostname
+      : 'localhost';
+    return `http://${host}:4000${url}`;
+  }
+  return url;
+}

@@ -15,6 +15,8 @@ import reportRoutes from './routes/reportRoutes';
 import sessionRoutes from './routes/sessionRoutes';
 import { setupAuctionSocket } from './socket/auctionEngine';
 
+import path from 'path';
+
 const app = express();
 const server = http.createServer(app);
 
@@ -27,7 +29,8 @@ const io = new Server(server, {
 app.set('io', io);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use('/images', express.static(path.join(__dirname, '../images')));
 
 // Initialize database and seed initial IPL 2026 data
 seedData();

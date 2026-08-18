@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAuctionSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getPhotoUrl } from '../utils/formatters';
 import { Shield, ArrowDownRight, ArrowUpRight, History, Plus, Edit3, Trash2, X, AlertTriangle, UserCheck, UserPlus, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 interface FranchiseFormData {
@@ -422,38 +422,33 @@ export const FranchiseManagementView: React.FC = () => {
                   <tr className="border-b border-gray-800 text-gray-400 uppercase font-semibold">
                     <th className="py-2.5 px-3">Player</th>
                     <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3">Role</th>
                     <th className="py-2.5 px-3">Nationality</th>
                     <th className="py-2.5 px-3 text-right">Sold Price</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/60">
                   {selectedFranchise.squad && selectedFranchise.squad.length > 0 ? (
-                    (() => {
-                      const firstGroupA = selectedFranchise.squad.find((player: any) => (player.group_name || '').toUpperCase() === 'GROUP A');
-                      return selectedFranchise.squad.map((p: any) => {
-                        const isCaptain = firstGroupA && p.id === firstGroupA.id;
-                        return (
-                          <tr key={p.id} className="hover:bg-gray-900/40">
-                            <td className="py-3 px-3 font-bold text-white flex items-center space-x-2">
-                              <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-800" />
-                              <span className="flex items-center gap-1.5">
-                                <span>{p.name}</span>
-                                {isCaptain && (
-                                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
-                                    👑 CAPT
-                                  </span>
-                                )}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-gray-300">{p.group_name}</td>
-                            <td className="py-3 px-3 text-gray-300">{p.role}</td>
-                            <td className="py-3 px-3 text-gray-400">{p.is_foreign ? 'Foreign' : 'Indian'}</td>
-                            <td className="py-3 px-3 text-right font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</td>
-                          </tr>
-                        );
-                      });
-                    })()
+                    selectedFranchise.squad.map((p: any) => {
+                      const isCaptain = p.is_captain === 1;
+                      return (
+                        <tr key={p.id} className="hover:bg-gray-900/40">
+                          <td className="py-3 px-3 font-bold text-white flex items-center space-x-2">
+                            <img src={getPhotoUrl(p.photo_url)} alt={p.name} className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-800" />
+                            <span className="flex items-center gap-1.5">
+                              <span>{p.name}</span>
+                              {isCaptain && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
+                                  👑 CAPT
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-gray-300">{p.group_name}</td>
+                          <td className="py-3 px-3 text-gray-400">{p.is_foreign ? 'Foreign' : 'Indian'}</td>
+                          <td className="py-3 px-3 text-right font-extrabold text-yellow-400">{formatCurrency(p.sold_price)}</td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-gray-500">No players acquired yet.</td>
@@ -680,7 +675,7 @@ export const FranchiseManagementView: React.FC = () => {
               </div>
 
               {/* Quick Purse Budget Presets */}
-              <div className="flex items-center gap-2 pt-1">
+              {/* <div className="flex items-center gap-2 pt-1">
                 <span className="text-[11px] text-gray-400 font-semibold">Presets:</span>
                 {[10000, 9000, 7500, 5000].map(val => (
                   <button
@@ -692,7 +687,7 @@ export const FranchiseManagementView: React.FC = () => {
                     {formatCurrency(val)}
                   </button>
                 ))}
-              </div>
+              </div> */}
 
               <div className="flex justify-end gap-3 pt-3 border-t border-gray-800">
                 <button
