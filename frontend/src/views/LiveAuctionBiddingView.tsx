@@ -15,7 +15,6 @@ export const LiveAuctionBiddingView: React.FC = () => {
   const [currentFranchise, setCurrentFranchise] = useState<any>(null);
   const [tournament, setTournament] = useState<any>(null);
   const [rosterFilter, setRosterFilter] = useState<'ALL' | 'GROUP A' | 'GROUP B' | 'GROUP C'>('ALL');
-  const [hoveredBidAmount, setHoveredBidAmount] = useState<number | null>(null);
 
   const { countA, countB, countC, filteredSquad } = useMemo(() => {
     const squad = currentFranchise?.squad || [];
@@ -384,8 +383,6 @@ export const LiveAuctionBiddingView: React.FC = () => {
 
                     <button
                       onClick={() => placeBid(currentFranchise.id, minNextBid)}
-                      onMouseEnter={() => setHoveredBidAmount(minNextBid)}
-                      onMouseLeave={() => setHoveredBidAmount(null)}
                       disabled={isLeading || minNextBid > dynamicMaxBid || dynamicMaxBid === -1}
                       className="w-full py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:brightness-110 text-black font-black text-sm sm:text-base shadow-xl shadow-yellow-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                     >
@@ -396,14 +393,15 @@ export const LiveAuctionBiddingView: React.FC = () => {
                     <div className="grid grid-cols-2 gap-3">
                       {bidIncrements.map((inc: number, index: number) => {
                         const bidVal = currentBidBase + inc;
+                        const isLastOdd = index === bidIncrements.length - 1 && bidIncrements.length % 2 !== 0;
                         return (
                           <button
                             key={index}
                             onClick={() => placeBid(currentFranchise.id, bidVal)}
-                            onMouseEnter={() => setHoveredBidAmount(bidVal)}
-                            onMouseLeave={() => setHoveredBidAmount(null)}
                             disabled={isLeading || bidVal > dynamicMaxBid || dynamicMaxBid === -1}
-                            className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs sm:text-sm border border-gray-700 disabled:opacity-40 transition"
+                            className={`py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs sm:text-sm border border-gray-700 disabled:opacity-40 transition ${
+                              isLastOdd ? 'col-span-2' : ''
+                            }`}
                           >
                             + {formatCurrency(inc)} ({formatCurrency(bidVal)})
                           </button>
@@ -411,20 +409,6 @@ export const LiveAuctionBiddingView: React.FC = () => {
                       })}
                     </div>
                   </div>
-
-                  {/* Dynamic Bid Validation Status Display */}
-                  {hoveredBidAmount !== null && (
-                    <div className={`p-3 rounded-xl text-center text-xs font-bold transition-all border ${hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1
-                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                      : 'bg-red-950/60 border-red-500/40 text-red-300'
-                      }`}>
-                      {hoveredBidAmount <= dynamicMaxBid && dynamicMaxBid !== -1 ? (
-                        <span>✓ BID ALLOWED</span>
-                      ) : (
-                        <span>✕ BID BLOCKED — Safe limit is {formatCurrency(dynamicMaxBid)}</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
