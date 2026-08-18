@@ -371,7 +371,7 @@ export const SpectatorAuctionView: React.FC = () => {
 
                 if (isBid) {
                   return (
-                    <div key={idx} className="glass-card p-3 rounded-xl border border-yellow-500/20 text-xs space-y-1">
+                    <div key={idx} className="glass-card p-3 rounded-xl border border-yellow-500/20 text-xs space-y-1.5 shadow-md">
                       <div className="flex items-center justify-between text-[10px] text-yellow-400 font-bold">
                         <span className="flex items-center gap-1">
                           <Flame className="w-3.5 h-3.5" />
@@ -379,7 +379,14 @@ export const SpectatorAuctionView: React.FC = () => {
                         </span>
                         <span>{ev.timestamp}</span>
                       </div>
-                      <p className="text-white font-bold">{ev.message}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-white font-bold flex-1">{ev.message}</p>
+                        {ev.increment !== undefined && ev.increment !== null && (
+                          <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shrink-0 tracking-wide">
+                            +{formatCurrency(ev.increment)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 }

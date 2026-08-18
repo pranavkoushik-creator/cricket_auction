@@ -655,6 +655,9 @@ export function setupAuctionSocket(io: Server) {
       `).get(franchiseId) as any;
 
       const previousBid = activeAuctionState.currentBid;
+      // const previousBid = activeAuctionState.currentBid || 0;
+      // const bidIncrement = previousBid > 0 ? (bidAmount - previousBid) : (bidAmount - activeAuctionState.basePrice > 0 ? bidAmount - activeAuctionState.basePrice : bidAmount);
+
       activeAuctionState.currentBid = bidAmount;
       activeAuctionState.highestBidderId = franchiseId;
       activeAuctionState.highestBidderName = txnResult.franchiseName;
@@ -685,6 +688,9 @@ export function setupAuctionSocket(io: Server) {
       io.to(auctionRoom).emit('auction:event', {
         type: 'new_bid',
         message: `💰 ${txnResult.franchiseShort} bid ₹${raiseAmount} rs for ${activeAuctionState.playerName}`
+        // amount: bidAmount,
+        // increment: bidIncrement,
+        // message: `💰 ${txnResult.franchiseShort} bid ₹${bidAmount} rs for ${activeAuctionState.playerName}`
       });
     });
 
