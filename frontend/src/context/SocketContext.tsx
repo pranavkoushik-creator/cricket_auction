@@ -7,7 +7,7 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   auctionState: ActiveAuctionState | null;
-  eventsLog: { type: string; message: string; timestamp: string }[];
+  eventsLog: { type: string; message: string; timestamp: string; amount?: number; increment?: number }[];
   bidError: string | null;
   placeBid: (franchiseId: string, amount: number) => void;
   operatorStartLot: (lotId: string) => void;
@@ -27,7 +27,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [auctionState, setAuctionState] = useState<ActiveAuctionState | null>(null);
-  const [eventsLog, setEventsLog] = useState<{ type: string; message: string; timestamp: string }[]>([]);
+  const [eventsLog, setEventsLog] = useState<{ type: string; message: string; timestamp: string; amount?: number; increment?: number }[]>([]);
   const [bidError, setBidError] = useState<string | null>(null);
 
   // Create or reconnect socket whenever auth token changes (e.g. on login/logout)
