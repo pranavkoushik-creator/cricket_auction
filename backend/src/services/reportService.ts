@@ -29,6 +29,16 @@ export function getAuctionReport(tournamentId: string) {
 
   const totalSpent = soldLots.reduce((sum, lot) => sum + (lot.sold_price || 0), 0);
   const highestBid = soldLots.length > 0 ? soldLots[0] : null;
+  const lastPurchased = db.prepare(`
+    SELECT al.id, al.sold_price, p.name as player_name, p.group_name, p.role, p.is_foreign, p.status, f.name as buyer_name, f.short_name as buyer_short
+    FROM auction_lots al
+    JOIN players p ON al.player_id = p.id
+    JOIN franchises f ON al.buyer_id = f.id
+    WHERE al.tournament_id = ? AND al.status = 'sold'
+    ORDER BY al.updated_at DESC, al.rowid DESC
+    LIMIT 1
+  `).get(tournamentId) as any || null;
+
   const avgBid = soldLots.length > 0 ? Math.round(totalSpent / soldLots.length) : 0;
 
   return {
@@ -38,7 +48,8 @@ export function getAuctionReport(tournamentId: string) {
       total_players_unsold: unsoldLots.length,
       total_spend_inr: totalSpent,
       average_bid_inr: avgBid,
-      highest_bid: highestBid
+      highest_bid: highestBid,
+      last_purchased_player: lastPurchased || highestBid
     },
     franchise_breakdown: franchises,
     top_purchases: soldLots.slice(0, 10),

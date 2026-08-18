@@ -89,9 +89,15 @@ export const SpectatorAuctionView: React.FC = () => {
                 <span className="font-black text-gray-300 text-sm">{summaryReport.total_players_unsold || 0}</span>
               </div>
               <div className="bg-gray-900/80 p-2.5 rounded-xl border border-gray-800 text-center col-span-2 sm:col-span-1">
-                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Top Purchase</span>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase block">Last Purchase</span>
                 <span className="font-black text-blue-400 text-xs truncate block">
-                  {summaryReport.highest_bid ? `${summaryReport.highest_bid.player_name} (${formatCurrency(summaryReport.highest_bid.sold_price)})` : 'None'}
+                  {summaryReport.last_purchased_player ? (
+                    `${summaryReport.last_purchased_player.player_name} (${formatCurrency(summaryReport.last_purchased_player.sold_price)})`
+                  ) : summaryReport.highest_bid ? (
+                    `${summaryReport.highest_bid.player_name} (${formatCurrency(summaryReport.highest_bid.sold_price)})`
+                  ) : (
+                    'None'
+                  )}
                 </span>
               </div>
             </div>
