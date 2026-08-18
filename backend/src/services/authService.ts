@@ -98,6 +98,7 @@ export function loginUser(email: string, password: string) {
       email: user.email,
       phone: user.phone,
       avatar_url: user.avatar_url,
+      rules_accepted_at: user.rules_accepted_at || null,
       role,
       franchise_id: franchise?.id || null,
       franchise_name: franchise?.name || null,
@@ -110,7 +111,7 @@ export function loginUser(email: string, password: string) {
 export function verifyTokenAndGetUser(token: string) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = db.prepare('SELECT id, name, email, phone, avatar_url FROM users WHERE id = ?').get(decoded.userId) as any;
+    const user = db.prepare('SELECT id, name, email, phone, avatar_url, rules_accepted_at FROM users WHERE id = ?').get(decoded.userId) as any;
     if (!user) throw new Error('User not found');
 
     return {
@@ -119,6 +120,7 @@ export function verifyTokenAndGetUser(token: string) {
       email: user.email,
       phone: user.phone,
       avatar_url: user.avatar_url,
+      rules_accepted_at: user.rules_accepted_at || null,
       role: decoded.role,
       franchise_id: decoded.franchise_id,
       franchise_name: decoded.franchise_name,
@@ -127,6 +129,12 @@ export function verifyTokenAndGetUser(token: string) {
   } catch (err) {
     throw new Error('Invalid or expired authentication token');
   }
+}
+
+export function acceptRules(userId: string) {
+  const timestamp = new Date().toISOString();
+  db.prepare('UPDATE users SET rules_accepted_at = ? WHERE id = ?').run(timestamp, userId);
+  return { success: true, rules_accepted_at: timestamp };
 }
 
 export function getAllUsers() {

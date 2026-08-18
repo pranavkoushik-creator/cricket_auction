@@ -13,6 +13,7 @@ export interface User {
   franchise_id?: string;
   franchise_name?: string;
   franchise_short?: string;
+  rules_accepted_at?: string | null;
   roles?: { tournament_id: string; role: UserRole }[];
 }
 

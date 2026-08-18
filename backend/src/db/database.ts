@@ -24,6 +24,7 @@ export function initDatabase() {
       password_hash TEXT NOT NULL,
       avatar_url TEXT,
       status TEXT DEFAULT 'active', -- active, suspended
+      rules_accepted_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -262,6 +263,11 @@ export function initDatabase() {
   }
   try {
     db.exec("ALTER TABLE players ADD COLUMN is_captain INTEGER DEFAULT 0");
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN rules_accepted_at DATETIME");
   } catch (e) {
     // Column already exists
   }

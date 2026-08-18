@@ -6,9 +6,10 @@ import { formatRoleColor } from '../utils/formatters';
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onOpenRules?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenRules }) => {
   const { user, currentRole, logout, tournaments, currentTournamentId, setCurrentTournamentId } = useAuth();
 
   const navItems = [
@@ -74,6 +75,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 </span>
               </div>
             </div>
+
+            {/* Rules of the Game Reference Button */}
+            {onOpenRules && (
+              <button
+                onClick={onOpenRules}
+                className="px-3 py-1.5 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 transition flex items-center gap-1.5 text-xs font-bold"
+                title="View Rules of the Game"
+              >
+                <span>📜</span>
+                <span className="hidden sm:inline">Rules of the Game</span>
+              </button>
+            )}
 
             {/* Logout Button */}
             <button

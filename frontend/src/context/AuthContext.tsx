@@ -14,6 +14,7 @@ interface AuthContextType {
   logout: () => void;
   setSelectedFranchiseId: (id: string) => void;
   setCurrentTournamentId: (id: string) => void;
+  recordRulesAcceptedLocally: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +28,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentTournamentId, setCurrentTournamentId] = useState<string>('tour-ipl-2026');
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<string>('');
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+
+  const recordRulesAcceptedLocally = () => {
+    if (!user) return;
+    const updatedUser = { ...user, rules_accepted_at: new Date().toISOString() };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
 
   // Automatically update selectedFranchiseId if Franchise Owner
   useEffect(() => {
@@ -112,7 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         setSelectedFranchiseId,
-        setCurrentTournamentId
+        setCurrentTournamentId,
+        recordRulesAcceptedLocally
       }}
     >
       {children}

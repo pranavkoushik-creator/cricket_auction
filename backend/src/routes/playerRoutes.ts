@@ -166,7 +166,7 @@ router.post('/upload-image', authorize('Super Admin'), (req: Request, res: Respo
 
 router.put('/:id', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
-    const player = updatePlayer(req.params.id, req.body);
+    const player = updatePlayer(req.params.id as string, req.body);
     res.json(player);
   } catch (err: any) {
     res.status(400).json({ error: err.message });

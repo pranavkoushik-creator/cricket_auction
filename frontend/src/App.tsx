@@ -12,11 +12,16 @@ import { FranchiseManagementView } from './views/FranchiseManagementView';
 import { LiveScorerConsoleView } from './views/LiveScorerConsoleView';
 import { AnalyticsReportsView } from './views/AnalyticsReportsView';
 import { LoginView } from './views/LoginView';
+import { RulesConsentModal } from './components/RulesConsentModal';
 
 const MainContent: React.FC = () => {
-  const { isAuthenticated, currentRole } = useAuth();
+  const { isAuthenticated, currentRole, user, recordRulesAcceptedLocally } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [showSpectatorView, setShowSpectatorView] = useState(false);
+  const [isRulesReferenceOpen, setIsRulesReferenceOpen] = useState(false);
+
+  // Franchise Owners must accept rules before interacting
+  const isMandatoryRulesOpen = Boolean(isAuthenticated && currentRole === 'Franchise Owner' && !user?.rules_accepted_at);
 
   // Set default tab based on authenticated role
   useEffect(() => {
@@ -60,7 +65,29 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cricket-dark flex flex-col font-sans text-gray-100 selection:bg-yellow-500 selection:text-black">
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenRules={() => setIsRulesReferenceOpen(true)}
+      />
+
+      {/* Mandatory Rules Consent Overlay for Franchise Owners */}
+      {isMandatoryRulesOpen && (
+        <RulesConsentModal
+          isOpen={true}
+          isMandatory={true}
+          onAccept={recordRulesAcceptedLocally}
+        />
+      )}
+
+      {/* Reference Rules Modal (triggerable via Navbar button) */}
+      {!isMandatoryRulesOpen && isRulesReferenceOpen && (
+        <RulesConsentModal
+          isOpen={true}
+          isMandatory={false}
+          onClose={() => setIsRulesReferenceOpen(false)}
+        />
+      )}
 
       <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6">
         {activeTab === 'dashboard' && currentRole === 'Super Admin' && <DashboardView setActiveTab={setActiveTab} />}

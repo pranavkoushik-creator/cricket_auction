@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole } from '../services/authService';
+import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole, acceptRules } from '../services/authService';
 import { authenticate } from '../middleware/authMiddleware';
 import { authorize } from '../middleware/roleMiddleware';
 
@@ -35,6 +35,15 @@ router.post('/login', (req: Request, res: Response) => {
 // Protected Endpoints
 router.get('/me', authenticate, (req: Request, res: Response) => {
   res.json(req.user);
+});
+
+router.post('/accept-rules', authenticate, (req: Request, res: Response) => {
+  try {
+    const result = acceptRules(req.user.id);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // Admin-Only Endpoints
