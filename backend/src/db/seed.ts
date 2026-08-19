@@ -15,7 +15,7 @@ export function seedData() {
     'Rishav D Raj': '/images/rishav.jpg',
     'Santhosh M': '/images/santhosh.jpg',
     'SAYAM D jAIN': '/images/sayam.jpg',
-    'Srivathsa E R': '/images/srivathsa.jpg',
+    'Aswin S Kumar': '/images/aswin.jpg',
     'Suhas Gowda': '/images/suhas.jpg',
     'Sujan Shetty': '/images/sujan.jpg',
     'Surya H R': '/images/surya.jpg'
@@ -131,7 +131,7 @@ export function seedData() {
     { name: 'Rishav D Raj', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 2, "Runs": 88, "Strike Rate": 283, "Wickets": 0 } },
     { name: 'Santhosh M', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 18, "Strike Rate": 78, "Wickets": 0 } },
     { name: 'SAYAM D jAIN', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 199, "Strike Rate": 288, "Wickets": 3 } },
-    { name: 'Srivathsa E R', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 51, "Strike Rate": 231, "Wickets": 1 } },
+    { name: 'Aswin S Kumar', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 4, "Runs": 25, "Strike Rate": 147, "Wickets": 0 } },
     { name: 'Suhas Gowda', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 153, "Strike Rate": 239, "Wickets": 2 } },
     { name: 'Sujan Shetty', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 5, "Runs": 55, "Strike Rate": 196, "Wickets": 2 } },
     { name: 'Surya H R', group_name: 'GROUP A', status: 'Returning', is_foreign: 0, base: 100, stats: { "Innings": 3, "Runs": 153, "Strike Rate": 272, "Wickets": 1 } },
