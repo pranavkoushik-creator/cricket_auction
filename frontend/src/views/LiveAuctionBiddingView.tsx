@@ -3,13 +3,22 @@ import { useAuctionSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { formatCurrency, getPhotoUrl } from '../utils/formatters';
-import { Clock, TimerOff, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight } from 'lucide-react';
+import { Clock, TimerOff, AlertTriangle, CheckCircle2, Flame, Users, ChevronRight, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const LiveAuctionBiddingView: React.FC = () => {
   const { currentTournamentId, selectedFranchiseId, setSelectedFranchiseId, currentRole, user } = useAuth();
   const isFranchiseOwner = currentRole === 'Franchise Owner';
   const { auctionState, bidError, placeBid, eventsLog, socket } = useAuctionSocket();
+
+  const hasNonZeroStats = (stats: any) => {
+    if (!stats) return false;
+    const innings = stats.Innings ?? stats.innings ?? 0;
+    const runs = stats.Runs ?? stats.runs ?? 0;
+    const sr = stats["Strike Rate"] ?? stats.sr ?? stats.strikeRate ?? 0;
+    const wickets = stats.Wickets ?? stats.wickets ?? 0;
+    return innings !== 0 || runs !== 0 || sr !== 0 || wickets !== 0;
+  };
 
   const [franchises, setFranchises] = useState<any[]>([]);
   const [currentFranchise, setCurrentFranchise] = useState<any>(null);
@@ -292,8 +301,9 @@ export const LiveAuctionBiddingView: React.FC = () => {
         {/* Left 3 Cols: Active Lot Card & Bidding Controls */}
         <div className="lg:col-span-3 space-y-6">
           {auctionState && auctionState.status === 'live' ? (
-            <div className={`glass-panel p-6 sm:p-7 rounded-2xl border-2 transition-all ${isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
-              } space-y-6`}>
+            <>
+              <div className={`glass-panel p-6 sm:p-7 rounded-2xl border-2 transition-all ${isLeading ? 'border-emerald-500/60 shadow-xl shadow-emerald-500/10' : 'border-blue-500/30'
+                } space-y-6`}>
 
               {/* Side-by-Side 2-Column Partition Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
@@ -411,7 +421,44 @@ export const LiveAuctionBiddingView: React.FC = () => {
                 </div>
               </div>
             </div>
-          ) : (
+
+            {hasNonZeroStats(auctionState.stats) && (
+              <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-gray-800 shadow-xl space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-800 pb-3">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider font-broadcast">Player Stats</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Innings</span>
+                    <span className="text-lg sm:text-xl font-black text-white mt-1 block">
+                      {auctionState.stats?.Innings ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Runs</span>
+                    <span className="text-lg sm:text-xl font-black text-white mt-1 block">
+                      {auctionState.stats?.Runs ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Strike Rate</span>
+                    <span className="text-lg sm:text-xl font-black text-yellow-400 mt-1 block">
+                      {auctionState.stats?.["Strike Rate"] ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-gray-950/60 p-3 sm:p-4 rounded-xl border border-gray-800/80 text-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Wickets</span>
+                    <span className="text-lg sm:text-xl font-black text-emerald-400 mt-1 block">
+                      {auctionState.stats?.Wickets ?? 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
             <div className="glass-panel p-12 rounded-2xl text-center space-y-4 border border-gray-800">
               <div className="w-16 h-16 rounded-2xl bg-gray-900 text-yellow-400 mx-auto flex items-center justify-center border border-gray-800">
                 <Clock className="w-8 h-8" />
