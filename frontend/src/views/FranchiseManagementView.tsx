@@ -126,8 +126,10 @@ export const FranchiseManagementView: React.FC = () => {
 
   useEffect(() => {
     loadFranchises();
-    loadUsers();
-  }, [currentTournamentId, lastRollbackTime, auctionState?.status]);
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [currentTournamentId, lastRollbackTime, auctionState?.status, isAdmin]);
 
   // Listen for bidding toggles in real-time
   useEffect(() => {
