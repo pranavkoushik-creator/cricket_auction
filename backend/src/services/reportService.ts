@@ -30,7 +30,7 @@ export function getAuctionReport(tournamentId: string) {
   const totalSpent = soldLots.reduce((sum, lot) => sum + (lot.sold_price || 0), 0);
   const highestBid = soldLots.length > 0 ? soldLots[0] : null;
   const lastPurchased = db.prepare(`
-    SELECT al.id, al.sold_price, p.name as player_name, p.group_name, p.role, p.is_foreign, p.status, f.name as buyer_name, f.short_name as buyer_short
+    SELECT al.id, al.sold_price, p.name as player_name, p.group_name, p.group_name as role, p.is_foreign, p.status, f.name as buyer_name, f.short_name as buyer_short
     FROM auction_lots al
     JOIN players p ON al.player_id = p.id
     JOIN franchises f ON al.buyer_id = f.id
