@@ -39,6 +39,9 @@ router.get('/me', authenticate, (req: Request, res: Response) => {
 
 router.post('/accept-rules', authenticate, (req: Request, res: Response) => {
   try {
+    if (!req.user || !req.user.id) {
+      throw new Error('Authentication required');
+    }
     const result = acceptRules(req.user.id);
     res.json(result);
   } catch (err: any) {
