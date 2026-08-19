@@ -9,8 +9,9 @@ if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-export const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL'); // Disabled to prevent .sqlite-wal caching confusion during dev
+export const db = new Database(DB_PATH, { timeout: 10000 }); // 10-second busy timeout for concurrent users
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL'); // Optimize write performance in WAL mode
 db.pragma('foreign_keys = ON');
 
 export function initDatabase() {

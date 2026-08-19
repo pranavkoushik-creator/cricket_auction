@@ -172,9 +172,9 @@ export const LiveAuctionBiddingView: React.FC = () => {
     let extraSlots = Math.max(0, slotsToFill - (a_needed + b_needed + c_needed));
 
     if (extraSlots > 0) {
-      const maxGroupCExtra = Math.max(0, (ruleC.max_players || 3) - (c_hyp + c_needed));
-      const cExtra = Math.min(extraSlots, maxGroupCExtra);
-      const bExtra = extraSlots - cExtra;
+      const maxGroupBExtra = Math.max(0, (ruleB.max_players || 3) - (b_hyp + b_needed));
+      const bExtra = Math.min(extraSlots, maxGroupBExtra);
+      const cExtra = extraSlots - bExtra;
 
       c_reserve += cExtra * ruleC.base_price;
       b_reserve += bExtra * ruleB.base_price;
