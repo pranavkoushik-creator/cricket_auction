@@ -56,7 +56,7 @@ export function seedData() {
 
   // 2. Create Core Users
   const users = [
-    { id: 'usr-admin', name: 'Pranav Koushik (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
+    { id: 'usr-admin', name: 'Yashas Kumar (Super Admin)', email: 'admin@platform.com', role: 'Super Admin' },
   ];
 
   const insertUser = db.prepare(`
