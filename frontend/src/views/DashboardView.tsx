@@ -31,7 +31,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
   if (!tournament) return <div className="p-8 text-center text-gray-400">Loading tournament dashboard...</div>;
 
   const soldCount = players.filter(p => p.lot_status === 'sold').length;
-  const unsoldCont = players.filter(p => p.lot_status === 'unsold').length;
+  // const unsoldCont = players.filter(p => p.lot_status === 'unsold').length;
   const approvedCount = players.filter(p => p.approval_status === 'approved').length;
 
   return (
@@ -114,7 +114,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           <div>
             <p className="text-xs font-semibold text-gray-400">Auction Progress</p>
             <p className="text-2xl font-extrabold text-emerald-400 mt-1">{soldCount} Sold</p>
-            <p className="text-[11px] text-amber-400 mt-0.5">{unsoldCont} Unsold Pool</p>
+            {/* <p className="text-[11px] text-amber-400 mt-0.5">{unsoldCont} Unsold Pool</p> */}
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
             <CheckCircle className="w-6 h-6" />
