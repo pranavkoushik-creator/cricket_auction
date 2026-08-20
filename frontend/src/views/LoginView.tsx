@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap, Radio } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginViewProps {
   onLogin: () => void;
-  onViewLiveAuction: () => void;
+  // onViewLiveAuction: () => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -172,16 +172,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
             </form>
 
             {/* ── OR Divider ── */}
-            <div className="flex items-center gap-3 my-6">
+            {/*<div className="flex items-center gap-3 my-6">
               <span className="flex-1 h-px bg-gradient-to-r from-transparent via-cricket-border/80 to-transparent" />
               <span className="text-[0.72rem] font-bold text-gray-600 tracking-[2px] px-3 py-1 border border-cricket-border/70 rounded-full bg-cricket-dark/50">
                 OR
               </span>
               <span className="flex-1 h-px bg-gradient-to-r from-transparent via-cricket-border/80 to-transparent" />
-            </div>
+            </div>*/}
 
             {/* ── View Live Auction ── */}
-            <div className="flex flex-col items-center gap-3">
+            {/*<div className="flex flex-col items-center gap-3">
               <p className="text-[0.82rem] text-gray-500 font-medium m-0">
                 Click here to View{' '}
                 <span className="text-cricket-accent font-bold">LIVE AUCTION</span>
@@ -195,7 +195,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
                 <Radio className="w-4 h-4 animate-pulse" />
                 VIEW LIVE AUCTION
               </button>
-            </div>
+            </div>*/}
 
           </div>{/* /card-inner */}
         </div>{/* /card */}

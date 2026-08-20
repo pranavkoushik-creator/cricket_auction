@@ -58,7 +58,7 @@ const MainContent: React.FC = () => {
     return (
       <LoginView
         onLogin={() => setShowSpectatorView(false)}
-        onViewLiveAuction={() => setShowSpectatorView(true)}
+      // onViewLiveAuction={() => setShowSpectatorView(true)}
       />
     );
   }

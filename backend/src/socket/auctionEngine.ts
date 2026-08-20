@@ -518,6 +518,56 @@ export function setupAuctionSocket(io: Server) {
     }
   }
 
+  const markSoldTransaction = db.transaction((lotId: string, buyerId: string, finalPrice: number) => {
+    db.prepare(`
+      UPDATE auction_lots
+      SET status = 'sold', sold_price = ?, buyer_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(finalPrice, buyerId, lotId);
+
+    const playerObj = db.prepare('SELECT p.* FROM players p JOIN auction_lots al ON p.id = al.player_id WHERE al.id = ?').get(lotId) as any;
+    const playerName = playerObj?.name || 'Player';
+
+    // Record immutable ledger deduction
+    recordPurseTransaction(
+      buyerId,
+      -finalPrice,
+      'bid_deduction',
+      lotId,
+      `Purchased ${playerName} for ₹${finalPrice} rs`
+    );
+
+    // Recalculate captain status if player belongs to GROUP A
+    if (playerObj && playerObj.group_name === 'GROUP A') {
+      updateFranchiseCaptainStatus(buyerId);
+    }
+  });
+
+  const rollbackSaleTransaction = db.transaction((lotId: string, playerId: string, buyerId: string | null, refundAmount: number, playerName: string) => {
+    // Reset lot state in DB
+    db.prepare("UPDATE auction_lots SET status = 'queued', current_highest_bid = 0, current_bidder_id = null, sold_price = null, buyer_id = null WHERE id = ?").run(lotId);
+
+    // Reset rolled back player's captain status to 0
+    db.prepare("UPDATE players SET is_captain = 0 WHERE id = ?").run(playerId);
+
+    // If rolled back player was GROUP A, recalculate captain status for the franchise
+    const playerObj = db.prepare('SELECT group_name FROM players WHERE id = ?').get(playerId) as any;
+    if (playerObj && playerObj.group_name === 'GROUP A' && buyerId) {
+      updateFranchiseCaptainStatus(buyerId);
+    }
+
+    // Record compensating refund in ledger
+    if (buyerId) {
+      recordPurseTransaction(
+        buyerId,
+        refundAmount,
+        'sale_refund',
+        lotId,
+        `Rollback sale refund for ${playerName}`
+      );
+    }
+  });
+
   io.on('connection', (socket: Socket) => {
     console.log(`[AuctionEngine] Socket connected: ${socket.id}`);
 
@@ -725,26 +775,8 @@ export function setupAuctionSocket(io: Server) {
       const buyerId = activeAuctionState.highestBidderId;
       const finalPrice = activeAuctionState.currentBid;
 
-      db.prepare(`
-        UPDATE auction_lots
-        SET status = 'sold', sold_price = ?, buyer_id = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(finalPrice, buyerId, lotId);
-
-      // Record immutable ledger deduction
-      recordPurseTransaction(
-        buyerId,
-        -finalPrice,
-        'bid_deduction',
-        lotId,
-        `Purchased ${activeAuctionState.playerName} for ₹${finalPrice} rs`
-      );
-
-      // Recalculate captain status if player belongs to GROUP A
-      const playerObj = db.prepare('SELECT p.* FROM players p JOIN auction_lots al ON p.id = al.player_id WHERE al.id = ?').get(lotId) as any;
-      if (playerObj && playerObj.group_name === 'GROUP A') {
-        updateFranchiseCaptainStatus(buyerId);
-      }
+      // Execute atomic transaction for database updates to ensure state consistency
+      markSoldTransaction(lotId, buyerId, finalPrice);
 
       activeAuctionState.status = 'sold';
       resetTimerEnabledForNextLot(activeAuctionState.sessionId);
@@ -909,26 +941,8 @@ export function setupAuctionSocket(io: Server) {
         const refundAmount = lot.sold_price;
         const player = db.prepare('SELECT name FROM players WHERE id = ?').get(lot.player_id) as any;
 
-        // Reset lot state in DB
-        db.prepare("UPDATE auction_lots SET status = 'queued', current_highest_bid = 0, current_bidder_id = null, sold_price = null, buyer_id = null WHERE id = ?").run(lotId);
-
-        // Reset rolled back player's captain status to 0
-        db.prepare("UPDATE players SET is_captain = 0 WHERE id = ?").run(lot.player_id);
-
-        // If rolled back player was GROUP A, recalculate captain status for the franchise
-        const playerObj = db.prepare('SELECT group_name FROM players WHERE id = ?').get(lot.player_id) as any;
-        if (playerObj && playerObj.group_name === 'GROUP A' && buyerId) {
-          updateFranchiseCaptainStatus(buyerId);
-        }
-
-        // Record compensating refund in ledger
-        recordPurseTransaction(
-          buyerId,
-          refundAmount,
-          'sale_refund',
-          lotId,
-          `Rollback sale refund for ${player?.name || 'player'}`
-        );
+        // Execute atomic transaction for rollback database updates to ensure state consistency
+        rollbackSaleTransaction(lotId, lot.player_id, buyerId, refundAmount, player?.name || 'player');
 
         io.to(auctionRoom).emit('auction:event', {
           type: 'rollback',
