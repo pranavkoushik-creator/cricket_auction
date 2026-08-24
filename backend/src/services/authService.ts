@@ -158,3 +158,15 @@ export function setUserTournamentRole(userId: string, tournamentId: string, role
   `).run(uuidv4(), userId, tournamentId, role);
   return { success: true, userId, tournamentId, role };
 }
+
+export function adminResetPassword(email: string, newPassword: string) {
+  const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as any;
+  if (!user) {
+    throw new Error('User with this email not found.');
+  }
+
+  const password_hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(password_hash, user.id);
+
+  return { success: true, message: `Password successfully reset for ${email}.` };
+}
