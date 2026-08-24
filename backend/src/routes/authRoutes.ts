@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole, acceptRules } from '../services/authService';
+import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole, acceptRules, adminResetPassword } from '../services/authService';
 import { authenticate } from '../middleware/authMiddleware';
 import { authorize } from '../middleware/roleMiddleware';
 
@@ -79,6 +79,19 @@ router.patch('/users/:id/roles', authenticate, authorize('Super Admin'), (req: R
       return res.status(400).json({ error: 'tournamentId and role are required.' });
     }
     const result = setUserTournamentRole(req.params.id as string, tournamentId, role);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/reset-password', authenticate, authorize('Super Admin'), (req: Request, res: Response) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: 'Email and newPassword are required.' });
+    }
+    const result = adminResetPassword(email, newPassword);
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });

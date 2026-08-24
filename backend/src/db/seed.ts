@@ -21,13 +21,57 @@ export function seedData() {
     'Surya H R': '/images/surya.jpg'
   };
 
-  // Restore Zoho photo URLs for Group A players in the database if they were previously migrated to Unsplash
+  // Group B players' photo URLs mapping (local images)
+  const groupBPhotos: Record<string, string> = {
+    'Ankit Kumar': '/images/group_b/ankit.jpg',
+    'Kiran Kumar HA': '/images/group_b/kiran_kumar.jpg',
+    'Manoj K N': '/images/group_b/manoj_kn.jpg',
+    'Milap Nagar': '/images/group_b/milap.jpg',
+    'Nandan': '/images/group_b/nandan.jpg',
+    'Nithesh': '/images/group_b/nithesh.jpg',
+    'Noor Athil': '/images/group_b/noor.jpg',
+    'Arun Kumar HR': '/images/group_b/arun.jpg',
+    'Rakesh YS': '/images/group_b/rakesh.jpg',
+    'Ratikanta Mohapatra': '/images/group_b/ratikanta.jpg',
+    'Revana Siddappa': '/images/group_b/revan.jpg',
+    'Sarang Kaliyath': '/images/group_b/sarang.jpg',
+    'Shrishail Chanaveer': '/images/group_b/shrishail.jpg',
+    'Srinidhi A': '/images/group_b/srinidhi.jpg',
+    'Sushil Kumar Singh': '/images/group_b/sushil.jpg'
+  };
+
+  // Group C players' photo URLs mapping (local images)
+  const groupCPhotos: Record<string, string> = {
+    'Dinesh Gowd Patel': '/images/group_c/dinesh.jpg',
+    'Karthik Shastry': '/images/group_c/karthik_sir.jpg',
+    'Krishnasis': '/images/group_c/krishnasis.jpg',
+    'Pranav Koushik N': '/images/group_c/pranav.jpg',
+    'Pushpalatha G': '/images/group_c/pushpalatha.jpg',
+    'Rajdhilip G': '/images/group_c/rajdhilip.jpg',
+    'Samir': '/images/group_c/samir.jpg',
+    'Shakib Jilani': '/images/group_c/shakib.jpg',
+    'shashank d r': '/images/group_c/shashank.jpg',
+    'Siba Prasad Hota': '/images/group_c/siba.jpg',
+    'Suchith M S': '/images/group_c/suchith.jpg',
+    'Viral Upendrabhai Vasoya': '/images/group_c/viral.jpg',
+    'Vivek Kulkarni': '/images/group_c/vivek.jpg',
+    'Vyom Kumar Mittal': '/images/group_c/vyom.jpg',
+    'Yashas Kumar S': '/images/group_c/yashas.jpg'
+  };
+
+  // Synchronize local photo URLs for players in the database if they differ from the mappings
   try {
     for (const [name, zohoUrl] of Object.entries(groupAPhotos)) {
-      db.prepare("UPDATE players SET photo_url = ? WHERE name = ? AND photo_url LIKE '%unsplash.com%'").run(zohoUrl, name);
+      db.prepare("UPDATE players SET photo_url = ? WHERE name = ? AND photo_url != ?").run(zohoUrl, name, zohoUrl);
+    }
+    for (const [name, imgUrl] of Object.entries(groupBPhotos)) {
+      db.prepare("UPDATE players SET photo_url = ? WHERE name = ? AND photo_url != ?").run(imgUrl, name, imgUrl);
+    }
+    for (const [name, imgUrl] of Object.entries(groupCPhotos)) {
+      db.prepare("UPDATE players SET photo_url = ? WHERE name = ? AND photo_url != ?").run(imgUrl, name, imgUrl);
     }
   } catch (err) {
-    console.error('[Seeder] Error restoring Zoho URLs:', err);
+    console.error('[Seeder] Error restoring local URLs:', err);
   }
 
   const passwordHash = bcrypt.hashSync('password123', 10);
@@ -186,7 +230,7 @@ export function seedData() {
     const p = playersData[i];
     const pId = 'ply-' + (i + 1);
     createdPlayerIds.push(pId);
-    const photoUrl = groupAPhotos[p.name] || photos[i % photos.length];
+    const photoUrl = groupAPhotos[p.name] || groupBPhotos[p.name] || groupCPhotos[p.name] || photos[i % photos.length];
     insertPlayer.run(
       pId,
       tId,

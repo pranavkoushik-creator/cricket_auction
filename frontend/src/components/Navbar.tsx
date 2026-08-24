@@ -7,9 +7,10 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenRules?: () => void;
+  onOpenResetPassword?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenRules }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenRules, onOpenResetPassword }) => {
   const { user, currentRole, logout, tournaments, currentTournamentId, setCurrentTournamentId } = useAuth();
 
   const navItems = [
@@ -32,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
           <img src="/sakha_logo.png" alt="Sakha Logo" className="h-10 sm:h-12 w-auto object-contain bg-white px-2.5 py-1 rounded-lg shadow-md shrink-0" />
           <div>
             <h1 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2 font-broadcast">
-              SAKHA SPORTS LEAGUE <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">v1.0 Pro</span>
+              SAKHA SPORTS LEAGUE
             </h1>
             <p className="text-xs text-gray-400 font-medium">Role-Based Sports Tournament & Auction Platform</p>
           </div>
@@ -88,6 +89,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
               </button>
             )}
 
+            {/* Reset Password Button for Super Admin */}
+            {currentRole === 'Super Admin' && onOpenResetPassword && (
+              <button
+                onClick={onOpenResetPassword}
+                className="px-3 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 transition flex items-center gap-1.5 text-xs font-bold"
+                title="Reset Password"
+              >
+                <span>🔑</span>
+                <span className="hidden sm:inline">Reset Password</span>
+              </button>
+            )}
+
             {/* Logout Button */}
             <button
               onClick={logout}
@@ -112,11 +125,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-                  isActive
+                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${isActive
                     ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm font-bold'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
-                }`}
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-500'}`} />
                 <span>{item.label}</span>

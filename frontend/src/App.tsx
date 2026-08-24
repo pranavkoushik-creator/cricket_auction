@@ -13,12 +13,14 @@ import { LiveScorerConsoleView } from './views/LiveScorerConsoleView';
 import { AnalyticsReportsView } from './views/AnalyticsReportsView';
 import { LoginView } from './views/LoginView';
 import { RulesConsentModal } from './components/RulesConsentModal';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 
 const MainContent: React.FC = () => {
   const { isAuthenticated, currentRole, user, recordRulesAcceptedLocally } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [showSpectatorView, setShowSpectatorView] = useState(false);
   const [isRulesReferenceOpen, setIsRulesReferenceOpen] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
   // Franchise Owners must accept rules before interacting
   const isMandatoryRulesOpen = Boolean(isAuthenticated && currentRole === 'Franchise Owner' && !user?.rules_accepted_at);
@@ -58,7 +60,7 @@ const MainContent: React.FC = () => {
     return (
       <LoginView
         onLogin={() => setShowSpectatorView(false)}
-      // onViewLiveAuction={() => setShowSpectatorView(true)}
+        onViewLiveAuction={() => setShowSpectatorView(true)}
       />
     );
   }
@@ -69,6 +71,7 @@ const MainContent: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenRules={() => setIsRulesReferenceOpen(true)}
+        onOpenResetPassword={() => setIsResetPasswordOpen(true)}
       />
 
       {/* Mandatory Rules Consent Overlay for Franchise Owners */}
@@ -86,6 +89,14 @@ const MainContent: React.FC = () => {
           isOpen={true}
           isMandatory={false}
           onClose={() => setIsRulesReferenceOpen(false)}
+        />
+      )}
+
+      {/* Admin Reset Password Modal */}
+      {isResetPasswordOpen && (
+        <ResetPasswordModal
+          isOpen={true}
+          onClose={() => setIsResetPasswordOpen(false)}
         />
       )}
 
