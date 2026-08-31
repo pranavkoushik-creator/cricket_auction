@@ -117,18 +117,20 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           )}
 
           {/* Email Field */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="admin@platform.com"
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting || isEmailFixed}
-              required
-            />
-          </div>
+          {!isPublic && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="admin@platform.com"
+                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isSubmitting || isEmailFixed}
+                required
+              />
+            </div>
+          )}
 
           {/* New Password Field */}
           <div className="space-y-1">
