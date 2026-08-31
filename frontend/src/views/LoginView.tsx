@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, Zap, Radio } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ResetPasswordModal } from '../components/ResetPasswordModal';
+import { apiRequest } from '../utils/api';
 
 interface LoginViewProps {
   onLogin: () => void;
@@ -14,6 +16,22 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [superAdminEmail, setSuperAdminEmail] = useState('');
+
+  useEffect(() => {
+    const fetchSuperAdminEmail = async () => {
+      try {
+        const res = await apiRequest('/auth/super-admin-email');
+        if (res && res.email) {
+          setSuperAdminEmail(res.email);
+        }
+      } catch (err) {
+        console.error('Failed to fetch Super Admin email:', err);
+      }
+    };
+    fetchSuperAdminEmail();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +162,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
                       : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsResetOpen(true)}
+                    className="text-[0.78rem] text-gray-500 hover:text-cricket-gold transition-colors duration-200"
+                  >
+                    Reset Admin Password?
+                  </button>
+                </div>
               </div>
 
               {/* Error */}
@@ -220,6 +247,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
           .login-card-inner { padding: 28px 20px 24px; }
         }
       `}</style>
+      <ResetPasswordModal
+        isOpen={isResetOpen}
+        onClose={() => setIsResetOpen(false)}
+        initialEmail={superAdminEmail}
+        isEmailFixed={true}
+        isPublic={true}
+      />
     </div>
   );
 };

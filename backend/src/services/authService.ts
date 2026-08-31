@@ -170,3 +170,18 @@ export function adminResetPassword(email: string, newPassword: string) {
 
   return { success: true, message: `Password successfully reset for ${email}.` };
 }
+
+export function getSuperAdminEmail() {
+  const row = db.prepare(`
+    SELECT u.email
+    FROM users u
+    JOIN user_roles ur ON u.id = ur.user_id
+    WHERE ur.role = 'Super Admin'
+    LIMIT 1
+  `).get() as { email: string } | undefined;
+
+  if (!row) {
+    throw new Error('Super Admin user not found.');
+  }
+  return row.email;
+}

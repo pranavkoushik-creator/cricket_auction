@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole, acceptRules, adminResetPassword } from '../services/authService';
+import { registerUser, loginUser, createFranchiseOwner, verifyTokenAndGetUser, getAllUsers, setUserTournamentRole, acceptRules, adminResetPassword, getSuperAdminEmail } from '../services/authService';
 import { authenticate } from '../middleware/authMiddleware';
 import { authorize } from '../middleware/roleMiddleware';
 
@@ -91,6 +91,34 @@ router.post('/reset-password', authenticate, authorize('Super Admin'), (req: Req
     if (!email || !newPassword) {
       return res.status(400).json({ error: 'Email and newPassword are required.' });
     }
+    const result = adminResetPassword(email, newPassword);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get('/super-admin-email', (req: Request, res: Response) => {
+  try {
+    const email = getSuperAdminEmail();
+    res.json({ email });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/public-reset-password', (req: Request, res: Response) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: 'Email and newPassword are required.' });
+    }
+
+    const superAdminEmail = getSuperAdminEmail();
+    if (email.toLowerCase() !== superAdminEmail.toLowerCase()) {
+      return res.status(403).json({ error: 'Only the Super Admin password can be reset from the login screen.' });
+    }
+
     const result = adminResetPassword(email, newPassword);
     res.json(result);
   } catch (err: any) {

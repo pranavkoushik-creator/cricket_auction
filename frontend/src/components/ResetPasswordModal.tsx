@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Key, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { apiRequest } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -6,11 +6,28 @@ import { useAuth } from '../context/AuthContext';
 interface ResetPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialEmail?: string;
+  isEmailFixed?: boolean;
+  isPublic?: boolean;
 }
 
-export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose }) => {
+export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
+  isOpen,
+  onClose,
+  initialEmail = '',
+  isEmailFixed = false,
+  isPublic = false
+}) => {
   const { logout } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail(initialEmail);
+      setError(null);
+      setSuccess(null);
+    }
+  }, [isOpen, initialEmail]);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,17 +55,28 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, 
 
     setIsSubmitting(true);
     try {
-      const response = await apiRequest('/auth/reset-password', {
+      const endpoint = isPublic ? '/auth/public-reset-password' : '/auth/reset-password';
+      const response = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({ email, newPassword })
       });
-      setSuccess(response.message || 'Password successfully reset. Logging out...');
-      setEmail('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => {
-        logout();
-      }, 1500);
+      if (isPublic) {
+        setSuccess(response.message || 'Password successfully reset.');
+        setEmail(initialEmail);
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        setSuccess(response.message || 'Password successfully reset. Logging out...');
+        setEmail('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          logout();
+        }, 1500);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to reset password.');
     } finally {
@@ -96,8 +124,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, 
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="admin@platform.com"
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition"
-              disabled={isSubmitting}
+              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting || isEmailFixed}
               required
             />
           </div>
