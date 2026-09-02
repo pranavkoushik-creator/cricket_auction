@@ -10,9 +10,11 @@ import {
   setBowler,
   swapStrike,
   replaceBatter,
+  replaceBowler,
   completeInnings,
   completeMatchNow,
-  undoLastBall
+  undoLastBall,
+  resetMatch
 } from '../services/liveMatchService';
 import { broadcastMatch } from '../socket/matchEngine';
 import { authenticate } from '../middleware/authMiddleware';
@@ -170,6 +172,15 @@ router.post('/:id/bowler', authorize('Super Admin'), (req: Request, res: Respons
   scorerAction(req, res, () => setBowler(req.params.id as string, req.body.playerId), 'bowler_change');
 });
 
+router.post('/:id/bowler/replace', authorize('Super Admin'), (req: Request, res: Response) => {
+  const { outgoingId, incomingId, transferFigures } = req.body;
+  scorerAction(
+    req, res,
+    () => replaceBowler(req.params.id as string, outgoingId, incomingId, transferFigures ?? true),
+    'bowler_replaced'
+  );
+});
+
 router.post('/:id/strike/swap', authorize('Super Admin'), (req: Request, res: Response) => {
   scorerAction(req, res, () => swapStrike(req.params.id as string), 'strike_swap');
 });
@@ -184,6 +195,11 @@ router.post('/:id/innings/complete', authorize('Super Admin'), (req: Request, re
 
 router.post('/:id/match/complete', authorize('Super Admin'), (req: Request, res: Response) => {
   scorerAction(req, res, () => completeMatchNow(req.params.id as string), 'match_complete');
+});
+
+/** Destructive: discards all scoring for this match so it can be set up again. */
+router.post('/:id/reset', authorize('Super Admin'), (req: Request, res: Response) => {
+  scorerAction(req, res, () => resetMatch(req.params.id as string), 'match_reset');
 });
 
 export default router;

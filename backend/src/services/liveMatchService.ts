@@ -1,6 +1,6 @@
 import { db } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { completeMatch } from './matchService';
+import { completeMatch, revertTeamPointsTable, recalculateStandingsPositions } from './matchService';
 
 /**
  * Server-authoritative live cricket match engine.
@@ -888,6 +888,104 @@ export function replaceBatter(matchId: string, outgoingId: string, incomingId: s
   return getLiveMatchState(matchId);
 }
 
+/** Is this player in the given franchise's squad for this tournament? */
+function isInSquad(franchiseId: string, playerId: string): boolean {
+  const row = db.prepare(`
+    SELECT 1 FROM auction_lots
+    WHERE buyer_id = ? AND player_id = ? AND status = 'sold'
+  `).get(franchiseId, playerId);
+  return Boolean(row);
+}
+
+/**
+ * Swaps one bowler for another.
+ *
+ * With transferFigures the current innings' figures move across, along with the
+ * deliveries in the ball log and any wickets credited to the outgoing bowler.
+ * That is the correction path: the scorer named the wrong player and the spell
+ * belongs to someone else. Without it the outgoing bowler simply keeps his
+ * figures and hands over the ball, which is what happens for an injury.
+ */
+export function replaceBowler(
+  matchId: string,
+  outgoingId: string,
+  incomingId: string,
+  transferFigures = true
+): LiveMatchState {
+  const { state, innings } = requireActiveInnings(matchId);
+
+  if (!outgoingId || !incomingId) throw new Error('Both an outgoing and an incoming bowler are required.');
+  if (outgoingId === incomingId) throw new Error('Choose a different bowler to bring on.');
+
+  const outRow = db.prepare(`
+    SELECT * FROM match_bowling WHERE match_id = ? AND innings_number = ? AND player_id = ?
+  `).get(matchId, innings.innings_number, outgoingId) as any;
+
+  if (!outRow) throw new Error('That bowler has not bowled in this innings.');
+
+  if (!isInSquad(innings.bowling_team_id, incomingId)) {
+    throw new Error('The incoming bowler must be in the fielding side\'s squad.');
+  }
+
+  const outgoing = db.prepare('SELECT name FROM players WHERE id = ?').get(outgoingId) as any;
+  const incoming = db.prepare('SELECT name FROM players WHERE id = ?').get(incomingId) as any;
+
+  const run = db.transaction(() => {
+    ensureBowler(matchId, innings.innings_number, incomingId);
+
+    if (transferFigures) {
+      db.prepare(`
+        UPDATE match_bowling
+        SET balls = balls + ?, runs = runs + ?, wickets = wickets + ?, maidens = maidens + ?
+        WHERE match_id = ? AND innings_number = ? AND player_id = ?
+      `).run(outRow.balls, outRow.runs, outRow.wickets, outRow.maidens, matchId, innings.innings_number, incomingId);
+
+      // Drop the emptied row so the scorecard does not show a ghost 0-0-0-0.
+      db.prepare('DELETE FROM match_bowling WHERE id = ?').run(outRow.id);
+
+      // Re-point the ball log, otherwise a later undo would decrement a bowler
+      // whose figures have already moved and drive them negative.
+      const balls = db.prepare(`
+        SELECT id, payload_json FROM match_events
+        WHERE match_id = ? AND innings = ? AND event_type = 'ball'
+      `).all(matchId, innings.innings_number) as any[];
+
+      const repoint = db.prepare('UPDATE match_events SET payload_json = ? WHERE id = ?');
+      for (const ev of balls) {
+        const payload = safeParse(ev.payload_json);
+        if (payload.bowlerId === outgoingId) {
+          payload.bowlerId = incomingId;
+          repoint.run(JSON.stringify(payload), ev.id);
+        }
+      }
+
+      // Wickets on the batting card were credited to the outgoing bowler.
+      db.prepare(`
+        UPDATE match_batting SET dismissal_bowler_id = ?
+        WHERE match_id = ? AND innings_number = ? AND dismissal_bowler_id = ?
+      `).run(incomingId, matchId, innings.innings_number, outgoingId);
+    }
+
+    if (state.bowler_id === outgoingId) {
+      db.prepare('UPDATE match_live_state SET bowler_id = ? WHERE match_id = ?').run(incomingId, matchId);
+    }
+
+    logEvent(matchId, innings.innings_number, 'bowler_replaced', {
+      label: transferFigures
+        ? `${incoming?.name || 'Bowler'} replaces ${outgoing?.name || 'bowler'} — spell reassigned`
+        : `${incoming?.name || 'Bowler'} takes over from ${outgoing?.name || 'bowler'}`,
+      outgoingId,
+      incomingId,
+      transferFigures
+    });
+
+    touchState(matchId);
+  });
+
+  run();
+  return getLiveMatchState(matchId);
+}
+
 function closeInningsInternal(
   matchId: string,
   inningsNumber: number,
@@ -1093,6 +1191,69 @@ export function undoLastBall(matchId: string): LiveMatchState {
   });
 
   run();
+  return getLiveMatchState(matchId);
+}
+
+/**
+ * Wipes a match back to its unplayed state so the scorer can re-enter the
+ * opening configuration -- batting side, opening pair, bowler and overs.
+ *
+ * Destructive: every ball, scorecard row and commentary line for this match is
+ * discarded. If the match had already been completed its contribution to the
+ * standings is reversed first, using the innings rows it was computed from,
+ * so the points table stays consistent.
+ */
+export function resetMatch(matchId: string): LiveMatchState {
+  const match = getMatchRow(matchId);
+  const oversLimit: number = match.overs_limit || 20;
+  const innings = db.prepare(
+    'SELECT * FROM match_innings WHERE match_id = ? ORDER BY innings_number ASC'
+  ).all(matchId) as any[];
+
+  const run = db.transaction(() => {
+    const countedInStandings = match.status === 'completed' && match.winner_team_id && innings.length >= 2;
+
+    if (countedInStandings) {
+      const [first, second] = innings;
+      // Same convention finaliseMatch() used: a side bowled out is charged the
+      // full quota of overs.
+      const chargedOvers = (row: any) => (row.wickets >= 10 ? oversLimit : row.balls / 6);
+
+      const homeIsFirst = first.batting_team_id === match.home_team_id;
+      const homeInnings = homeIsFirst ? first : second;
+      const awayInnings = homeIsFirst ? second : first;
+
+      revertTeamPointsTable(
+        match.tournament_id, match.home_team_id,
+        match.winner_team_id === match.home_team_id,
+        homeInnings.runs, chargedOvers(homeInnings), awayInnings.runs, chargedOvers(awayInnings)
+      );
+      revertTeamPointsTable(
+        match.tournament_id, match.away_team_id,
+        match.winner_team_id === match.away_team_id,
+        awayInnings.runs, chargedOvers(awayInnings), homeInnings.runs, chargedOvers(homeInnings)
+      );
+      recalculateStandingsPositions(match.tournament_id);
+    }
+
+    db.prepare('DELETE FROM match_events WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_batting WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_bowling WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_innings WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_live_state WHERE match_id = ?').run(matchId);
+
+    db.prepare(`
+      UPDATE matches
+      SET status = 'upcoming', winner_team_id = NULL, result_summary = NULL
+      WHERE id = ?
+    `).run(matchId);
+  });
+
+  run();
+
+  // Logged after the wipe so the note survives it. getLiveStateRow() recreates
+  // a clean pointer row on the next read.
+  logEvent(matchId, 1, 'match_reset', { label: 'Scorer reset the match — awaiting new setup' });
   return getLiveMatchState(matchId);
 }
 

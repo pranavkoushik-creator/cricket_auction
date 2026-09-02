@@ -36,9 +36,11 @@ interface SocketContextType {
   scorerSetBowler: (playerId: string) => void;
   scorerSwapStrike: () => void;
   scorerReplaceBatter: (outgoingId: string, incomingId: string) => void;
+  scorerReplaceBowler: (outgoingId: string, incomingId: string, transferFigures: boolean) => void;
   scorerUndoBall: () => void;
   scorerCompleteInnings: () => void;
   scorerCompleteMatch: () => void;
+  scorerResetMatch: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -306,9 +308,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const scorerSwapStrike = () => emitScorer('scorer:swap_strike');
   const scorerReplaceBatter = (outgoingId: string, incomingId: string) =>
     emitScorer('scorer:replace_batter', { outgoingId, incomingId });
+  const scorerReplaceBowler = (outgoingId: string, incomingId: string, transferFigures: boolean) =>
+    emitScorer('scorer:replace_bowler', { outgoingId, incomingId, transferFigures });
   const scorerUndoBall = () => emitScorer('scorer:undo_ball');
   const scorerCompleteInnings = () => emitScorer('scorer:complete_innings');
   const scorerCompleteMatch = () => emitScorer('scorer:complete_match');
+  const scorerResetMatch = () => emitScorer('scorer:reset_match');
 
   return (
     <SocketContext.Provider
@@ -339,9 +344,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         scorerSetBowler,
         scorerSwapStrike,
         scorerReplaceBatter,
+        scorerReplaceBowler,
         scorerUndoBall,
         scorerCompleteInnings,
-        scorerCompleteMatch
+        scorerCompleteMatch,
+        scorerResetMatch
       }}
     >
       {children}
