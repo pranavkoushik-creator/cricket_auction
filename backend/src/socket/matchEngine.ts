@@ -10,6 +10,7 @@ import {
   completeInnings,
   completeMatchNow,
   undoLastBall,
+  resetMatch,
   type BallInput,
   type LiveMatchState
 } from '../services/liveMatchService';
@@ -150,6 +151,9 @@ export function setupMatchSocket(io: Server) {
 
     socket.on('scorer:complete_match', (p: { matchId: string }) =>
       mutate(p?.matchId, () => completeMatchNow(p.matchId), 'match_complete'));
+
+    socket.on('scorer:reset_match', (p: { matchId: string }) =>
+      mutate(p?.matchId, () => resetMatch(p.matchId), 'match_reset'));
   });
 
   console.log('[MatchEngine] Live match broadcast engine ready.');

@@ -1,6 +1,6 @@
 import { db } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { completeMatch } from './matchService';
+import { completeMatch, revertTeamPointsTable, recalculateStandingsPositions } from './matchService';
 
 /**
  * Server-authoritative live cricket match engine.
@@ -1093,6 +1093,69 @@ export function undoLastBall(matchId: string): LiveMatchState {
   });
 
   run();
+  return getLiveMatchState(matchId);
+}
+
+/**
+ * Wipes a match back to its unplayed state so the scorer can re-enter the
+ * opening configuration -- batting side, opening pair, bowler and overs.
+ *
+ * Destructive: every ball, scorecard row and commentary line for this match is
+ * discarded. If the match had already been completed its contribution to the
+ * standings is reversed first, using the innings rows it was computed from,
+ * so the points table stays consistent.
+ */
+export function resetMatch(matchId: string): LiveMatchState {
+  const match = getMatchRow(matchId);
+  const oversLimit: number = match.overs_limit || 20;
+  const innings = db.prepare(
+    'SELECT * FROM match_innings WHERE match_id = ? ORDER BY innings_number ASC'
+  ).all(matchId) as any[];
+
+  const run = db.transaction(() => {
+    const countedInStandings = match.status === 'completed' && match.winner_team_id && innings.length >= 2;
+
+    if (countedInStandings) {
+      const [first, second] = innings;
+      // Same convention finaliseMatch() used: a side bowled out is charged the
+      // full quota of overs.
+      const chargedOvers = (row: any) => (row.wickets >= 10 ? oversLimit : row.balls / 6);
+
+      const homeIsFirst = first.batting_team_id === match.home_team_id;
+      const homeInnings = homeIsFirst ? first : second;
+      const awayInnings = homeIsFirst ? second : first;
+
+      revertTeamPointsTable(
+        match.tournament_id, match.home_team_id,
+        match.winner_team_id === match.home_team_id,
+        homeInnings.runs, chargedOvers(homeInnings), awayInnings.runs, chargedOvers(awayInnings)
+      );
+      revertTeamPointsTable(
+        match.tournament_id, match.away_team_id,
+        match.winner_team_id === match.away_team_id,
+        awayInnings.runs, chargedOvers(awayInnings), homeInnings.runs, chargedOvers(homeInnings)
+      );
+      recalculateStandingsPositions(match.tournament_id);
+    }
+
+    db.prepare('DELETE FROM match_events WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_batting WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_bowling WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_innings WHERE match_id = ?').run(matchId);
+    db.prepare('DELETE FROM match_live_state WHERE match_id = ?').run(matchId);
+
+    db.prepare(`
+      UPDATE matches
+      SET status = 'upcoming', winner_team_id = NULL, result_summary = NULL
+      WHERE id = ?
+    `).run(matchId);
+  });
+
+  run();
+
+  // Logged after the wipe so the note survives it. getLiveStateRow() recreates
+  // a clean pointer row on the next read.
+  logEvent(matchId, 1, 'match_reset', { label: 'Scorer reset the match — awaiting new setup' });
   return getLiveMatchState(matchId);
 }
 

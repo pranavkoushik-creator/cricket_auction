@@ -152,6 +152,50 @@ function updateTeamPointsTable(tournamentId: string, franchiseId: string, isWinn
   `).run(played, won, lost, points, nrr, totalRunsScored, totalOversFaced, totalRunsConceded, totalOversBowled, tournamentId, franchiseId);
 }
 
+/**
+ * Subtracts one match's contribution from a franchise's standings row.
+ *
+ * points_table is a running accumulator, so undoing a result means reversing
+ * exactly the arithmetic updateTeamPointsTable() applied. Callers must pass the
+ * same figures the result was recorded with.
+ */
+export function revertTeamPointsTable(
+  tournamentId: string,
+  franchiseId: string,
+  wasWinner: boolean,
+  runsFor: number,
+  oversFor: number,
+  runsAgainst: number,
+  oversAgainst: number
+) {
+  const row = db.prepare(
+    'SELECT * FROM points_table WHERE tournament_id = ? AND franchise_id = ?'
+  ).get(tournamentId, franchiseId) as any;
+
+  if (!row) return;
+
+  // Clamped at zero so a double revert can never drive the table negative.
+  const played = Math.max(0, row.played - 1);
+  const won = Math.max(0, row.won - (wasWinner ? 1 : 0));
+  const lost = Math.max(0, row.lost - (wasWinner ? 0 : 1));
+  const points = won * 2;
+
+  const runsScored = Math.max(0, row.runs_scored - runsFor);
+  const oversFaced = Math.max(0, row.overs_faced - oversFor);
+  const runsConceded = Math.max(0, row.runs_conceded - runsAgainst);
+  const oversBowled = Math.max(0, row.overs_bowled - oversAgainst);
+
+  const forRate = oversFaced > 0 ? runsScored / oversFaced : 0;
+  const againstRate = oversBowled > 0 ? runsConceded / oversBowled : 0;
+  const nrr = Number((forRate - againstRate).toFixed(3));
+
+  db.prepare(`
+    UPDATE points_table
+    SET played = ?, won = ?, lost = ?, points = ?, nrr = ?, runs_scored = ?, overs_faced = ?, runs_conceded = ?, overs_bowled = ?
+    WHERE tournament_id = ? AND franchise_id = ?
+  `).run(played, won, lost, points, nrr, runsScored, oversFaced, runsConceded, oversBowled, tournamentId, franchiseId);
+}
+
 export function recalculateStandingsPositions(tournamentId: string) {
   const standings = db.prepare(`
     SELECT * FROM points_table WHERE tournament_id = ? ORDER BY points DESC, nrr DESC

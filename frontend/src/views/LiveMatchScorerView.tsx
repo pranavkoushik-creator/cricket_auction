@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, PlayCircle, Radio, RotateCcw, Undo2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, PlayCircle, Radio, RotateCcw, Settings2, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMatchSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
@@ -80,7 +80,7 @@ export const LiveMatchScorerView: React.FC = () => {
     joinMatch, leaveMatch,
     scorerStartInnings, scorerRecordBall, scorerNewBatter, scorerSetBowler,
     scorerSwapStrike, scorerReplaceBatter, scorerUndoBall,
-    scorerCompleteInnings, scorerCompleteMatch
+    scorerCompleteInnings, scorerCompleteMatch, scorerResetMatch
   } = useMatchSocket();
 
   const [matches, setMatches] = useState<BroadcastMatchListItem[]>([]);
@@ -106,6 +106,7 @@ export const LiveMatchScorerView: React.FC = () => {
   const [runOutCrossed, setRunOutCrossed] = useState(false);
   const [replaceOutgoing, setReplaceOutgoing] = useState('');
   const [replaceIncoming, setReplaceIncoming] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (!currentTournamentId || !token) return;
@@ -579,24 +580,76 @@ export const LiveMatchScorerView: React.FC = () => {
                 </div>
               )}
 
-              {state.status !== 'completed' && (
-                <div className="glass-card rounded-xl border border-cricket-border/50 p-4 space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Match Flow</p>
-                  <button
-                    disabled={!inningsLive}
-                    onClick={scorerCompleteInnings}
-                    className="w-full py-2 rounded-xl bg-yellow-600/25 hover:bg-yellow-600/40 disabled:opacity-30 disabled:cursor-not-allowed text-yellow-300 border border-yellow-500/40 font-bold text-[11px] transition"
-                  >
-                    Declare Innings Complete
-                  </button>
-                  <button
-                    onClick={scorerCompleteMatch}
-                    className="w-full py-2 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Complete Match
-                  </button>
+              <div className="glass-card rounded-xl border border-cricket-border/50 p-4 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Match Flow</p>
+
+                {state.status !== 'completed' && (
+                  <>
+                    <button
+                      disabled={!inningsLive}
+                      onClick={scorerCompleteInnings}
+                      className="w-full py-2 rounded-xl bg-yellow-600/25 hover:bg-yellow-600/40 disabled:opacity-30 disabled:cursor-not-allowed text-yellow-300 border border-yellow-500/40 font-bold text-[11px] transition"
+                    >
+                      Declare Innings Complete
+                    </button>
+                    <button
+                      onClick={scorerCompleteMatch}
+                      className="w-full py-2 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Complete Match
+                    </button>
+                  </>
+                )}
+
+                {/* Escape hatch for a mis-configured opening: wipes the match so
+                    the setup form comes back. Confirmed in two taps because it
+                    discards every ball scored so far. */}
+                <div className="pt-2 border-t border-cricket-border/40">
+                  {!confirmReset ? (
+                    <button
+                      onClick={() => setConfirmReset(true)}
+                      className="w-full py-2 rounded-xl bg-gray-800/60 hover:bg-gray-700/70 text-gray-300 border border-cricket-border/60 font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" /> Edit Setup / Restart Match
+                    </button>
+                  ) : (
+                    <div className="rounded-xl border border-red-500/50 bg-red-950/30 p-3 space-y-2">
+                      <p className="text-[11px] font-black text-red-300 leading-snug">
+                        Discard this match and start over?
+                      </p>
+                      <p className="text-[10px] font-semibold text-gray-400 leading-snug">
+                        Every ball, scorecard and commentary line for
+                        {' '}{state.home_team.short_name} v {state.away_team.short_name} is deleted.
+                        {state.status === 'completed'
+                          ? ' Its result is also removed from the points table.'
+                          : ''}
+                        {' '}This cannot be undone.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setConfirmReset(false)}
+                          className="py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600/50 font-bold text-[11px] transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            scorerResetMatch();
+                            setConfirmReset(false);
+                            // Clear the setup form so it does not re-submit stale picks.
+                            setStrikerId('');
+                            setNonStrikerId('');
+                            setOpeningBowlerId('');
+                          }}
+                          className="py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white border border-red-400 font-black text-[11px] transition"
+                        >
+                          Yes, reset
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* ---------------- Live mirror of the broadcast ---------------- */}

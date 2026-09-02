@@ -39,6 +39,7 @@ interface SocketContextType {
   scorerUndoBall: () => void;
   scorerCompleteInnings: () => void;
   scorerCompleteMatch: () => void;
+  scorerResetMatch: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -309,6 +310,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const scorerUndoBall = () => emitScorer('scorer:undo_ball');
   const scorerCompleteInnings = () => emitScorer('scorer:complete_innings');
   const scorerCompleteMatch = () => emitScorer('scorer:complete_match');
+  const scorerResetMatch = () => emitScorer('scorer:reset_match');
 
   return (
     <SocketContext.Provider
@@ -341,7 +343,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         scorerReplaceBatter,
         scorerUndoBall,
         scorerCompleteInnings,
-        scorerCompleteMatch
+        scorerCompleteMatch,
+        scorerResetMatch
       }}
     >
       {children}

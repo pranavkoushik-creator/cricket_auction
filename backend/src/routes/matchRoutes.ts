@@ -12,7 +12,8 @@ import {
   replaceBatter,
   completeInnings,
   completeMatchNow,
-  undoLastBall
+  undoLastBall,
+  resetMatch
 } from '../services/liveMatchService';
 import { broadcastMatch } from '../socket/matchEngine';
 import { authenticate } from '../middleware/authMiddleware';
@@ -184,6 +185,11 @@ router.post('/:id/innings/complete', authorize('Super Admin'), (req: Request, re
 
 router.post('/:id/match/complete', authorize('Super Admin'), (req: Request, res: Response) => {
   scorerAction(req, res, () => completeMatchNow(req.params.id as string), 'match_complete');
+});
+
+/** Destructive: discards all scoring for this match so it can be set up again. */
+router.post('/:id/reset', authorize('Super Admin'), (req: Request, res: Response) => {
+  scorerAction(req, res, () => resetMatch(req.params.id as string), 'match_reset');
 });
 
 export default router;
