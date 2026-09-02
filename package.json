@@ -2,13 +2,16 @@
   "name": "cricket-auction-platform",
   "version": "1.0.0",
   "description": "Sports Tournament & Player Auction Management Platform",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
-    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "start": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "install:all": "cd backend && npm install && cd ../frontend && npm install",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npx vite --host 0.0.0.0 --port 5173",
-    "build:frontend": "cd frontend && npm run build"
+    "dev": "npx concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "start": "npx concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "install:all": "npm --prefix backend install --ignore-scripts && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
