@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Undo2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeftRight, CalendarRange, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Trophy, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMatchSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
@@ -25,6 +25,8 @@ import {
   ScorePanel,
   TargetBanner
 } from '../components/match/MatchBroadcastPanels';
+import { PointsTableModal } from '../components/match/PointsTableModal';
+import { FixtureManagerModal } from '../components/match/FixtureManagerModal';
 
 const DISMISSALS: { value: DismissalType; label: string }[] = [
   { value: 'bowled', label: 'Bowled' },
@@ -110,6 +112,8 @@ export const LiveMatchScorerView: React.FC = () => {
   const [bowlerIncoming, setBowlerIncoming] = useState('');
   const [transferSpell, setTransferSpell] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showPointsTable, setShowPointsTable] = useState(false);
+  const [showFixtures, setShowFixtures] = useState(false);
 
   // Extras Modal state (WD, NB, LB, B)
   const [extraModalType, setExtraModalType] = useState<'wide' | 'no_ball' | 'bye' | 'leg_bye' | null>(null);
@@ -120,10 +124,13 @@ export const LiveMatchScorerView: React.FC = () => {
     apiRequest(`/matches/public/live?tournamentId=${currentTournamentId}`)
       .then((res: BroadcastMatchListItem[]) => {
         setMatches(res);
-        if (res.length > 0) setSelectedId(prev => (prev && res.some(m => m.id === prev) ? prev : res[0].id));
+        // The selected fixture may have just been deleted or rebuilt away.
+        setSelectedId(prev => (res.some(m => m.id === prev) ? prev : (res[0]?.id ?? '')));
       })
       .catch(err => setNotice(err.message));
   }, [currentTournamentId, token]);
+
+  // useEffect(() => { reloadFixtures(); }, [reloadFixtures]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -214,34 +221,51 @@ export const LiveMatchScorerView: React.FC = () => {
     setRunOutBatterId('');
   };
 
-  if (matches.length === 0) {
-    return (
-      <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
-        <Radio className="w-9 h-9 text-gray-600 mx-auto mb-3" />
-        <p className="text-gray-300 font-bold">No fixtures available</p>
-        <p className="text-gray-500 text-xs mt-1">
-          Generate fixtures from the Live Match Scorer &amp; Fixtures tab first.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="font-broadcast text-xl text-white">SAKHA MATCH CONTROL CONSOLE</h2>
-        <span
-          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${isConnected
-            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-            : 'bg-red-500/15 text-red-300 border-red-500/40'
-            }`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-          {isConnected ? 'Broadcasting' : 'Reconnecting'}
-        </span>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowPointsTable(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-300 border border-yellow-500/40 text-[11px] font-black transition"
+          >
+            <Trophy className="w-3.5 h-3.5" /> Points Table
+          </button>
+          <button
+            onClick={() => setShowFixtures(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/40 text-[11px] font-black transition"
+          >
+            <CalendarRange className="w-3.5 h-3.5" /> Fixtures
+          </button>
+          <span
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${isConnected
+              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+              : 'bg-red-500/15 text-red-300 border-red-500/40'
+              }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+            {isConnected ? 'Broadcasting' : 'Reconnecting'}
+          </span>
+        </div>
       </div>
 
-      <MatchPickerBar matches={matches} selectedId={selectedId} onSelect={setSelectedId} />
+      <PointsTableModal
+        isOpen={showPointsTable}
+        onClose={() => setShowPointsTable(false)}
+        tournamentId={currentTournamentId}
+      />
+      <FixtureManagerModal
+        isOpen={showFixtures}
+        onClose={() => setShowFixtures(false)}
+        tournamentId={currentTournamentId}
+      // onChanged={reloadFixtures}
+      />
+
+      {matches.length > 0 && (
+        <MatchPickerBar matches={matches} selectedId={selectedId} onSelect={setSelectedId} />
+      )}
 
       {(matchError || notice) && (
         <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-2.5 flex items-center gap-2">
@@ -250,7 +274,21 @@ export const LiveMatchScorerView: React.FC = () => {
         </div>
       )}
 
-      {!state ? (
+      {matches.length === 0 ? (
+        <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
+          <Radio className="w-9 h-9 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-300 font-bold">No fixtures scheduled</p>
+          <p className="text-gray-500 text-xs mt-1 mb-4">
+            Build a round-robin schedule to start scoring.
+          </p>
+          <button
+            onClick={() => setShowFixtures(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition"
+          >
+            <CalendarRange className="w-4 h-4" /> Generate Fixtures
+          </button>
+        </div>
+      ) : !state ? (
         <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
           <p className="text-gray-400 font-bold text-sm">Loading match…</p>
         </div>

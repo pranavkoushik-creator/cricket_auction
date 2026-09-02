@@ -41,6 +41,12 @@ interface SocketContextType {
   scorerCompleteInnings: () => void;
   scorerCompleteMatch: () => void;
   scorerResetMatch: () => void;
+
+  // --- Analytics: a bump counter that increments whenever any match in the
+  // watched tournament changes, so stats views know to refetch.
+  statsVersion: number;
+  joinStats: (tournamentId: string) => void;
+  leaveStats: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -58,6 +64,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [matchFeed, setMatchFeed] = useState<MatchFeedEntry[]>([]);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [watchedMatchId, setWatchedMatchId] = useState<string | null>(null);
+  const [statsVersion, setStatsVersion] = useState(0);
+  const watchedStatsRef = useRef<string | null>(null);
   // Kept in a ref so the reconnect handler always re-joins the current room.
   const watchedMatchRef = useRef<string | null>(null);
 
@@ -144,10 +152,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setTimeout(() => setMatchError(null), 5000);
     });
 
+    s.on('stats:updated', () => setStatsVersion(v => v + 1));
+
     // Re-join the match room after any reconnect so the scoreboard resumes.
     const rejoinMatch = () => {
       if (watchedMatchRef.current) {
         s.emit('join:match', { matchId: watchedMatchRef.current });
+      }
+      if (watchedStatsRef.current) {
+        s.emit('join:stats', { tournamentId: watchedStatsRef.current });
       }
     };
     s.on('connect', rejoinMatch);
@@ -315,6 +328,24 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const scorerCompleteMatch = () => emitScorer('scorer:complete_match');
   const scorerResetMatch = () => emitScorer('scorer:reset_match');
 
+  const joinStats = (tournamentId: string) => {
+    if (!tournamentId || watchedStatsRef.current === tournamentId) return;
+    const s = socketRef.current;
+    if (watchedStatsRef.current && s?.connected) {
+      s.emit('leave:stats', { tournamentId: watchedStatsRef.current });
+    }
+    watchedStatsRef.current = tournamentId;
+    if (s?.connected) s.emit('join:stats', { tournamentId });
+  };
+
+  const leaveStats = () => {
+    const s = socketRef.current;
+    if (watchedStatsRef.current && s?.connected) {
+      s.emit('leave:stats', { tournamentId: watchedStatsRef.current });
+    }
+    watchedStatsRef.current = null;
+  };
+
   return (
     <SocketContext.Provider
       value={{
@@ -348,7 +379,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         scorerUndoBall,
         scorerCompleteInnings,
         scorerCompleteMatch,
-        scorerResetMatch
+        scorerResetMatch,
+        statsVersion,
+        joinStats,
+        leaveStats
       }}
     >
       {children}

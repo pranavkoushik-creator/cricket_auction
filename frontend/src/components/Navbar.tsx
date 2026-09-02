@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Shield, Users, Radio, BarChart3, UserCheck, Eye, Activity, LogOut, Tv, Gamepad2 } from 'lucide-react';
+import { Trophy, Shield, Users, Radio, BarChart3, UserCheck, Eye, Activity, LogOut, Tv, Gamepad2, LineChart } from 'lucide-react';
 import { formatRoleColor } from '../utils/formatters';
 
 interface NavbarProps {
@@ -22,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
     { id: 'match-scorer', label: 'Live Match Scorer & Fixtures', icon: Activity, roles: ['Super Admin'] },
     { id: 'match-control', label: 'Match Control Console', icon: Gamepad2, roles: ['Super Admin'] },
     { id: 'match-live', label: 'Live Match Centre', icon: Tv, roles: ['Super Admin', 'Franchise Owner', 'Player'] },
+    { id: 'player-analytics', label: 'Player Analytics & History', icon: LineChart, roles: ['Super Admin', 'Franchise Owner'] },
     { id: 'player-register', label: 'Player Registration', icon: Users, roles: ['Player'] },
     { id: 'auction-spectator', label: 'Spectator Live Ticker', icon: Eye, roles: ['Super Admin', 'Franchise Owner', 'Player'] },
     { id: 'reports', label: 'Analytics & Reports', icon: BarChart3, roles: ['Super Admin', 'Franchise Owner'] }
