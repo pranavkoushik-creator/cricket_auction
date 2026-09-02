@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, PlayCircle, Radio, RotateCcw, Settings2, Undo2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMatchSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
@@ -79,7 +79,7 @@ export const LiveMatchScorerView: React.FC = () => {
     matchState, matchFeed, matchError, isConnected, watchedMatchId,
     joinMatch, leaveMatch,
     scorerStartInnings, scorerRecordBall, scorerNewBatter, scorerSetBowler,
-    scorerSwapStrike, scorerReplaceBatter, scorerUndoBall,
+    scorerSwapStrike, scorerReplaceBatter, scorerReplaceBowler, scorerUndoBall,
     scorerCompleteInnings, scorerCompleteMatch, scorerResetMatch
   } = useMatchSocket();
 
@@ -106,6 +106,9 @@ export const LiveMatchScorerView: React.FC = () => {
   const [runOutCrossed, setRunOutCrossed] = useState(false);
   const [replaceOutgoing, setReplaceOutgoing] = useState('');
   const [replaceIncoming, setReplaceIncoming] = useState('');
+  const [bowlerOutgoing, setBowlerOutgoing] = useState('');
+  const [bowlerIncoming, setBowlerIncoming] = useState('');
+  const [transferSpell, setTransferSpell] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
@@ -576,6 +579,60 @@ export const LiveMatchScorerView: React.FC = () => {
                     className="w-full py-2 rounded-xl bg-gray-700/50 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-200 font-bold text-[11px] transition"
                   >
                     Swap Player (retired / correction)
+                  </button>
+                </div>
+              )}
+
+              {inningsLive && state.bowling.length > 0 && (
+                <div className="glass-card rounded-xl border border-cricket-border/50 p-4 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="w-3.5 h-3.5 text-gray-400" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Replace Bowler</p>
+                  </div>
+
+                  <Select
+                    label="Outgoing"
+                    value={bowlerOutgoing}
+                    onChange={setBowlerOutgoing}
+                    options={state.bowling.map(b => ({
+                      value: b.player_id,
+                      label: `${b.name} — ${b.overs} ov, ${b.wickets}-${b.runs}${b.is_current ? ' (bowling)' : ''}`
+                    }))}
+                  />
+                  <Select
+                    label="Incoming"
+                    value={bowlerIncoming}
+                    onChange={setBowlerIncoming}
+                    options={opts(bowlingSquad.filter(p => p.id !== bowlerOutgoing))}
+                  />
+
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={transferSpell}
+                      onChange={e => setTransferSpell(e.target.checked)}
+                      className="mt-0.5 accent-blue-500"
+                    />
+                    <span className="text-[11px] font-bold text-gray-300 leading-snug">
+                      Move this innings' figures across
+                      <span className="block text-[10px] font-semibold text-gray-500">
+                        On for a wrong-bowler correction: overs, runs and wickets transfer to the
+                        incoming bowler. Off for an injury — the outgoing bowler keeps his figures
+                        and simply hands over the ball.
+                      </span>
+                    </span>
+                  </label>
+
+                  <button
+                    disabled={!bowlerOutgoing || !bowlerIncoming}
+                    onClick={() => {
+                      scorerReplaceBowler(bowlerOutgoing, bowlerIncoming, transferSpell);
+                      setBowlerOutgoing('');
+                      setBowlerIncoming('');
+                    }}
+                    className="w-full py-2 rounded-xl bg-gray-700/50 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-200 font-bold text-[11px] transition"
+                  >
+                    {transferSpell ? 'Reassign Spell (correction)' : 'Hand Over Ball (injury)'}
                   </button>
                 </div>
               )}

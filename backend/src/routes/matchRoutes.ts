@@ -10,6 +10,7 @@ import {
   setBowler,
   swapStrike,
   replaceBatter,
+  replaceBowler,
   completeInnings,
   completeMatchNow,
   undoLastBall,
@@ -169,6 +170,15 @@ router.post('/:id/batter/replace', authorize('Super Admin'), (req: Request, res:
 
 router.post('/:id/bowler', authorize('Super Admin'), (req: Request, res: Response) => {
   scorerAction(req, res, () => setBowler(req.params.id as string, req.body.playerId), 'bowler_change');
+});
+
+router.post('/:id/bowler/replace', authorize('Super Admin'), (req: Request, res: Response) => {
+  const { outgoingId, incomingId, transferFigures } = req.body;
+  scorerAction(
+    req, res,
+    () => replaceBowler(req.params.id as string, outgoingId, incomingId, transferFigures ?? true),
+    'bowler_replaced'
+  );
 });
 
 router.post('/:id/strike/swap', authorize('Super Admin'), (req: Request, res: Response) => {

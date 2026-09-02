@@ -7,6 +7,7 @@ import {
   setBowler,
   swapStrike,
   replaceBatter,
+  replaceBowler,
   completeInnings,
   completeMatchNow,
   undoLastBall,
@@ -142,6 +143,9 @@ export function setupMatchSocket(io: Server) {
 
     socket.on('scorer:replace_batter', (p: { matchId: string; outgoingId: string; incomingId: string }) =>
       mutate(p?.matchId, () => replaceBatter(p.matchId, p.outgoingId, p.incomingId), 'batter_replaced'));
+
+    socket.on('scorer:replace_bowler', (p: { matchId: string; outgoingId: string; incomingId: string; transferFigures?: boolean }) =>
+      mutate(p?.matchId, () => replaceBowler(p.matchId, p.outgoingId, p.incomingId, p.transferFigures ?? true), 'bowler_replaced'));
 
     socket.on('scorer:undo_ball', (p: { matchId: string }) =>
       mutate(p?.matchId, () => undoLastBall(p.matchId), 'undo'));
