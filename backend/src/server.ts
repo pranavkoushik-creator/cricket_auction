@@ -14,6 +14,7 @@ import matchRoutes from './routes/matchRoutes';
 import reportRoutes from './routes/reportRoutes';
 import sessionRoutes from './routes/sessionRoutes';
 import { setupAuctionSocket } from './socket/auctionEngine';
+import { setupMatchSocket } from './socket/matchEngine';
 
 import path from 'path';
 
@@ -60,6 +61,11 @@ app.get('/api/health', (req, res) => {
 
 // Realtime Auction WebSocket
 setupAuctionSocket(io);
+
+// Realtime Live Match Broadcast WebSocket.
+// Must follow setupAuctionSocket: that call registers the io.use() handshake
+// authentication that attaches socket.user, which the match engine reads.
+setupMatchSocket(io);
 
 // Function to find local network IP addresses
 function getLocalNetworkIps(): string[] {

@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { ActiveAuctionState } from '../types';
+import type {
+  ActiveAuctionState,
+  BallInputPayload,
+  LiveMatchState,
+  MatchFeedEntry
+} from '../types';
 import { useAuth } from './AuthContext';
 
 interface SocketContextType {
@@ -17,6 +22,23 @@ interface SocketContextType {
   operatorToggleTimer: () => void;
   operatorUpdateTimerSeconds: (seconds: number, timerEnabled?: boolean) => Promise<void>;   // ← add
   operatorRollbackSale: (lotId: string) => void;
+
+  // --- Live match broadcast (shares this same socket connection) ---
+  matchState: LiveMatchState | null;
+  matchFeed: MatchFeedEntry[];
+  matchError: string | null;
+  watchedMatchId: string | null;
+  joinMatch: (matchId: string) => void;
+  leaveMatch: () => void;
+  scorerStartInnings: (p: { battingTeamId: string; strikerId: string; nonStrikerId: string; bowlerId: string; oversLimit?: number }) => void;
+  scorerRecordBall: (p: BallInputPayload) => void;
+  scorerNewBatter: (playerId: string) => void;
+  scorerSetBowler: (playerId: string) => void;
+  scorerSwapStrike: () => void;
+  scorerReplaceBatter: (outgoingId: string, incomingId: string) => void;
+  scorerUndoBall: () => void;
+  scorerCompleteInnings: () => void;
+  scorerCompleteMatch: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -29,6 +51,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [auctionState, setAuctionState] = useState<ActiveAuctionState | null>(null);
   const [eventsLog, setEventsLog] = useState<{ type: string; message: string; timestamp: string; amount?: number; increment?: number }[]>([]);
   const [bidError, setBidError] = useState<string | null>(null);
+
+  const [matchState, setMatchState] = useState<LiveMatchState | null>(null);
+  const [matchFeed, setMatchFeed] = useState<MatchFeedEntry[]>([]);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const [watchedMatchId, setWatchedMatchId] = useState<string | null>(null);
+  // Kept in a ref so the reconnect handler always re-joins the current room.
+  const watchedMatchRef = useRef<string | null>(null);
 
   // Create or reconnect socket whenever auth token changes (e.g. on login/logout)
   useEffect(() => {
@@ -85,7 +114,44 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setBidError(null);
     });
 
+    // --- Live match broadcast listeners (same connection as the auction) ---
+
+    s.on('match:state', (state: LiveMatchState) => {
+      setMatchState(state);
+    });
+
+    s.on('match:event', (ev: { type: string; message: string; timestamp: string }) => {
+      setMatchFeed(prev => [
+        { type: ev.type, message: ev.message, timestamp: new Date(ev.timestamp).toLocaleTimeString() },
+        ...prev.slice(0, 49)
+      ]);
+    });
+
+    // match:summary and match:status carry a subset of match:state; merge them so
+    // a dropped state frame still leaves the scoreboard current.
+    s.on('match:summary', (summary: Partial<LiveMatchState>) => {
+      setMatchState(prev => (prev ? { ...prev, ...summary } : prev));
+    });
+
+    s.on('match:status', (status: Partial<LiveMatchState>) => {
+      setMatchState(prev => (prev ? { ...prev, ...status } : prev));
+    });
+
+    s.on('match:error', ({ message }: { message: string }) => {
+      setMatchError(message);
+      setTimeout(() => setMatchError(null), 5000);
+    });
+
+    // Re-join the match room after any reconnect so the scoreboard resumes.
+    const rejoinMatch = () => {
+      if (watchedMatchRef.current) {
+        s.emit('join:match', { matchId: watchedMatchRef.current });
+      }
+    };
+    s.on('connect', rejoinMatch);
+
     return () => {
+      s.off('connect', rejoinMatch);
       s.disconnect();
       socketRef.current = null;
     };
@@ -187,6 +253,63 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  // ---------------------------------------------------------------- match room
+
+  const joinMatch = (matchId: string) => {
+    if (!matchId || watchedMatchRef.current === matchId) return;
+
+    const s = socketRef.current;
+    if (watchedMatchRef.current && s?.connected) {
+      s.emit('leave:match', { matchId: watchedMatchRef.current });
+    }
+
+    watchedMatchRef.current = matchId;
+    setWatchedMatchId(matchId);
+    setMatchState(null);
+    setMatchFeed([]);
+
+    if (s?.connected) s.emit('join:match', { matchId });
+  };
+
+  const leaveMatch = () => {
+    const s = socketRef.current;
+    if (watchedMatchRef.current && s?.connected) {
+      s.emit('leave:match', { matchId: watchedMatchRef.current });
+    }
+    watchedMatchRef.current = null;
+    setWatchedMatchId(null);
+    setMatchState(null);
+    setMatchFeed([]);
+  };
+
+  /**
+   * Scorer commands are fire-and-forget: the server validates, mutates and then
+   * broadcasts match:state to the room, so the console re-renders from the same
+   * authoritative frame every spectator receives.
+   */
+  const emitScorer = (event: string, payload: Record<string, unknown> = {}) => {
+    const s = socketRef.current;
+    const matchId = watchedMatchRef.current;
+    if (!s?.connected || !matchId) {
+      setMatchError('Not connected to the match broadcast.');
+      setTimeout(() => setMatchError(null), 4000);
+      return;
+    }
+    s.emit(event, { matchId, ...payload });
+  };
+
+  const scorerStartInnings = (p: { battingTeamId: string; strikerId: string; nonStrikerId: string; bowlerId: string; oversLimit?: number }) =>
+    emitScorer('scorer:start_innings', p);
+  const scorerRecordBall = (p: BallInputPayload) => emitScorer('scorer:record_ball', { ...p });
+  const scorerNewBatter = (playerId: string) => emitScorer('scorer:new_batter', { playerId });
+  const scorerSetBowler = (playerId: string) => emitScorer('scorer:set_bowler', { playerId });
+  const scorerSwapStrike = () => emitScorer('scorer:swap_strike');
+  const scorerReplaceBatter = (outgoingId: string, incomingId: string) =>
+    emitScorer('scorer:replace_batter', { outgoingId, incomingId });
+  const scorerUndoBall = () => emitScorer('scorer:undo_ball');
+  const scorerCompleteInnings = () => emitScorer('scorer:complete_innings');
+  const scorerCompleteMatch = () => emitScorer('scorer:complete_match');
+
   return (
     <SocketContext.Provider
       value={{
@@ -202,7 +325,23 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         operatorTogglePause,
         operatorToggleTimer,
         operatorUpdateTimerSeconds,   // ← add
-        operatorRollbackSale
+        operatorRollbackSale,
+
+        matchState,
+        matchFeed,
+        matchError,
+        watchedMatchId,
+        joinMatch,
+        leaveMatch,
+        scorerStartInnings,
+        scorerRecordBall,
+        scorerNewBatter,
+        scorerSetBowler,
+        scorerSwapStrike,
+        scorerReplaceBatter,
+        scorerUndoBall,
+        scorerCompleteInnings,
+        scorerCompleteMatch
       }}
     >
       {children}
@@ -213,5 +352,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 export const useAuctionSocket = () => {
   const context = useContext(SocketContext);
   if (!context) throw new Error('useAuctionSocket must be used within SocketProvider');
+  return context;
+};
+
+/** Same provider, named for match-broadcast consumers. */
+export const useMatchSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) throw new Error('useMatchSocket must be used within SocketProvider');
   return context;
 };

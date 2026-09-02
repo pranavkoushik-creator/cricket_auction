@@ -193,3 +193,164 @@ export interface PointsTableEntry {
   nrr: number;
   position: number;
 }
+
+// ---------------------------------------------------------------------------
+// LIVE MATCH BROADCAST
+// Mirrors the payloads produced by backend/src/services/liveMatchService.ts.
+// ---------------------------------------------------------------------------
+
+export type DismissalType = 'bowled' | 'caught' | 'lbw' | 'run_out' | 'stumped' | 'hit_wicket';
+export type ExtraType = 'wide' | 'no_ball' | 'bye' | 'leg_bye';
+export type BatterStatus = 'did_not_bat' | 'batting' | 'out' | 'not_out';
+
+export interface TeamBrand {
+  id: string;
+  name: string;
+  short_name: string;
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+  owner_name: string | null;
+}
+
+export interface BattingCard {
+  player_id: string;
+  name: string;
+  photo_url: string | null;
+  batting_position: number;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  strike_rate: number;
+  status: BatterStatus;
+  dismissal_type: DismissalType | null;
+  dismissal_bowler_name: string | null;
+  is_striker: boolean;
+  is_non_striker: boolean;
+}
+
+export interface BowlingCard {
+  player_id: string;
+  name: string;
+  photo_url: string | null;
+  overs: string;
+  balls: number;
+  runs: number;
+  wickets: number;
+  maidens: number;
+  economy: number;
+  is_current: boolean;
+}
+
+export interface FallOfWicket {
+  order: number;
+  player_id: string;
+  name: string;
+  score: number;
+  overs: string;
+}
+
+export interface InningsSummary {
+  innings_number: number;
+  batting_team: TeamBrand;
+  bowling_team: TeamBrand;
+  runs: number;
+  wickets: number;
+  balls: number;
+  overs: string;
+  extras: number;
+  run_rate: number;
+  target: number | null;
+  status: 'in_progress' | 'completed';
+}
+
+export interface OverBall {
+  ball: number;
+  label: string;
+  runs: number;
+  isWicket: boolean;
+  extraType: ExtraType | null;
+}
+
+export interface OverGroup {
+  over_number: number;
+  balls: OverBall[];
+  runs: number;
+  wickets: number;
+}
+
+export interface LiveMatchState {
+  match_id: string;
+  match_number: number;
+  stage: string;
+  venue: string | null;
+  status: 'upcoming' | 'live' | 'completed' | 'abandoned';
+  overs_limit: number;
+  current_innings: number;
+  home_team: TeamBrand;
+  away_team: TeamBrand;
+  innings: InningsSummary | null;
+  all_innings: InningsSummary[];
+  batting: BattingCard[];
+  bowling: BowlingCard[];
+  striker: BattingCard | null;
+  non_striker: BattingCard | null;
+  current_bowler: BowlingCard | null;
+  this_over: OverBall[];
+  recent_overs: OverGroup[];
+  fall_of_wickets: FallOfWicket[];
+  runs_required: number | null;
+  balls_remaining: number | null;
+  required_run_rate: number | null;
+  result_summary: string | null;
+  winner_team_id: string | null;
+  recent_events: { id: string; event_number: number; label: string; timestamp: string }[];
+}
+
+export interface MatchSquadPlayer {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  group_name: string;
+  is_captain: number;
+  stats_json: string | null;
+}
+
+export interface MatchSquads {
+  home: { team: TeamBrand; players: MatchSquadPlayer[] };
+  away: { team: TeamBrand; players: MatchSquadPlayer[] };
+}
+
+export interface BroadcastMatchListItem {
+  id: string;
+  match_number: number;
+  stage: string;
+  venue: string | null;
+  status: 'upcoming' | 'live' | 'completed' | 'abandoned';
+  result_summary: string | null;
+  home_team_name: string;
+  home_team_short: string;
+  home_team_logo: string | null;
+  home_team_color: string;
+  away_team_name: string;
+  away_team_short: string;
+  away_team_logo: string | null;
+  away_team_color: string;
+}
+
+export interface MatchFeedEntry {
+  type: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface BallInputPayload {
+  runs: number;
+  extraType?: ExtraType | null;
+  isWicket?: boolean;
+  dismissalType?: DismissalType | null;
+  dismissedPlayerId?: string | null;
+  /** Run outs only: had the batsmen crossed on the incomplete run? */
+  batsmenCrossed?: boolean;
+}

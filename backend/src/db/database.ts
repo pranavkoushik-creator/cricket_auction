@@ -238,6 +238,76 @@ export function initDatabase() {
       UNIQUE(tournament_id, franchise_id)
     );
 
+    -- ============================================================
+    -- LIVE MATCH BROADCAST ENGINE
+    -- One row per innings; the authoritative running total for that innings.
+    -- ============================================================
+    CREATE TABLE IF NOT EXISTS match_innings (
+      id TEXT PRIMARY KEY,
+      match_id TEXT NOT NULL,
+      innings_number INTEGER NOT NULL, -- 1 or 2
+      batting_team_id TEXT NOT NULL,
+      bowling_team_id TEXT NOT NULL,
+      runs INTEGER DEFAULT 0,
+      wickets INTEGER DEFAULT 0,
+      balls INTEGER DEFAULT 0, -- legal deliveries only
+      extras INTEGER DEFAULT 0,
+      target INTEGER, -- innings 2 only: runs required to win
+      status TEXT DEFAULT 'in_progress', -- in_progress, completed
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+      FOREIGN KEY (batting_team_id) REFERENCES franchises(id),
+      FOREIGN KEY (bowling_team_id) REFERENCES franchises(id),
+      UNIQUE(match_id, innings_number)
+    );
+
+    -- Per-batter scorecard row for one innings
+    CREATE TABLE IF NOT EXISTS match_batting (
+      id TEXT PRIMARY KEY,
+      match_id TEXT NOT NULL,
+      innings_number INTEGER NOT NULL,
+      player_id TEXT NOT NULL,
+      batting_position INTEGER NOT NULL,
+      runs INTEGER DEFAULT 0,
+      balls INTEGER DEFAULT 0,
+      fours INTEGER DEFAULT 0,
+      sixes INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'did_not_bat', -- did_not_bat, batting, out, not_out
+      dismissal_type TEXT, -- bowled, caught, lbw, run_out, stumped, hit_wicket
+      dismissal_bowler_id TEXT,
+      fow_score INTEGER, -- team score when this batter fell
+      fow_ball INTEGER,  -- legal ball count when this batter fell
+      FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+      FOREIGN KEY (player_id) REFERENCES players(id),
+      UNIQUE(match_id, innings_number, player_id)
+    );
+
+    -- Per-bowler figures for one innings
+    CREATE TABLE IF NOT EXISTS match_bowling (
+      id TEXT PRIMARY KEY,
+      match_id TEXT NOT NULL,
+      innings_number INTEGER NOT NULL,
+      player_id TEXT NOT NULL,
+      balls INTEGER DEFAULT 0, -- legal deliveries only
+      runs INTEGER DEFAULT 0,  -- runs conceded, including extras charged to bowler
+      wickets INTEGER DEFAULT 0,
+      maidens INTEGER DEFAULT 0,
+      FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+      FOREIGN KEY (player_id) REFERENCES players(id),
+      UNIQUE(match_id, innings_number, player_id)
+    );
+
+    -- Single-row-per-match pointer to who is on strike / bowling right now
+    CREATE TABLE IF NOT EXISTS match_live_state (
+      match_id TEXT PRIMARY KEY,
+      current_innings INTEGER DEFAULT 1,
+      striker_id TEXT,
+      non_striker_id TEXT,
+      bowler_id TEXT,
+      last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+    );
+
     -- Notifications Log
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
@@ -269,6 +339,11 @@ export function initDatabase() {
   }
   try {
     db.exec("ALTER TABLE users ADD COLUMN rules_accepted_at DATETIME");
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec("ALTER TABLE matches ADD COLUMN overs_limit INTEGER DEFAULT 20");
   } catch (e) {
     // Column already exists
   }

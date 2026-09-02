@@ -10,6 +10,8 @@ import { PlayerRegistrationView } from './views/PlayerRegistrationView';
 import { PlayerApprovalQueueView } from './views/PlayerApprovalQueueView';
 import { FranchiseManagementView } from './views/FranchiseManagementView';
 import { LiveScorerConsoleView } from './views/LiveScorerConsoleView';
+import { LiveMatchBroadcastView } from './views/LiveMatchBroadcastView';
+import { LiveMatchScorerView } from './views/LiveMatchScorerView';
 import { AnalyticsReportsView } from './views/AnalyticsReportsView';
 import { LoginView } from './views/LoginView';
 import { RulesConsentModal } from './components/RulesConsentModal';
@@ -19,6 +21,7 @@ const MainContent: React.FC = () => {
   const { isAuthenticated, currentRole, user, recordRulesAcceptedLocally } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [showSpectatorView, setShowSpectatorView] = useState(false);
+  const [publicFeed, setPublicFeed] = useState<'auction' | 'match'>('auction');
   const [isRulesReferenceOpen, setIsRulesReferenceOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
@@ -45,13 +48,35 @@ const MainContent: React.FC = () => {
       return (
         <div className="min-h-screen bg-cricket-dark flex flex-col font-sans text-gray-100">
           <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8">
-            <button
-              onClick={() => setShowSpectatorView(false)}
-              className="mb-4 text-xs font-bold text-gray-400 hover:text-cricket-gold transition"
-            >
-              ← Back to Login
-            </button>
-            <SpectatorAuctionView />
+            <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <button
+                onClick={() => setShowSpectatorView(false)}
+                className="text-xs font-bold text-gray-400 hover:text-cricket-gold transition"
+              >
+                ← Back to Login
+              </button>
+
+              {/* Public viewers can follow either broadcast without signing in */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-900/60 border border-cricket-border/50">
+                {([
+                  { id: 'auction', label: 'Live Auction' },
+                  { id: 'match', label: 'Live Match' }
+                ] as const).map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setPublicFeed(opt.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${publicFeed === opt.id
+                      ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40'
+                      : 'text-gray-400 hover:text-gray-200'
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {publicFeed === 'auction' ? <SpectatorAuctionView /> : <LiveMatchBroadcastView publicMode />}
           </main>
         </div>
       );
@@ -109,6 +134,8 @@ const MainContent: React.FC = () => {
         {activeTab === 'players-approval' && currentRole === 'Super Admin' && <PlayerApprovalQueueView />}
         {activeTab === 'franchises' && (currentRole === 'Super Admin' || currentRole === 'Franchise Owner') && <FranchiseManagementView />}
         {activeTab === 'match-scorer' && currentRole === 'Super Admin' && <LiveScorerConsoleView />}
+        {activeTab === 'match-control' && currentRole === 'Super Admin' && <LiveMatchScorerView />}
+        {activeTab === 'match-live' && <LiveMatchBroadcastView />}
         {activeTab === 'reports' && (currentRole === 'Super Admin' || currentRole === 'Franchise Owner') && <AnalyticsReportsView />}
       </main>
 

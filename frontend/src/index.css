@@ -154,3 +154,73 @@ body {
   font-style: italic;
   font-weight: 900;
 }
+
+/* --- LIVE MATCH BROADCAST CARDS --- */
+
+/* Angled banner used on the player card headers, mimicking a TV lower-third */
+.bc-skew {
+  transform: skewX(-12deg);
+}
+
+.bc-skew > * {
+  transform: skewX(12deg);
+}
+
+/* Team-coloured card body: colour fades down into the panel background */
+.bc-player-card {
+  background:
+    linear-gradient(180deg, var(--bc-team) 0%, rgba(11, 15, 25, 0.55) 55%, #0B0F19 100%);
+  position: relative;
+  isolation: isolate;
+}
+
+/* Subtle stadium-light sweep behind the portrait */
+.bc-player-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 62%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bc-striker-glow {
+  box-shadow: 0 0 0 2px #FFB800, 0 0 26px rgba(255, 184, 0, 0.35);
+}
+
+/* Stat strip beneath each portrait */
+.bc-stat-strip {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@keyframes bcBallPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.bc-ball-pop {
+  animation: bcBallPop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Scrolling ticker for the result / chase line */
+@keyframes bcTicker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.bc-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: bcTicker 28s linear infinite;
+}
+
+.bc-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bc-ball-pop { animation: none; }
+  .bc-ticker-track { animation: none; }
+}
