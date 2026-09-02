@@ -15,7 +15,7 @@ import type {
 /**
  * Presentational building blocks for the live match broadcast.
  *
- * Styled as a TV scoreboard: angled team-coloured banners, full-bleed player
+ * Styled as a TV scoreboard: angled team-coloured banners, framed player
  * portraits with a stat strip beneath, and an over-by-over ribbon. Both
  * LiveMatchBroadcastView (spectator) and LiveMatchScorerView (admin) compose
  * these, so the console mirrors exactly what is on air.
@@ -242,12 +242,12 @@ const PlayerBroadcastCard: React.FC<{
 }> = ({ team, role, name, photo, figure, stats, highlight, muted }) => {
   return (
     <div
-      className={`bc-player-card rounded-2xl border overflow-hidden transition ${highlight ? 'bc-striker-glow border-transparent' : 'border-cricket-border/60'
+      className={`bc-player-card rounded-2xl border overflow-hidden transition h-full flex flex-col min-h-[248px] ${highlight ? 'bc-striker-glow border-transparent' : 'border-cricket-border/60'
         } ${muted ? 'opacity-60' : ''}`}
       style={{ ['--bc-team' as string]: team.primary_color }}
     >
       {/* Angled role banner */}
-      <div className="relative z-10 flex items-center justify-between gap-2 px-3 py-2">
+      <div className="relative z-10 shrink-0 flex items-center justify-between gap-2 px-3 py-2">
         <Crest team={team} size="w-7 h-7" />
         <div className="bc-skew px-3 py-1 rounded" style={{ backgroundColor: team.secondary_color }}>
           <span className="block text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: readableOn(team.secondary_color) }}>
@@ -256,32 +256,46 @@ const PlayerBroadcastCard: React.FC<{
         </div>
       </div>
 
-      {/* Portrait with scrim */}
-      <div className="relative z-10 h-28 sm:h-32 overflow-hidden">
-        <img
-          src={photo || AVATAR_FALLBACK}
-          alt={name}
-          className="w-full h-full object-cover object-top"
-          style={{ filter: muted ? 'grayscale(0.7)' : undefined }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-cricket-dark via-cricket-dark/35 to-transparent" />
+      {/* Portrait, identity and headline figure.
+          The avatar is deliberately small: player photos are 200px wide, so
+          stretching one across the full card width only makes it blurry. A
+          contained circle stays sharp and frames any crop cleanly. */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-3 pt-2 pb-3">
         {highlight && (
-          <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-cricket-gold text-black text-[9px] font-black uppercase tracking-wider shadow-lg">
+          <span className="absolute top-0 right-3 px-1.5 py-0.5 rounded bg-cricket-gold text-black text-[8px] font-black uppercase tracking-wider shadow-lg">
             On strike
           </span>
         )}
-      </div>
 
-      {/* Identity + headline figure */}
-      <div className="relative z-10 px-3 pb-3 -mt-3 text-center">
-        <p className="font-black text-white text-sm uppercase tracking-wide truncate drop-shadow-lg" title={name}>
+        <div className="relative shrink-0">
+          <span
+            className="absolute -inset-2 rounded-full blur-lg opacity-40"
+            style={{ backgroundColor: team.primary_color }}
+            aria-hidden
+          />
+          <img
+            src={photo || AVATAR_FALLBACK}
+            alt={name}
+            loading="lazy"
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover object-[center_30%] border-[3px] shadow-xl"
+            style={{
+              borderColor: highlight ? '#FFB800' : team.secondary_color,
+              filter: muted ? 'grayscale(0.7)' : undefined
+            }}
+          />
+        </div>
+
+        <p className="mt-3 w-full font-black text-white text-sm uppercase tracking-wide truncate" title={name}>
           {name}
         </p>
         <p className="font-broadcast text-3xl text-white leading-tight tabular-nums mt-0.5">{figure}</p>
       </div>
 
-      {/* Stat strip */}
-      <div className="bc-stat-strip relative z-10 flex items-stretch py-1.5" style={{ backgroundColor: `${team.primary_color}30` }}>
+      {/* Stat strip, pinned to the foot so all three cards line up */}
+      <div
+        className="bc-stat-strip relative z-10 mt-auto flex items-stretch py-1.5"
+        style={{ backgroundColor: `${team.primary_color}30` }}
+      >
         {stats.map((s, i) => (
           <React.Fragment key={s.label}>
             {i > 0 && <span className="w-px bg-white/15 my-1" />}
@@ -294,9 +308,9 @@ const PlayerBroadcastCard: React.FC<{
 };
 
 const EmptySlotCard: React.FC<{ role: string; hint: string }> = ({ role, hint }) => (
-  <div className="rounded-2xl border border-dashed border-cricket-border/60 bg-gray-900/30 flex flex-col items-center justify-center py-10 px-3 text-center min-h-[240px]">
-    <div className="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mb-2">
-      <User className="w-5 h-5 text-gray-600" />
+  <div className="rounded-2xl border border-dashed border-cricket-border/60 bg-gray-900/30 h-full flex flex-col items-center justify-center py-10 px-3 text-center min-h-[248px]">
+    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mb-3">
+      <User className="w-8 h-8 text-gray-600" />
     </div>
     <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-500">{role}</p>
     <p className="text-xs font-bold text-gray-600 mt-0.5">{hint}</p>
