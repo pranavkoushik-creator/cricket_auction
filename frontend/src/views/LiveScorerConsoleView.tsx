@@ -53,7 +53,9 @@ export const LiveScorerConsoleView: React.FC = () => {
           res.events.forEach((ev: any) => {
             if (ev.payload?.runs) runs += ev.payload.runs;
             if (ev.payload?.isWicket) wkts += 1;
-            if (ev.eventType === 'ball') balls += 1;
+            // The API returns the raw column name (event_type); the POST body
+            // that creates the event uses eventType. Only the read side matters here.
+            if (ev.event_type === 'ball') balls += 1;
           });
           setRunsScored(runs);
           setWicketsFallen(wkts);
