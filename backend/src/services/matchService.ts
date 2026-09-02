@@ -63,20 +63,45 @@ export function generateFixtures(tournamentId: string) {
   let matchNum = 1;
   const venues = ['Wankhede Stadium, Mumbai', 'MA Chidambaram Stadium, Chennai', 'M. Chinnaswamy Stadium, Bengaluru', 'Arun Jaitley Stadium, Delhi'];
 
-  // Single round robin generator
-  for (let i = 0; i < franchises.length; i++) {
-    for (let j = i + 1; j < franchises.length; j++) {
-      const home = franchises[i].id;
-      const away = franchises[j].id;
-      const mId = `match-${uuidv4().substring(0, 8)}`;
-      const venue = venues[(matchNum - 1) % venues.length];
-      const matchDate = new Date(Date.now() + matchNum * 86400000 * 2).toISOString().replace('T', ' ').substring(0, 19);
+  // Single round robin generator using Circle Method to prevent consecutive matches
+  const teams = [...franchises];
+  if (teams.length % 2 !== 0) {
+    teams.push({ id: 'BYE' } as any);
+  }
 
-      db.prepare(`
-        INSERT INTO matches (id, tournament_id, match_number, stage, home_team_id, away_team_id, venue, scheduled_time, status)
-        VALUES (?, ?, ?, 'Group Stage', ?, ?, ?, ?, 'upcoming')
-      `).run(mId, tournamentId, matchNum++, home, away, venue, matchDate);
+  const matchPairs = [];
+
+  const n = teams.length;
+  for (let round = 0; round < n - 1; round++) {
+    for (let i = 0; i < n / 2; i++) {
+      const home = teams[i];
+      const away = teams[n - 1 - i];
+      if (home.id !== 'BYE' && away.id !== 'BYE') {
+        if (i === 0 && round % 2 !== 0) {
+          matchPairs.push({ home: away.id, away: home.id });
+        } else {
+          matchPairs.push({ home: home.id, away: away.id });
+        }
+      }
     }
+    // Rotate teams: keep first fixed, shift others right
+    const last = teams.pop();
+    if (last) {
+      teams.splice(1, 0, last);
+    }
+  }
+
+  for (let i = 0; i < matchPairs.length; i++) {
+    const home = matchPairs[i].home;
+    const away = matchPairs[i].away;
+    const mId = `match-${uuidv4().substring(0, 8)}`;
+    const venue = venues[(matchNum - 1) % venues.length];
+    const matchDate = new Date(Date.now() + matchNum * 86400000 * 2).toISOString().replace('T', ' ').substring(0, 19);
+
+    db.prepare(`
+      INSERT INTO matches (id, tournament_id, match_number, stage, home_team_id, away_team_id, venue, scheduled_time, status)
+      VALUES (?, ?, ?, 'Group Stage', ?, ?, ?, ?, 'upcoming')
+    `).run(mId, tournamentId, matchNum++, home, away, venue, matchDate);
   }
 
   return getMatches(tournamentId);
