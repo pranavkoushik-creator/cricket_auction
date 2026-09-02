@@ -297,6 +297,7 @@ export interface LiveMatchState {
   striker: BattingCard | null;
   non_striker: BattingCard | null;
   current_bowler: BowlingCard | null;
+  previous_bowler_id: string | null;
   this_over: OverBall[];
   recent_overs: OverGroup[];
   fall_of_wickets: FallOfWicket[];

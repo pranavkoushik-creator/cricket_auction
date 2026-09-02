@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, Flame, MapPin, Radio, Target, TrendingUp, Trophy, User } from 'lucide-react';
+import { getPhotoUrl } from '../../utils/formatters';
 import type {
   BattingCard,
   BowlingCard,
@@ -21,7 +22,7 @@ import type {
  * these, so the console mirrors exactly what is on air.
  */
 
-const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80';
+// const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80';
 
 /**
  * Picks black or white text for a team-coloured surface. Franchise colours are
@@ -274,7 +275,7 @@ const PlayerBroadcastCard: React.FC<{
             aria-hidden
           />
           <img
-            src={photo || AVATAR_FALLBACK}
+            src={getPhotoUrl(photo || undefined)}
             alt={name}
             loading="lazy"
             className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover object-[center_30%] border-[3px] shadow-xl"
@@ -382,13 +383,18 @@ const ballTone = (b: OverBall): string => {
   return 'bg-emerald-600 text-white border-emerald-400';
 };
 
-const BallChip: React.FC<{ ball: OverBall; animate?: boolean }> = ({ ball, animate }) => (
-  <span
-    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-black shrink-0 tabular-nums ${ballTone(ball)} ${animate ? 'bc-ball-pop' : ''}`}
-  >
-    {ball.label}
-  </span>
-);
+const BallChip: React.FC<{ ball: OverBall; animate?: boolean }> = ({ ball, animate }) => {
+  const label = ball.label || '';
+  const len = label.length;
+  const textSize = len > 3 ? 'text-[8px]' : len === 3 ? 'text-[9px]' : 'text-[11px]';
+  return (
+    <span
+      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black tracking-tighter leading-none shrink-0 tabular-nums px-0.5 text-center ${textSize} ${ballTone(ball)} ${animate ? 'bc-ball-pop' : ''}`}
+    >
+      {label}
+    </span>
+  );
+};
 
 const OverRow: React.FC<{ title: string; balls: OverBall[]; runs: number; accent?: boolean; live?: boolean }> = ({
   title, balls, runs, accent, live

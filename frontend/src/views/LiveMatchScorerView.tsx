@@ -46,7 +46,7 @@ const Select: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   placeholder?: string;
   disabled?: boolean;
 }> = ({ label, value, onChange, options, placeholder = 'Select…', disabled }) => (
@@ -60,7 +60,7 @@ const Select: React.FC<{
     >
       <option value="">{placeholder}</option>
       {options.map(o => (
-        <option key={o.value} value={o.value}>{o.label}</option>
+        <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
       ))}
     </select>
   </label>
@@ -110,6 +110,10 @@ export const LiveMatchScorerView: React.FC = () => {
   const [bowlerIncoming, setBowlerIncoming] = useState('');
   const [transferSpell, setTransferSpell] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // Extras Modal state (WD, NB, LB, B)
+  const [extraModalType, setExtraModalType] = useState<'wide' | 'no_ball' | 'bye' | 'leg_bye' | null>(null);
+  const [extraSelectedBatter, setExtraSelectedBatter] = useState<string>('');
 
   useEffect(() => {
     if (!currentTournamentId || !token) return;
@@ -355,7 +359,7 @@ export const LiveMatchScorerView: React.FC = () => {
                     value=""
                     placeholder="Choose bowler…"
                     onChange={v => v && scorerSetBowler(v)}
-                    options={opts(bowlingSquad)}
+                    options={opts(bowlingSquad).map(o => ({ ...o, disabled: o.value === state?.previous_bowler_id }))}
                   />
                 </div>
               )}
@@ -397,56 +401,57 @@ export const LiveMatchScorerView: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* A wide or no ball with nothing run off it is by far the most
-                      common extra, so it gets a single tap of its own. */}
-                  <div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-500">
-                      Extras — one tap
+                  {/* Dedicated EXTRAS Buttons (WD, NB, LB, B) */}
+                  <div className="pt-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 block mb-1.5">
+                      EXTRAS
                     </span>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
+                    <div className="grid grid-cols-4 gap-2">
                       <button
                         disabled={!canScore}
-                        onClick={() => recordExtraNow('wide')}
-                        className="py-3 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-sm border border-purple-400 transition"
+                        onClick={() => {
+                          setExtraModalType('wide');
+                          setExtraSelectedBatter(state?.striker?.player_id || '');
+                        }}
+                        className="py-3.5 px-2 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed text-white border border-purple-400/50 shadow-md shadow-purple-900/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-0.5"
                       >
-                        WIDE <span className="text-purple-200 text-xs">+1</span>
+                        <span className="text-sm font-black tracking-wider leading-none">WD</span>
+                        <span className="text-[9px] font-bold text-purple-200 opacity-90 leading-none">Wide</span>
                       </button>
                       <button
                         disabled={!canScore}
-                        onClick={() => recordExtraNow('no_ball')}
-                        className="py-3 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-sm border border-purple-400 transition"
+                        onClick={() => {
+                          setExtraModalType('no_ball');
+                          setExtraSelectedBatter(state?.striker?.player_id || '');
+                        }}
+                        className="py-3.5 px-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-30 disabled:cursor-not-allowed text-white border border-amber-300/50 shadow-md shadow-amber-900/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-0.5"
                       >
-                        NO BALL <span className="text-purple-200 text-xs">+1</span>
+                        <span className="text-sm font-black tracking-wider leading-none">NB</span>
+                        <span className="text-[9px] font-bold text-amber-100 opacity-90 leading-none">No Ball</span>
+                      </button>
+                      <button
+                        disabled={!canScore}
+                        onClick={() => {
+                          setExtraModalType('leg_bye');
+                          setExtraSelectedBatter(state?.striker?.player_id || '');
+                        }}
+                        className="py-3.5 px-2 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-700 hover:from-blue-500 hover:to-cyan-600 disabled:opacity-30 disabled:cursor-not-allowed text-white border border-blue-400/50 shadow-md shadow-blue-900/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-0.5"
+                      >
+                        <span className="text-sm font-black tracking-wider leading-none">LB</span>
+                        <span className="text-[9px] font-bold text-blue-200 opacity-90 leading-none">Leg Bye</span>
+                      </button>
+                      <button
+                        disabled={!canScore}
+                        onClick={() => {
+                          setExtraModalType('bye');
+                          setExtraSelectedBatter(state?.striker?.player_id || '');
+                        }}
+                        className="py-3.5 px-2 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-700 hover:from-teal-500 hover:to-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed text-white border border-teal-400/50 shadow-md shadow-teal-900/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-0.5"
+                      >
+                        <span className="text-sm font-black tracking-wider leading-none">B</span>
+                        <span className="text-[9px] font-bold text-teal-200 opacity-90 leading-none">Bye</span>
                       </button>
                     </div>
-                  </div>
-
-                  {/* Modifiers for the "extra plus runs" cases: a no ball hit for
-                      four, byes run off a wide, and so on. */}
-                  <div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-500">
-                      Extra + runs — tap one, then a run button
-                    </span>
-                    <div className="grid grid-cols-4 gap-1.5 mt-1">
-                      {EXTRAS.map(e => (
-                        <button
-                          key={e.value}
-                          onClick={() => setExtraType(prev => (prev === e.value ? '' : e.value))}
-                          className={`py-1.5 rounded-lg text-[10px] font-black border transition ${extraType === e.value
-                            ? 'bg-purple-600 text-white border-purple-400'
-                            : 'bg-gray-900/50 text-gray-400 border-cricket-border/50 hover:text-gray-200'
-                            }`}
-                        >
-                          {e.label}
-                        </button>
-                      ))}
-                    </div>
-                    {extraType && (
-                      <p className="mt-1.5 text-[10px] font-bold text-purple-300">
-                        Armed: the next run button records a{' '}
-                        {EXTRAS.find(e => e.value === extraType)?.label.toLowerCase()} plus those runs.
-                      </p>
-                    )}
                   </div>
 
                   <div className="pt-2 border-t border-cricket-border/40 space-y-2">
@@ -693,8 +698,7 @@ export const LiveMatchScorerView: React.FC = () => {
                           onClick={() => {
                             scorerResetMatch();
                             setConfirmReset(false);
-                            // Clear the setup form so it does not re-submit stale picks.
-                            setStrikerId('');
+                            // Clear the setup form so it does not re                            setStrikerId('');
                             setNonStrikerId('');
                             setOpeningBowlerId('');
                           }}
@@ -729,6 +733,87 @@ export const LiveMatchScorerView: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Extras Modal (WD, NB, LB, B) */}
+      {extraModalType && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-cricket-card border border-purple-500/50 rounded-2xl w-full max-w-sm p-6 shadow-2xl space-y-4">
+            <div className="border-b border-gray-800 pb-3 text-center">
+              <h3 className="text-base font-extrabold text-white">
+                {extraModalType === 'wide' && 'Wide Delivery Details'}
+                {extraModalType === 'no_ball' && 'No-Ball Delivery Details'}
+                {extraModalType === 'leg_bye' && 'Leg Bye Details'}
+                {extraModalType === 'bye' && 'Bye Details'}
+              </h3>
+              <p className="text-xs text-purple-300 font-semibold mt-1">
+                {extraModalType === 'wide' && 'Wide (+1 team run added automatically)'}
+                {extraModalType === 'no_ball' && 'No-Ball (+1 team run). Next ball will be a FREE-HIT!'}
+                {extraModalType === 'leg_bye' && 'Leg Bye (Runs added to Extras & Team Score)'}
+                {extraModalType === 'bye' && 'Bye (Runs added to Extras & Team Score)'}
+              </p>
+            </div>
+
+            <div className="space-y-3 text-left">
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Select Facing / Striker Batsman
+                </label>
+                <select
+                  value={extraSelectedBatter}
+                  onChange={e => setExtraSelectedBatter(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-purple-500 font-semibold"
+                >
+                  {state?.striker && (
+                    <option value={state.striker.player_id}>{state.striker.name} (Striker)</option>
+                  )}
+                  {state?.non_striker && (
+                    <option value={state.non_striker.player_id}>{state.non_striker.name} (Non-Striker)</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block text-center mb-2">
+                  {extraModalType === 'wide' && 'Additional Runs Taken Off Wide'}
+                  {extraModalType === 'no_ball' && 'Runs Scored Off Bat On No-Ball'}
+                  {extraModalType === 'leg_bye' && 'Leg Bye Runs'}
+                  {extraModalType === 'bye' && 'Bye Runs'}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(extraModalType === 'wide'
+                    ? [0, 1, 2, 3, 4]
+                    : extraModalType === 'no_ball'
+                      ? [0, 1, 2, 3, 4, 6]
+                      : [1, 2, 3, 4]
+                  ).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => {
+                        scorerRecordBall({ runs: r, extraType: extraModalType });
+                        setExtraModalType(null);
+                      }}
+                      className="py-3 bg-gray-800 hover:bg-purple-600/60 hover:border-purple-400 text-white rounded-xl font-black text-xs transition border border-gray-700 shadow"
+                    >
+                      {r === 0
+                        ? extraModalType === 'wide'
+                          ? 'WD Only'
+                          : 'NB Only'
+                        : `+${r} Runs`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setExtraModalType(null)}
+              className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl font-bold text-xs transition mt-2 border border-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

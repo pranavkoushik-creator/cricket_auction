@@ -127,6 +127,7 @@ export interface LiveMatchState {
   striker: BattingCard | null;
   non_striker: BattingCard | null;
   current_bowler: BowlingCard | null;
+  previous_bowler_id: string | null;
   this_over: OverBall[];
   /** Completed overs, newest first, for the broadcast over-by-over ribbon. */
   recent_overs: OverGroup[];
@@ -261,13 +262,17 @@ function ballLabel(input: BallInput, strikerName: string, bowlerName: string, di
   return `${strikerName} takes ${input.runs}`;
 }
 
-/** Compact scoreboard token for the current-over strip. */
 function ballToken(input: BallInput): string {
-  if (input.isWicket) return 'W';
-  if (input.extraType === 'wide') return input.runs > 0 ? `${input.runs}wd` : 'wd';
-  if (input.extraType === 'no_ball') return input.runs > 0 ? `${input.runs}nb` : 'nb';
-  if (input.extraType === 'bye') return `${input.runs}b`;
-  if (input.extraType === 'leg_bye') return `${input.runs}lb`;
+  if (input.isWicket) {
+    if (input.dismissalType === 'run_out' && input.runs > 0) {
+      return `W+${input.runs}`;
+    }
+    return 'W';
+  }
+  if (input.extraType === 'wide') return input.runs > 0 ? `WD+${input.runs}` : 'WD';
+  if (input.extraType === 'no_ball') return input.runs > 0 ? `NB+${input.runs}` : 'NB';
+  if (input.extraType === 'bye') return `B+${input.runs}`;
+  if (input.extraType === 'leg_bye') return `LB+${input.runs}`;
   return String(input.runs);
 }
 
@@ -309,6 +314,7 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
   let thisOver: OverBall[] = [];
   let recentOvers: OverGroup[] = [];
   let fallOfWickets: FallOfWicket[] = [];
+  let previousBowlerId: string | null = null;
 
   if (currentRow) {
     batting = (db.prepare(`
@@ -362,12 +368,13 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
       ORDER BY event_number ASC
     `).all(matchId, currentRow.innings_number) as any[];
 
-    const completed: OverGroup[] = [];
-    let building: OverGroup = { over_number: 1, balls: [], runs: 0, wickets: 0 };
+    const completed: (OverGroup & { bowler_id?: string | null })[] = [];
+    let building: OverGroup & { bowler_id?: string | null } = { over_number: 1, balls: [], runs: 0, wickets: 0, bowler_id: null };
     let legal = 0;
 
     for (const ev of overEvents) {
       const payload = safeParse(ev.payload_json);
+      if (payload.bowlerId) building.bowler_id = payload.bowlerId;
 
       building.balls.push({
         ball: building.balls.length + 1,
@@ -383,13 +390,16 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
         legal += 1;
         if (legal % 6 === 0) {
           completed.push(building);
-          building = { over_number: completed.length + 1, balls: [], runs: 0, wickets: 0 };
+          building = { over_number: completed.length + 1, balls: [], runs: 0, wickets: 0, bowler_id: null };
         }
       }
     }
 
     thisOver = building.balls;
     recentOvers = completed.slice(-3).reverse();
+    if (completed.length > 0) {
+      previousBowlerId = completed[completed.length - 1].bowler_id || null;
+    }
 
     fallOfWickets = (db.prepare(`
       SELECT mb.player_id, mb.fow_score, mb.fow_ball, p.name
@@ -452,6 +462,7 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
     striker,
     non_striker: nonStriker,
     current_bowler: currentBowler,
+    previous_bowler_id: previousBowlerId,
     this_over: thisOver,
     recent_overs: recentOvers,
     fall_of_wickets: fallOfWickets,
