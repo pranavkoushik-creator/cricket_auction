@@ -12,6 +12,7 @@ import { FranchiseManagementView } from './views/FranchiseManagementView';
 import { LiveScorerConsoleView } from './views/LiveScorerConsoleView';
 import { LiveMatchBroadcastView } from './views/LiveMatchBroadcastView';
 import { LiveMatchScorerView } from './views/LiveMatchScorerView';
+import { PlayerAnalyticsView } from './views/PlayerAnalyticsView';
 import { AnalyticsReportsView } from './views/AnalyticsReportsView';
 import { LoginView } from './views/LoginView';
 import { RulesConsentModal } from './components/RulesConsentModal';
@@ -136,6 +137,7 @@ const MainContent: React.FC = () => {
         {activeTab === 'match-scorer' && currentRole === 'Super Admin' && <LiveScorerConsoleView />}
         {activeTab === 'match-control' && currentRole === 'Super Admin' && <LiveMatchScorerView />}
         {activeTab === 'match-live' && <LiveMatchBroadcastView />}
+        {activeTab === 'player-analytics' && <PlayerAnalyticsView />}
         {activeTab === 'reports' && (currentRole === 'Super Admin' || currentRole === 'Franchise Owner') && <AnalyticsReportsView />}
       </main>
 

@@ -282,6 +282,7 @@ export interface OverGroup {
 
 export interface LiveMatchState {
   match_id: string;
+  tournament_id: string;
   match_number: number;
   stage: string;
   venue: string | null;
@@ -353,4 +354,190 @@ export interface BallInputPayload {
   dismissedPlayerId?: string | null;
   /** Run outs only: had the batsmen crossed on the incomplete run? */
   batsmenCrossed?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// PLAYER & MATCH ANALYTICS
+// Career figures are derived server-side from the per-innings rows the match
+// engine writes, so they always agree with the scorecards.
+// ---------------------------------------------------------------------------
+
+export interface CareerBatting {
+  matches: number;
+  innings: number;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  not_outs: number;
+  dismissals: number;
+  highest_score: number;
+  highest_not_out: boolean;
+  average: number | null;
+  strike_rate: number;
+  fifties: number;
+  hundreds: number;
+  ducks: number;
+}
+
+export interface CareerBowling {
+  innings: number;
+  balls: number;
+  overs: string;
+  runs: number;
+  wickets: number;
+  maidens: number;
+  economy: number;
+  average: number | null;
+  strike_rate: number | null;
+  best_wickets: number;
+  best_runs: number;
+  three_wicket_hauls: number;
+  five_wicket_hauls: number;
+}
+
+export interface BattingInningsRow {
+  match_id: string;
+  match_number: number;
+  match_status: string;
+  innings_number: number;
+  scheduled_time: string | null;
+  opponent_name: string;
+  opponent_short: string;
+  opponent_color: string;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  strike_rate: number;
+  status: BatterStatus;
+  not_out: boolean;
+  dismissal_type: DismissalType | null;
+  dismissal_bowler_name: string | null;
+}
+
+export interface BowlingInningsRow {
+  match_id: string;
+  match_number: number;
+  match_status: string;
+  innings_number: number;
+  scheduled_time: string | null;
+  opponent_name: string;
+  opponent_short: string;
+  opponent_color: string;
+  overs: string;
+  balls: number;
+  maidens: number;
+  runs: number;
+  wickets: number;
+  economy: number;
+}
+
+export interface PlayerAnalytics {
+  player: {
+    id: string;
+    name: string;
+    photo_url: string | null;
+    group_name: string;
+    is_foreign: number;
+    is_captain: number;
+    base_price: number;
+    sold_price: number | null;
+    role: string | null;
+    pre_tournament_stats: Record<string, unknown>;
+    franchise: {
+      id: string;
+      name: string;
+      short_name: string;
+      logo_url: string | null;
+      primary_color: string;
+      secondary_color: string;
+    } | null;
+  };
+  batting: CareerBatting;
+  bowling: CareerBowling;
+  batting_innings: BattingInningsRow[];
+  bowling_innings: BowlingInningsRow[];
+  recent_batting: BattingInningsRow[];
+  recent_bowling: BowlingInningsRow[];
+}
+
+export interface PlayerLeaderboardRow {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  group_name: string;
+  is_foreign: number;
+  is_captain: number;
+  base_price: number;
+  sold_price: number | null;
+  role: string | null;
+  franchise_short: string | null;
+  franchise_name: string | null;
+  franchise_color: string | null;
+  bat_innings: number;
+  runs: number;
+  bat_balls: number;
+  dismissals: number;
+  bowl_innings: number;
+  wickets: number;
+  bowl_balls: number;
+  runs_conceded: number;
+  average: number | null;
+  strike_rate: number;
+  economy: number;
+  overs: string;
+}
+
+export interface MatchHistoryRow {
+  id: string;
+  match_number: number;
+  stage: string;
+  venue: string | null;
+  scheduled_time: string | null;
+  status: 'live' | 'completed';
+  result_summary: string | null;
+  overs_limit: number;
+  home_team_short: string;
+  home_team_name: string;
+  home_team_color: string;
+  away_team_short: string;
+  away_team_name: string;
+  away_team_color: string;
+  winner_short: string | null;
+  innings_count: number;
+}
+
+export interface ScorecardInnings {
+  innings_number: number;
+  batting_team: { name: string; short_name: string; primary_color: string };
+  bowling_team: { name: string; short_name: string };
+  runs: number;
+  wickets: number;
+  balls: number;
+  overs: string;
+  extras: number;
+  target: number | null;
+  status: string;
+  run_rate: number;
+  batting: (BattingCard & { dismissal_bowler_name: string | null })[];
+  bowling: BowlingCard[];
+  fall_of_wickets: FallOfWicket[];
+}
+
+export interface MatchScorecard {
+  match: {
+    id: string;
+    match_number: number;
+    stage: string;
+    venue: string | null;
+    scheduled_time: string | null;
+    status: string;
+    overs_limit: number;
+    result_summary: string | null;
+    winner_name: string | null;
+    home_team: { name: string; short_name: string; primary_color: string };
+    away_team: { name: string; short_name: string; primary_color: string };
+  };
+  innings: ScorecardInnings[];
 }

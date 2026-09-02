@@ -13,6 +13,7 @@ import franchiseRoutes from './routes/franchiseRoutes';
 import matchRoutes from './routes/matchRoutes';
 import reportRoutes from './routes/reportRoutes';
 import sessionRoutes from './routes/sessionRoutes';
+import statsRoutes from './routes/statsRoutes';
 import { setupAuctionSocket } from './socket/auctionEngine';
 import { setupMatchSocket } from './socket/matchEngine';
 
@@ -54,6 +55,7 @@ app.use('/api/franchises', franchiseRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), system: 'Sports Auction & Tournament Platform Engine' });

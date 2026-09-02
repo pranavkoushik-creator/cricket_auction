@@ -1,6 +1,6 @@
 import { db } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { completeMatch, revertTeamPointsTable, recalculateStandingsPositions } from './matchService';
+import { completeMatch, revertMatchFromStandings, purgeMatchData } from './matchService';
 
 /**
  * Server-authoritative live cricket match engine.
@@ -112,6 +112,7 @@ export interface InningsSummary {
 
 export interface LiveMatchState {
   match_id: string;
+  tournament_id: string;
   match_number: number;
   stage: string;
   venue: string | null;
@@ -437,6 +438,7 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
 
   return {
     match_id: match.id,
+    tournament_id: match.tournament_id,
     match_number: match.match_number,
     stage: match.stage,
     venue: match.venue,
@@ -1204,43 +1206,13 @@ export function undoLastBall(matchId: string): LiveMatchState {
  * so the points table stays consistent.
  */
 export function resetMatch(matchId: string): LiveMatchState {
-  const match = getMatchRow(matchId);
-  const oversLimit: number = match.overs_limit || 20;
-  const innings = db.prepare(
-    'SELECT * FROM match_innings WHERE match_id = ? ORDER BY innings_number ASC'
-  ).all(matchId) as any[];
+  getMatchRow(matchId); // throws if the match does not exist
 
   const run = db.transaction(() => {
-    const countedInStandings = match.status === 'completed' && match.winner_team_id && innings.length >= 2;
-
-    if (countedInStandings) {
-      const [first, second] = innings;
-      // Same convention finaliseMatch() used: a side bowled out is charged the
-      // full quota of overs.
-      const chargedOvers = (row: any) => (row.wickets >= 10 ? oversLimit : row.balls / 6);
-
-      const homeIsFirst = first.batting_team_id === match.home_team_id;
-      const homeInnings = homeIsFirst ? first : second;
-      const awayInnings = homeIsFirst ? second : first;
-
-      revertTeamPointsTable(
-        match.tournament_id, match.home_team_id,
-        match.winner_team_id === match.home_team_id,
-        homeInnings.runs, chargedOvers(homeInnings), awayInnings.runs, chargedOvers(awayInnings)
-      );
-      revertTeamPointsTable(
-        match.tournament_id, match.away_team_id,
-        match.winner_team_id === match.away_team_id,
-        awayInnings.runs, chargedOvers(awayInnings), homeInnings.runs, chargedOvers(homeInnings)
-      );
-      recalculateStandingsPositions(match.tournament_id);
-    }
-
-    db.prepare('DELETE FROM match_events WHERE match_id = ?').run(matchId);
-    db.prepare('DELETE FROM match_batting WHERE match_id = ?').run(matchId);
-    db.prepare('DELETE FROM match_bowling WHERE match_id = ?').run(matchId);
-    db.prepare('DELETE FROM match_innings WHERE match_id = ?').run(matchId);
-    db.prepare('DELETE FROM match_live_state WHERE match_id = ?').run(matchId);
+    // Undo the standings contribution before the innings it was derived from
+    // are deleted. No-op unless the match was completed through this engine.
+    revertMatchFromStandings(matchId);
+    purgeMatchData(matchId);
 
     db.prepare(`
       UPDATE matches

@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { getMatches, getMatchById, generateFixtures, addMatchEvent, completeMatch, getStandings } from '../services/matchService';
+import {
+  getMatches, getMatchById, generateFixtures, addMatchEvent, completeMatch, getStandings,
+  addManualFixture, deleteFixture
+} from '../services/matchService';
 import {
   getLiveMatchState,
   getMatchSquads,
@@ -97,9 +100,28 @@ router.get('/:id', authorize('Super Admin', 'Franchise Owner', 'Player'), (req: 
 
 router.post('/generate', authorize('Super Admin'), (req: Request, res: Response) => {
   try {
-    const tournamentId = req.body.tournamentId || 'tour-ipl-2026';
-    const matches = generateFixtures(tournamentId);
-    res.json(matches);
+    const { tournamentId, rounds, mode, startDate, intervalDays, stage } = req.body;
+    const result = generateFixtures(tournamentId || 'tour-ipl-2026', { rounds, mode, startDate, intervalDays, stage });
+    res.json(result.matches);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/** Adds one fixture by hand, for a rematch or a knockout tie. */
+router.post('/fixtures/manual', authorize('Super Admin'), (req: Request, res: Response) => {
+  try {
+    const { tournamentId, homeTeamId, awayTeamId, venue, scheduledTime, stage } = req.body;
+    res.json(addManualFixture(tournamentId || 'tour-ipl-2026', { homeTeamId, awayTeamId, venue, scheduledTime, stage }));
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/** Removes one fixture, reversing its standings contribution if it was played. */
+router.delete('/fixtures/:id', authorize('Super Admin'), (req: Request, res: Response) => {
+  try {
+    res.json(deleteFixture(req.params.id as string));
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

@@ -70,11 +70,28 @@ export function emitMatchEvent(matchId: string, type: string, message: string) {
   });
 }
 
-/** Broadcasts state plus the newest commentary line from the event log. */
+export const statsRoom = (tournamentId: string) => `stats_${tournamentId}`;
+
+/**
+ * Broadcasts state plus the newest commentary line, and tells anyone watching
+ * the tournament's analytics that the derived figures have moved.
+ *
+ * The payload is deliberately just an invalidation signal: career stats are
+ * aggregated on read, so the client refetches rather than trying to patch
+ * totals locally and drift out of step with the server.
+ */
 export function broadcastMatch(matchId: string, state: LiveMatchState, fallbackType = 'update') {
   emitMatchState(matchId, state);
   const latest = state.recent_events[0];
   if (latest) emitMatchEvent(matchId, fallbackType, latest.label);
+
+  if (ioRef && state.tournament_id) {
+    ioRef.to(statsRoom(state.tournament_id)).emit('stats:updated', {
+      tournament_id: state.tournament_id,
+      match_id: state.match_id,
+      reason: fallbackType
+    });
+  }
 }
 
 export function setupMatchSocket(io: Server) {
@@ -122,6 +139,16 @@ export function setupMatchSocket(io: Server) {
 
     socket.on('leave:match', ({ matchId }: { matchId: string }) => {
       if (matchId) socket.leave(matchRoom(matchId));
+    });
+
+    // Analytics viewers watch the tournament rather than a single match, so a
+    // ball in any fixture refreshes their figures.
+    socket.on('join:stats', ({ tournamentId }: { tournamentId: string }) => {
+      if (tournamentId) socket.join(statsRoom(tournamentId));
+    });
+
+    socket.on('leave:stats', ({ tournamentId }: { tournamentId: string }) => {
+      if (tournamentId) socket.leave(statsRoom(tournamentId));
     });
 
     socket.on('scorer:start_innings', (p: {
