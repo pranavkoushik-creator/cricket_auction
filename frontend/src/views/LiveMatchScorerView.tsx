@@ -160,7 +160,8 @@ export const LiveMatchScorerView: React.FC = () => {
   // Squad lists for the pickers, derived from whichever side is batting.
   const { battingSquad, bowlingSquad } = useMemo(() => {
     if (!squads || !state) return { battingSquad: [] as MatchSquadPlayer[], bowlingSquad: [] as MatchSquadPlayer[] };
-    const battingId = state.innings?.batting_team.id || battingTeamId;
+    const isLive = state.innings?.status === 'in_progress';
+    const battingId = isLive ? state.innings!.batting_team.id : battingTeamId;
     const isHomeBatting = battingId === squads.home.team.id;
     return {
       battingSquad: isHomeBatting ? squads.home.players : squads.away.players,

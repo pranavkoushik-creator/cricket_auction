@@ -466,11 +466,23 @@ export function recalculateStandingsPositions(tournamentId: string) {
 }
 
 export function getStandings(tournamentId: string) {
+  // Lazily ensure all franchises have a points table row
+  const franchises = db.prepare('SELECT id FROM franchises WHERE tournament_id = ?').all(tournamentId) as { id: string }[];
+  for (const f of franchises) {
+    const existing = db.prepare('SELECT id FROM points_table WHERE tournament_id = ? AND franchise_id = ?').get(tournamentId, f.id);
+    if (!existing) {
+      db.prepare(`
+        INSERT INTO points_table (id, tournament_id, franchise_id, played, won, lost, tied, no_result, points, nrr, runs_scored, overs_faced, runs_conceded, overs_bowled, position)
+        VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+      `).run(uuidv4(), tournamentId, f.id);
+    }
+  }
+
   return db.prepare(`
     SELECT pt.*, f.name as franchise_name, f.short_name as franchise_short, f.logo_url as franchise_logo, f.primary_color
     FROM points_table pt
     JOIN franchises f ON pt.franchise_id = f.id
     WHERE pt.tournament_id = ?
-    ORDER BY pt.position ASC
+    ORDER BY pt.points DESC, pt.nrr DESC, pt.position ASC
   `).all(tournamentId);
 }
