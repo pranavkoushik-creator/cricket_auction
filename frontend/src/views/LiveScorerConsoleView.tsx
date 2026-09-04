@@ -91,45 +91,45 @@ export const LiveScorerConsoleView: React.FC = () => {
       .catch(console.error);
   };
 
-  const recordBall = (runs: number, isWicket: boolean = false, extraType?: string) => {
-    if (!selectedMatchId || !token) return;
+  // const recordBall = (runs: number, isWicket: boolean = false, extraType?: string) => {
+  //   if (!selectedMatchId || !token) return;
 
-    apiRequest(`/matches/${selectedMatchId}/event`, {
-      method: 'POST',
-      body: JSON.stringify({
-        innings: currentInnings,
-        eventType: 'ball',
-        payload: {
-          runs,
-          isWicket,
-          extraType,
-          timestamp: new Date().toISOString()
-        }
-      })
-    })
-      .then(() => loadMatchDetails(selectedMatchId))
-      .catch(console.error);
-  };
+  //   apiRequest(`/matches/${selectedMatchId}/event`, {
+  //     method: 'POST',
+  //     body: JSON.stringify({
+  //       innings: currentInnings,
+  //       eventType: 'ball',
+  //       payload: {
+  //         runs,
+  //         isWicket,
+  //         extraType,
+  //         timestamp: new Date().toISOString()
+  //       }
+  //     })
+  //   })
+  //     .then(() => loadMatchDetails(selectedMatchId))
+  //     .catch(console.error);
+  // };
 
-  const declareResult = (winnerId: string, summary: string) => {
-    if (!selectedMatchId || !token) return;
+  // const declareResult = (winnerId: string, summary: string) => {
+  //   if (!selectedMatchId || !token) return;
 
-    apiRequest(`/matches/${selectedMatchId}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({
-        winnerTeamId: winnerId,
-        resultSummary: summary,
-        homeScore: { runs: runsScored, overs: oversBowled + ballsBowled / 6 },
-        awayScore: { runs: Math.max(0, runsScored - 10), overs: 20 }
-      })
-    })
-      .then(() => {
-        loadMatches();
-        loadMatchDetails(selectedMatchId);
-        loadStandings();
-      })
-      .catch(console.error);
-  };
+  //   apiRequest(`/matches/${selectedMatchId}/complete`, {
+  //     method: 'POST',
+  //     body: JSON.stringify({
+  //       winnerTeamId: winnerId,
+  //       resultSummary: summary,
+  //       homeScore: { runs: runsScored, overs: oversBowled + ballsBowled / 6 },
+  //       awayScore: { runs: Math.max(0, runsScored - 10), overs: 20 }
+  //     })
+  //   })
+  //     .then(() => {
+  //       loadMatches();
+  //       loadMatchDetails(selectedMatchId);
+  //       loadStandings();
+  //     })
+  //     .catch(console.error);
+  // };
 
   return (
     <div className="space-y-6">
@@ -179,7 +179,7 @@ export const LiveScorerConsoleView: React.FC = () => {
       ) : (
         <div className="glass-panel p-10 rounded-2xl border border-emerald-500/40 text-center space-y-6 max-w-2xl mx-auto bg-emerald-900/10 mt-12 shadow-[0_0_30px_rgba(52,211,153,0.1)]">
           <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]" />
-          
+
           <div className="space-y-2">
             <h3 className="text-2xl font-black text-white tracking-wide">
               Fixtures Have Been Generated Successfully

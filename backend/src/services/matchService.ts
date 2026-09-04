@@ -119,8 +119,12 @@ export function generateFixtures(tournamentId: string, opts: FixtureOptions = {}
   const start = opts.startDate ? new Date(opts.startDate) : new Date();
   if (Number.isNaN(start.getTime())) throw new Error('The start date is not a valid date.');
 
-  // Single round robin generator using Circle Method to prevent consecutive matches
+  // Shuffle teams to randomize the schedule while Circle Method prevents consecutive matches
   const teams = [...franchises];
+  for (let i = teams.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [teams[i], teams[j]] = [teams[j], teams[i]];
+  }
   if (teams.length % 2 !== 0) {
     teams.push({ id: 'BYE' } as any);
   }
@@ -185,6 +189,8 @@ export function generateFixtures(tournamentId: string, opts: FixtureOptions = {}
     `).run(mId, tournamentId, matchNum++, home, away, venue, matchDate);
   }
 
+  return { created: matchPairs.length, matches: getMatches(tournamentId) };
+  
   //   const run = db.transaction(() => {
   //     if (mode === 'replace_all') {
   //       const all = db.prepare('SELECT id FROM matches WHERE tournament_id = ?').all(tournamentId) as { id: string }[];

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeftRight, CalendarRange, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Trophy, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMatchSocket } from '../context/SocketContext';
@@ -37,12 +37,12 @@ const DISMISSALS: { value: DismissalType; label: string }[] = [
   { value: 'hit_wicket', label: 'Hit wicket' }
 ];
 
-const EXTRAS: { value: ExtraType; label: string }[] = [
-  { value: 'wide', label: 'Wide' },
-  { value: 'no_ball', label: 'No ball' },
-  { value: 'bye', label: 'Bye' },
-  { value: 'leg_bye', label: 'Leg bye' }
-];
+// const EXTRAS: { value: ExtraType; label: string }[] = [
+//   { value: 'wide', label: 'Wide' },
+//   { value: 'no_ball', label: 'No ball' },
+//   { value: 'bye', label: 'Bye' },
+//   { value: 'leg_bye', label: 'Leg bye' }
+// ];
 
 const Select: React.FC<{
   label: string;
@@ -119,7 +119,7 @@ export const LiveMatchScorerView: React.FC = () => {
   const [extraModalType, setExtraModalType] = useState<'wide' | 'no_ball' | 'bye' | 'leg_bye' | null>(null);
   const [extraSelectedBatter, setExtraSelectedBatter] = useState<string>('');
 
-  useEffect(() => {
+  const loadFixtures = () => {
     if (!currentTournamentId || !token) return;
     apiRequest(`/matches/public/live?tournamentId=${currentTournamentId}`)
       .then((res: BroadcastMatchListItem[]) => {
@@ -128,9 +128,11 @@ export const LiveMatchScorerView: React.FC = () => {
         setSelectedId(prev => (res.some(m => m.id === prev) ? prev : (res[0]?.id ?? '')));
       })
       .catch(err => setNotice(err.message));
-  }, [currentTournamentId, token]);
+  };
 
-  // useEffect(() => { reloadFixtures(); }, [reloadFixtures]);
+  useEffect(() => {
+    loadFixtures();
+  }, [currentTournamentId, token]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -197,10 +199,10 @@ export const LiveMatchScorerView: React.FC = () => {
   };
 
   /** Wide or no ball with nothing run off it — the common case, one tap. */
-  const recordExtraNow = (type: ExtraType) => {
-    scorerRecordBall({ runs: 0, extraType: type });
-    setExtraType('');
-  };
+  // const recordExtraNow = (type: ExtraType) => {
+  //   scorerRecordBall({ runs: 0, extraType: type });
+  //   setExtraType('');
+  // };
 
   const isRunOut = dismissalType === 'run_out';
 
@@ -261,7 +263,7 @@ export const LiveMatchScorerView: React.FC = () => {
         isOpen={showFixtures}
         onClose={() => setShowFixtures(false)}
         tournamentId={currentTournamentId}
-      // onChanged={reloadFixtures}
+        onChanged={loadFixtures}
       />
 
       {matches.length > 0 && (
@@ -499,7 +501,6 @@ export const LiveMatchScorerView: React.FC = () => {
                       value={dismissalType}
                       onChange={v => setDismissalType(v as DismissalType)}
                       options={DISMISSALS}
-                      placeholder="Bowled"
                     />
 
                     {/* A run out is the only dismissal where runs can already be

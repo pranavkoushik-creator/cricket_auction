@@ -12,7 +12,7 @@ import {
   FallOfWicketsPanel,
   InningsSummaryPanel,
   MatchHeaderBar,
-  MatchPickerBar,
+  // MatchPickerBar,
   MatchStatGrid,
   OverTimeline,
   ScorePanel,
@@ -122,9 +122,6 @@ export const LiveMatchBroadcastView: React.FC<{ publicMode?: boolean }> = ({ pub
         </div>
       </div>
 
-      {matches.length > 1 && (
-        <MatchPickerBar matches={matches} selectedId={selectedId} onSelect={setSelectedId} />
-      )}
 
       {!state ? (
         <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
