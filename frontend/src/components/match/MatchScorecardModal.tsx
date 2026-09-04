@@ -4,6 +4,16 @@ import { apiRequest } from '../../utils/api';
 import type { MatchScorecard } from '../../types';
 import { ConsoleModal } from './ConsoleModal';
 
+const formatDismissal = (b: any) => {
+  if (b.dismissal_type === 'run_out') return b.dismissal_fielder_name ? `run out by ${b.dismissal_fielder_name}` : 'run out';
+  if (b.dismissal_type === 'caught') return `c ${b.dismissal_fielder_name || 'sub'} b ${b.dismissal_bowler_name || 'unknown'}`;
+  if (b.dismissal_type === 'stumped') return `st ${b.dismissal_fielder_name || 'sub'} b ${b.dismissal_bowler_name || 'unknown'}`;
+  if (b.dismissal_type === 'lbw') return `lbw b ${b.dismissal_bowler_name || 'unknown'}`;
+  if (b.dismissal_type === 'bowled') return `b ${b.dismissal_bowler_name || 'unknown'}`;
+  if (b.dismissal_type === 'hit_wicket') return `hit wicket b ${b.dismissal_bowler_name || 'unknown'}`;
+  return `${(b.dismissal_type || 'out').replace('_', ' ')}${b.dismissal_bowler_name ? ` b ${b.dismissal_bowler_name}` : ''}`;
+};
+
 /**
  * The stored record of a single match: both innings in full, exactly as the
  * engine recorded them. This is the archive an auction can be priced against.
@@ -191,7 +201,7 @@ export const MatchScorecardModal: React.FC<{
                         <p className={`font-bold truncate ${b.status === 'out' ? 'text-gray-400' : 'text-white'}`}>{b.name}</p>
                         <p className="text-[9px] text-gray-500 font-semibold">
                           {b.status === 'out'
-                            ? `${(b.dismissal_type || 'out').replace('_', ' ')}${b.dismissal_bowler_name ? ` b ${b.dismissal_bowler_name}` : ''}`
+                            ? formatDismissal(b)
                             : b.status === 'batting' ? 'batting' : 'not out'}
                         </p>
                       </td>

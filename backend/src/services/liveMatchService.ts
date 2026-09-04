@@ -22,7 +22,9 @@ export interface BallInput {
   runs: number;
   extraType?: ExtraType | null;
   isWicket?: boolean;
-  dismissalType?: DismissalType | null;
+  dismissalType?: DismissalType;
+  dismissalFielderId?: string;
+  runOutRuns?: number;
   /** Defaults to the striker; set explicitly for run-outs at the non-striker's end. */
   dismissedPlayerId?: string | null;
   /**
@@ -55,7 +57,10 @@ export interface BattingCard {
   strike_rate: number;
   status: BatterStatus;
   dismissal_type: DismissalType | null;
+  dismissal_bowler_id: string | null;
   dismissal_bowler_name: string | null;
+  dismissal_fielder_id: string | null;
+  dismissal_fielder_name: string | null;
   is_striker: boolean;
   is_non_striker: boolean;
 }
@@ -319,10 +324,11 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
 
   if (currentRow) {
     batting = (db.prepare(`
-      SELECT mb.*, p.name, p.photo_url, bw.name AS dismissal_bowler_name
+      SELECT mb.*, p.name, p.photo_url, bw.name AS dismissal_bowler_name, f.name AS dismissal_fielder_name
       FROM match_batting mb
       JOIN players p ON mb.player_id = p.id
       LEFT JOIN players bw ON mb.dismissal_bowler_id = bw.id
+      LEFT JOIN players f ON mb.dismissal_fielder_id = f.id
       WHERE mb.match_id = ? AND mb.innings_number = ?
       ORDER BY mb.batting_position ASC
     `).all(matchId, currentRow.innings_number) as any[]).map(r => ({
@@ -335,9 +341,12 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
       fours: r.fours,
       sixes: r.sixes,
       strike_rate: r.balls > 0 ? round2((r.runs / r.balls) * 100) : 0,
-      status: r.status,
-      dismissal_type: r.dismissal_type,
+      status: r.status as BatterStatus,
+      dismissal_type: r.dismissal_type as DismissalType | null,
+      dismissal_bowler_id: r.dismissal_bowler_id,
       dismissal_bowler_name: r.dismissal_bowler_name,
+      dismissal_fielder_id: r.dismissal_fielder_id,
+      dismissal_fielder_name: r.dismissal_fielder_name,
       is_striker: r.player_id === state.striker_id,
       is_non_striker: r.player_id === state.non_striker_id
     }));
@@ -712,6 +721,24 @@ export function recordBall(matchId: string, input: BallInput): LiveMatchState {
       state.bowler_id
     );
 
+    // --- fielder credit for run outs
+    // In our custom ruleset, we want to credit the fielder with a wicket in their
+    // bowling/overall stats if they effect a run out.
+    if (isWicket && input.dismissalType === 'run_out' && input.dismissalFielderId) {
+      db.prepare(`
+        INSERT OR IGNORE INTO match_bowling (id, match_id, innings_number, player_id)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        uuidv4(), matchId, innings.innings_number, input.dismissalFielderId
+      );
+
+      db.prepare(`
+        UPDATE match_bowling
+        SET wickets = wickets + 1
+        WHERE match_id = ? AND innings_number = ? AND player_id = ?
+      `).run(matchId, innings.innings_number, input.dismissalFielderId);
+    }
+
     // --- strike rotation for runs the batsmen actually completed.
     // Driven by the runs run, not the total: a wide's penalty run does not move
     // anyone, but byes run off that wide do. Completed runs count on a wicket
@@ -726,12 +753,13 @@ export function recordBall(matchId: string, input: BallInput): LiveMatchState {
     if (isWicket) {
       db.prepare(`
         UPDATE match_batting
-        SET status = 'out', dismissal_type = ?, dismissal_bowler_id = ?, fow_score = ?, fow_ball = ?
+        SET status = 'out', dismissal_type = ?, dismissal_bowler_id = ?, dismissal_fielder_id = ?, fow_score = ?, fow_ball = ?
         WHERE match_id = ? AND innings_number = ? AND player_id = ?
       `).run(
         input.dismissalType || 'bowled',
         // A run out is a fielding dismissal: no bowler is credited.
         input.dismissalType === 'run_out' ? null : state.bowler_id,
+        input.dismissalFielderId || null,
         newRuns,
         newBalls,
         matchId,
@@ -761,6 +789,7 @@ export function recordBall(matchId: string, input: BallInput): LiveMatchState {
       isWicket,
       dismissalType: input.dismissalType ?? null,
       dismissedId: isWicket ? dismissedId : null,
+      dismissalFielderId: input.dismissalFielderId ?? null,
       batsmenCrossed: Boolean(input.batsmenCrossed),
       token,
       // Both ends are recorded so undo can restore the crease exactly.
@@ -1160,6 +1189,14 @@ export function undoLastBall(matchId: string): LiveMatchState {
       matchId, innings.innings_number, payload.bowlerId
     );
 
+    if (payload.isWicket && payload.dismissalType === 'run_out' && payload.dismissalFielderId) {
+      db.prepare(`
+        UPDATE match_bowling
+        SET wickets = wickets - 1
+        WHERE match_id = ? AND innings_number = ? AND player_id = ?
+      `).run(matchId, innings.innings_number, payload.dismissalFielderId);
+    }
+
     if (payload.isWicket) {
       // Reinstate the exact batsman recorded on that delivery. Older events
       // predate dismissedId, so fall back to the most recent dismissal.
@@ -1177,7 +1214,7 @@ export function undoLastBall(matchId: string): LiveMatchState {
       if (target) {
         db.prepare(`
           UPDATE match_batting
-          SET status = 'batting', dismissal_type = NULL, dismissal_bowler_id = NULL, fow_score = NULL, fow_ball = NULL
+          SET status = 'batting', dismissal_type = NULL, dismissal_bowler_id = NULL, dismissal_fielder_id = NULL, fow_score = NULL, fow_ball = NULL
           WHERE id = ?
         `).run(target.id);
       }

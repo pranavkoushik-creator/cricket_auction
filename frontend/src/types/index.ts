@@ -225,7 +225,10 @@ export interface BattingCard {
   strike_rate: number;
   status: BatterStatus;
   dismissal_type: DismissalType | null;
+  dismissal_bowler_id: string | null;
   dismissal_bowler_name: string | null;
+  dismissal_fielder_id: string | null;
+  dismissal_fielder_name: string | null;
   is_striker: boolean;
   is_non_striker: boolean;
 }
@@ -352,6 +355,7 @@ export interface BallInputPayload {
   extraType?: ExtraType | null;
   isWicket?: boolean;
   dismissalType?: DismissalType | null;
+  dismissalFielderId?: string | null;
   dismissedPlayerId?: string | null;
   /** Run outs only: had the batsmen crossed on the incomplete run? */
   batsmenCrossed?: boolean;
@@ -415,6 +419,7 @@ export interface BattingInningsRow {
   not_out: boolean;
   dismissal_type: DismissalType | null;
   dismissal_bowler_name: string | null;
+  dismissal_fielder_name: string | null;
 }
 
 export interface BowlingInningsRow {
@@ -521,7 +526,9 @@ export interface ScorecardInnings {
   target: number | null;
   status: string;
   run_rate: number;
-  batting: (BattingCard & { dismissal_bowler_name: string | null })[];
+  batting_team_id: string;
+  bowling_team_id: string;
+  batting: (BattingCard & { dismissal_bowler_name: string | null; dismissal_fielder_name: string | null })[];
   bowling: BowlingCard[];
   fall_of_wickets: FallOfWicket[];
 }

@@ -114,7 +114,7 @@ export function getPlayerStats(playerId: string, tournamentId: string) {
     FROM match_bowling mbw
     JOIN matches m ON m.id = mbw.match_id
     WHERE mbw.player_id = ? AND m.tournament_id = ?
-      AND m.status IN ${PLAYED_STATUSES} AND mbw.balls > 0
+      AND m.status IN ${PLAYED_STATUSES} AND (mbw.balls > 0 OR mbw.wickets > 0)
   `).get(playerId, tournamentId) as any;
 
   const bestBowl = db.prepare(`
@@ -122,7 +122,7 @@ export function getPlayerStats(playerId: string, tournamentId: string) {
     FROM match_bowling mbw
     JOIN matches m ON m.id = mbw.match_id
     WHERE mbw.player_id = ? AND m.tournament_id = ?
-      AND m.status IN ${PLAYED_STATUSES} AND mbw.balls > 0
+      AND m.status IN ${PLAYED_STATUSES} AND (mbw.balls > 0 OR mbw.wickets > 0)
     ORDER BY mbw.wickets DESC, mbw.runs ASC
     LIMIT 1
   `).get(playerId, tournamentId) as any;
@@ -199,7 +199,7 @@ export function getPlayerStats(playerId: string, tournamentId: string) {
     JOIN match_innings mi ON mi.match_id = mbw.match_id AND mi.innings_number = mbw.innings_number
     JOIN franchises opp ON opp.id = mi.batting_team_id
     WHERE mbw.player_id = ? AND m.tournament_id = ?
-      AND m.status IN ${PLAYED_STATUSES} AND mbw.balls > 0
+      AND m.status IN ${PLAYED_STATUSES} AND (mbw.balls > 0 OR mbw.wickets > 0)
     ORDER BY m.match_number ASC, mbw.innings_number ASC
   `).all(playerId, tournamentId) as any[]).map(r => ({
     ...r,
@@ -284,7 +284,7 @@ export function getPlayerLeaderboard(tournamentId: string) {
              COUNT(*) AS innings, SUM(mbw.wickets) AS wickets,
              SUM(mbw.balls) AS balls, SUM(mbw.runs) AS runs
       FROM match_bowling mbw JOIN matches m ON m.id = mbw.match_id
-      WHERE m.tournament_id = ? AND m.status IN ${PLAYED_STATUSES} AND mbw.balls > 0
+      WHERE m.tournament_id = ? AND m.status IN ${PLAYED_STATUSES} AND (mbw.balls > 0 OR mbw.wickets > 0)
       GROUP BY mbw.player_id
     ) w ON w.player_id = p.id
     WHERE p.tournament_id = ?
@@ -346,10 +346,11 @@ export function getMatchScorecard(matchId: string) {
 
   const innings = inningsRows.map(row => {
     const batting = (db.prepare(`
-      SELECT mb.*, p.name, p.photo_url, b.name AS dismissal_bowler_name
+      SELECT mb.*, p.name, p.photo_url, bw.name AS dismissal_bowler_name, f.name AS dismissal_fielder_name
       FROM match_batting mb
       JOIN players p ON p.id = mb.player_id
-      LEFT JOIN players b ON b.id = mb.dismissal_bowler_id
+      LEFT JOIN players bw ON bw.id = mb.dismissal_bowler_id
+      LEFT JOIN players f ON f.id = mb.dismissal_fielder_id
       WHERE mb.match_id = ? AND mb.innings_number = ?
       ORDER BY mb.batting_position ASC
     `).all(matchId, row.innings_number) as any[]).map(r => ({
@@ -361,7 +362,7 @@ export function getMatchScorecard(matchId: string) {
       SELECT mbw.*, p.name, p.photo_url
       FROM match_bowling mbw
       JOIN players p ON p.id = mbw.player_id
-      WHERE mbw.match_id = ? AND mbw.innings_number = ? AND mbw.balls > 0
+      WHERE mbw.match_id = ? AND mbw.innings_number = ? AND (mbw.balls > 0 OR mbw.wickets > 0)
       ORDER BY mbw.wickets DESC, mbw.runs ASC
     `).all(matchId, row.innings_number) as any[]).map(r => ({
       ...r,
