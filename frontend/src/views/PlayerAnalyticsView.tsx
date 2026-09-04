@@ -6,8 +6,7 @@ import { apiRequest } from '../utils/api';
 import type { MatchHistoryRow, PlayerAnalytics, PlayerLeaderboardRow } from '../types';
 import { StatTile } from '../components/match/MatchBroadcastPanels';
 import { MatchScorecardModal } from '../components/match/MatchScorecardModal';
-
-const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80';
+import { getPhotoUrl } from '../utils/formatters';
 
 type Tab = 'overall' | 'innings' | 'history';
 type SortKey = 'runs' | 'wickets' | 'name';
@@ -144,7 +143,7 @@ export const PlayerAnalyticsView: React.FC = () => {
                     }`}
                 >
                   <img
-                    src={row.photo_url || AVATAR_FALLBACK}
+                    src={getPhotoUrl(row.photo_url || undefined)}
                     alt={row.name}
                     className="w-8 h-8 rounded-full object-cover object-[center_30%] border-2 shrink-0"
                     style={{ borderColor: row.franchise_color || '#2A354D' }}
@@ -178,17 +177,19 @@ export const PlayerAnalyticsView: React.FC = () => {
             <>
               {/* Identity */}
               <div
-                className="rounded-2xl border border-cricket-border/60 overflow-hidden p-4 sm:p-5 flex items-center gap-4 flex-wrap"
+                className="rounded-2xl border p-5 relative overflow-hidden"
                 style={{
-                  background: `linear-gradient(115deg, ${p.franchise?.primary_color || '#1e293b'}55 0%, rgba(21,28,44,0.9) 50%, rgba(11,15,25,0.95) 100%)`
+                  backgroundColor: p.franchise?.primary_color ? `${p.franchise.primary_color}15` : '#1e293b',
+                  borderColor: p.franchise?.primary_color ? `${p.franchise.primary_color}40` : '#334155'
                 }}
               >
-                <img
-                  src={p.photo_url || AVATAR_FALLBACK}
-                  alt={p.name}
-                  className="w-20 h-20 rounded-full object-cover object-[center_30%] border-[3px] shadow-xl shrink-0"
-                  style={{ borderColor: p.franchise?.secondary_color || '#2A354D' }}
-                />
+                <div className="flex items-center gap-4 relative z-10">
+                  <img
+                    src={getPhotoUrl(p.photo_url || undefined)}
+                    alt={p.name}
+                    className="w-20 h-20 rounded-full object-cover object-[center_30%] border-4 shadow-xl shrink-0"
+                    style={{ borderColor: p.franchise?.secondary_color || '#2A354D' }}
+                  />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-broadcast text-2xl text-white leading-none">{p.name}</h3>
@@ -215,6 +216,7 @@ export const PlayerAnalyticsView: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
 
               {/* Tabs */}
               <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-900/60 border border-cricket-border/50 w-fit">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, Flame, MapPin, Radio, Target, TrendingUp, Trophy, User } from 'lucide-react';
+import { getPhotoUrl } from '../../utils/formatters';
 import type {
   BattingCard,
   BowlingCard,
@@ -21,7 +22,7 @@ import type {
  * these, so the console mirrors exactly what is on air.
  */
 
-const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80';
+// const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80';
 
 /**
  * Picks black or white text for a team-coloured surface. Franchise colours are
@@ -63,8 +64,8 @@ export const MatchHeaderBar: React.FC<{ state: LiveMatchState }> = ({ state }) =
     <div className={`flex items-center gap-2.5 min-w-0 ${right ? 'flex-row-reverse text-right' : ''}`}>
       <Crest team={team} size="w-11 h-11 sm:w-12 sm:h-12" />
       <div className="min-w-0">
-        <p className="font-broadcast text-base sm:text-xl text-white leading-none">{team.short_name}</p>
-        <p className="text-[11px] text-gray-300 font-bold truncate leading-tight">{team.name}</p>
+        <p className="font-broadcast text-base sm:text-xl text-white leading-none truncate pr-2 py-0.5">{team.name}</p>
+        <p className="text-[11px] text-gray-300 font-bold truncate leading-tight">{team.short_name}</p>
         {team.owner_name && (
           <p className={`text-[9px] text-gray-500 truncate flex items-center gap-1 ${right ? 'justify-end' : ''}`}>
             <User className="w-2.5 h-2.5 shrink-0" />
@@ -91,9 +92,11 @@ export const MatchHeaderBar: React.FC<{ state: LiveMatchState }> = ({ state }) =
               <span className="truncate">{state.venue}</span>
             </span>
           )}
-          <span className="px-2 py-0.5 rounded-full bg-black/25 uppercase tracking-wide shrink-0">
-            {state.overs_limit} overs
-          </span>
+          {state.status !== 'upcoming' && (
+            <span className="px-2 py-0.5 rounded-full bg-black/25 uppercase tracking-wide shrink-0">
+              {state.overs_limit} overs
+            </span>
+          )}
         </div>
       </div>
 
@@ -274,7 +277,7 @@ const PlayerBroadcastCard: React.FC<{
             aria-hidden
           />
           <img
-            src={photo || AVATAR_FALLBACK}
+            src={getPhotoUrl(photo || undefined)}
             alt={name}
             loading="lazy"
             className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover object-[center_30%] border-[3px] shadow-xl"
@@ -382,13 +385,18 @@ const ballTone = (b: OverBall): string => {
   return 'bg-emerald-600 text-white border-emerald-400';
 };
 
-const BallChip: React.FC<{ ball: OverBall; animate?: boolean }> = ({ ball, animate }) => (
-  <span
-    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-black shrink-0 tabular-nums ${ballTone(ball)} ${animate ? 'bc-ball-pop' : ''}`}
-  >
-    {ball.label}
-  </span>
-);
+const BallChip: React.FC<{ ball: OverBall; animate?: boolean }> = ({ ball, animate }) => {
+  const label = ball.label || '';
+  const len = label.length;
+  const textSize = len > 3 ? 'text-[8px]' : len === 3 ? 'text-[9px]' : 'text-[11px]';
+  return (
+    <span
+      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black tracking-tighter leading-none shrink-0 tabular-nums px-0.5 text-center ${textSize} ${ballTone(ball)} ${animate ? 'bc-ball-pop' : ''}`}
+    >
+      {label}
+    </span>
+  );
+};
 
 const OverRow: React.FC<{ title: string; balls: OverBall[]; runs: number; accent?: boolean; live?: boolean }> = ({
   title, balls, runs, accent, live
