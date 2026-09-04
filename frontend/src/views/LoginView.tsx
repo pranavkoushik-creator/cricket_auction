@@ -52,22 +52,30 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onViewLiveAuction
   };
 
   return (
-    <div className="relative min-h-screen bg-cricket-dark flex items-center justify-center overflow-hidden px-4 py-6 font-sans">
+    <div className="relative min-h-screen bg-cricket-dark flex items-center justify-center px-4 py-6 font-sans">
 
-      {/* ── Animated background orbs ── */}
-      <div className="absolute -top-36 -left-24 w-[480px] h-[480px] rounded-full bg-yellow-500/10 blur-[100px] pointer-events-none animate-[orbDrift_12s_ease-in-out_infinite_alternate]" />
-      <div className="absolute -bottom-28 -right-20 w-[420px] h-[420px] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none animate-[orbDrift_12s_ease-in-out_4s_infinite_alternate]" />
-      <div className="absolute top-1/2 left-[60%] w-[300px] h-[300px] rounded-full bg-emerald-500/8 blur-[100px] pointer-events-none animate-[orbDrift_12s_ease-in-out_2s_infinite_alternate]" />
+      {/*
+        Decoration sits in its own clipped layer. Clipping the page container
+        itself would hide any content taller than the viewport with no way to
+        scroll to it -- which is what happens on a short screen, a landscape
+        phone, or a zoomed browser.
+      */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        {/* ── Animated background orbs ── */}
+        <div className="absolute -top-36 -left-24 w-[480px] h-[480px] rounded-full bg-yellow-500/10 blur-[100px] animate-[orbDrift_12s_ease-in-out_infinite_alternate]" />
+        <div className="absolute -bottom-28 -right-20 w-[420px] h-[420px] rounded-full bg-blue-500/10 blur-[100px] animate-[orbDrift_12s_ease-in-out_4s_infinite_alternate]" />
+        <div className="absolute top-1/2 left-[60%] w-[300px] h-[300px] rounded-full bg-emerald-500/8 blur-[100px] animate-[orbDrift_12s_ease-in-out_2s_infinite_alternate]" />
 
-      {/* ── Subtle grid overlay ── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
+        {/* ── Subtle grid overlay ── */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+      </div>
 
       {/* ── Page content ── */}
       <div className="relative z-10 flex flex-col items-center gap-7 w-full max-w-[460px]">
