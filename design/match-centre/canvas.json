@@ -1,0 +1,23 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Option A — Control board (recommended)" },
+    { "file": "FocusRail.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Option B — Focus rail" }
+  ],
+  "annotations": [
+    {
+      "id": "option-a",
+      "x": 0,
+      "y": -210,
+      "w": 700,
+      "text": "OPTION A — Control board (recommended)\n\nOne scoreboard band absorbs the old page title, match header, hero score, target banner AND the four stat tiles. The three 248px portrait cards become a compact three-row crease rail, which frees enough width to sit both full scorecards side by side. Commentary is gone.\n\nTradeoff: dense. The tables carry the visual weight, so it reads more like a scoring console than a TV broadcast."
+    },
+    {
+      "id": "option-b",
+      "x": 1560,
+      "y": -210,
+      "w": 700,
+      "text": "OPTION B — Focus rail\n\nKeeps the TV-style portrait cards at full size, gives the chase equation its own gold band, and shows four complete over-by-over rows. All the numbers move to a narrow right rail.\n\nTradeoff: the scorecards are cramped — dismissal lines had to go, and a long batting card will need its own internal scroll sooner than in Option A."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

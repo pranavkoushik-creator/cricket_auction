@@ -406,7 +406,10 @@ export function getLiveMatchState(matchId: string): LiveMatchState {
     }
 
     thisOver = building.balls;
-    recentOvers = completed.slice(-3).reverse();
+    // Five, not three: the match centre's ball ribbon shows the last completed
+    // over in full plus a run-only pill per over before it, and derives the
+    // "last 5 overs" window from this same slice.
+    recentOvers = completed.slice(-5).reverse();
     if (completed.length > 0) {
       previousBowlerId = completed[completed.length - 1].bowler_id || null;
     }
