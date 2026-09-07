@@ -49,7 +49,8 @@ export const LiveAuctionOperatorView: React.FC = () => {
     operatorTogglePause,
     operatorToggleTimer,
     operatorUpdateTimerSeconds,
-    operatorRollbackSale
+    operatorRollbackSale,
+    operatorRollbackAllSales
   } = useAuctionSocket();
 
   const [queuedLots, setQueuedLots] = useState<any[]>([]);
@@ -143,6 +144,12 @@ export const LiveAuctionOperatorView: React.FC = () => {
       return;
     }
     setIsTimerModalOpen(true);
+  };
+
+  const rollbackAll = () => {
+    if (window.confirm('Are you absolutely sure you want to roll back ALL sales? This will refund all franchises and put all players back in the queue.')) {
+      operatorRollbackAllSales(currentTournamentId!);
+    }
   };
 
   const handleUpdateTimer = async (newSeconds: number, timerEnabled: boolean) => {
@@ -378,10 +385,19 @@ export const LiveAuctionOperatorView: React.FC = () => {
           {/* Sold Lots Rollback Management */}
           {soldLots.length > 0 && (
             <div className="glass-panel p-5 rounded-2xl border border-gray-800 space-y-3">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-400" />
-                <span>Recent Completed Sales (Sale Rollback Audit Console)</span>
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  <span>Recent Completed Sales (Sale Rollback Audit Console)</span>
+                </h4>
+                <button
+                  onClick={rollbackAll}
+                  className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 font-bold border border-red-500/30 flex items-center gap-1.5 transition text-[11px]"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Roll Back All</span>
+                </button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
                 {soldLots.map(p => (
                   <div key={p.id} className="glass-card p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs">

@@ -61,11 +61,11 @@ export const MatchHeaderBar: React.FC<{ state: LiveMatchState }> = ({ state }) =
   const isLive = state.status === 'live';
 
   const Side: React.FC<{ team: TeamBrand; right?: boolean }> = ({ team, right }) => (
-    <div className={`flex items-center gap-2.5 min-w-0 ${right ? 'flex-row-reverse text-right' : ''}`}>
-      <Crest team={team} size="w-11 h-11 sm:w-12 sm:h-12" />
+    <div className={`flex items-center gap-4 min-w-0 ${right ? 'flex-row-reverse text-right' : ''}`}>
+      <Crest team={team} size="w-20 h-20 sm:w-28 sm:h-28" />
       <div className="min-w-0">
-        <p className="font-broadcast text-base sm:text-xl text-white leading-none truncate pr-2 py-0.5">{team.name}</p>
-        <p className="text-[11px] text-gray-300 font-bold truncate leading-tight">{team.short_name}</p>
+        <p className="font-broadcast text-3xl sm:text-5xl text-white leading-none truncate pr-2 py-1">{team.name}</p>
+        <p className="text-sm sm:text-base text-gray-300 font-bold truncate leading-tight">{team.short_name}</p>
         {team.owner_name && (
           <p className={`text-[9px] text-gray-500 truncate flex items-center gap-1 ${right ? 'justify-end' : ''}`}>
             <User className="w-2.5 h-2.5 shrink-0" />
@@ -707,7 +707,7 @@ export const InningsSummaryPanel: React.FC<{ innings: InningsSummary[]; oversLim
 // ============================================================ misc
 
 export const MatchPickerBar: React.FC<{
-  matches: { id: string; match_number: number; status: string; home_team_short: string; away_team_short: string }[];
+  matches: { id: string; match_number: number; status: string; home_team_name: string; away_team_name: string }[];
   selectedId: string;
   onSelect: (id: string) => void;
 }> = ({ matches, selectedId, onSelect }) => (
@@ -725,7 +725,7 @@ export const MatchPickerBar: React.FC<{
         >
           <span className="flex items-center gap-1.5">
             {m.status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-            #{m.match_number} {m.home_team_short} v {m.away_team_short}
+            #{m.match_number} {m.home_team_name} v {m.away_team_name}
           </span>
         </button>
       );

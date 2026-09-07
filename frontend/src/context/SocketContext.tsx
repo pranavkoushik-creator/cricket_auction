@@ -22,6 +22,7 @@ interface SocketContextType {
   operatorToggleTimer: () => void;
   operatorUpdateTimerSeconds: (seconds: number, timerEnabled?: boolean) => Promise<void>;   // ← add
   operatorRollbackSale: (lotId: string) => void;
+  operatorRollbackAllSales: (tournamentId: string) => void;
 
   // --- Live match broadcast (shares this same socket connection) ---
   matchState: LiveMatchState | null;
@@ -268,6 +269,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const operatorRollbackAllSales = (tournamentId: string) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('operator:rollback_all_sales', { tournamentId });
+    }
+  };
+
   // ---------------------------------------------------------------- match room
 
   const joinMatch = (matchId: string) => {
@@ -360,8 +367,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         operatorMarkUnsold,
         operatorTogglePause,
         operatorToggleTimer,
-        operatorUpdateTimerSeconds,   // ← add
+        operatorUpdateTimerSeconds,
         operatorRollbackSale,
+        operatorRollbackAllSales,
 
         matchState,
         matchFeed,

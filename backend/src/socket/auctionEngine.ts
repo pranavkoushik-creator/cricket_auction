@@ -568,6 +568,36 @@ export function setupAuctionSocket(io: Server) {
     }
   });
 
+  const rollbackAllSalesTransaction = db.transaction((tournamentId: string) => {
+    const processedLots = db.prepare(
+      "SELECT al.id as lotId, al.player_id, al.buyer_id, al.sold_price, p.name FROM auction_lots al JOIN players p ON al.player_id = p.id WHERE al.tournament_id = ? AND al.status IN ('sold', 'unsold')"
+    ).all(tournamentId) as any[];
+
+    const franchisesToRecalculate = new Set<string>();
+
+    for (const lot of processedLots) {
+      db.prepare("UPDATE auction_lots SET status = 'queued', current_highest_bid = 0, current_bidder_id = null, sold_price = null, buyer_id = null WHERE id = ?").run(lot.lotId);
+      db.prepare("UPDATE players SET is_captain = 0 WHERE id = ?").run(lot.player_id);
+
+      if (lot.buyer_id) {
+        recordPurseTransaction(
+          lot.buyer_id,
+          lot.sold_price,
+          'sale_refund',
+          lot.lotId,
+          `Bulk rollback sale refund for ${lot.name}`
+        );
+        franchisesToRecalculate.add(lot.buyer_id);
+      }
+    }
+
+    for (const buyerId of franchisesToRecalculate) {
+      updateFranchiseCaptainStatus(buyerId);
+    }
+    
+    return processedLots.length;
+  });
+
   io.on('connection', (socket: Socket) => {
     console.log(`[AuctionEngine] Socket connected: ${socket.id}`);
 
@@ -950,6 +980,22 @@ export function setupAuctionSocket(io: Server) {
         });
       } catch (err: any) {
         console.error('[AuctionEngine] Error in operator:rollback_sale:', err.message);
+        socket.emit('auction:error', { message: err.message });
+      }
+    });
+
+    // 9. Operator: Rollback All Sales
+    socket.on('operator:rollback_all_sales', ({ tournamentId }: { tournamentId: string }) => {
+      if (!requireRole(socket, ['Super Admin'])) return;
+      try {
+        const count = rollbackAllSalesTransaction(tournamentId);
+
+        io.to(auctionRoom).emit('auction:event', {
+          type: 'rollback',
+          message: `🔄 BULK ROLLBACK: ${count} lots have been reset to queued.`
+        });
+      } catch (err: any) {
+        console.error('[AuctionEngine] Error in operator:rollback_all_sales:', err.message);
         socket.emit('auction:error', { message: err.message });
       }
     });

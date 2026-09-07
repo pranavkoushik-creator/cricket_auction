@@ -180,7 +180,7 @@ export function generateFixtures(tournamentId: string, opts: FixtureOptions = {}
     const home = matchPairs[i].home;
     const away = matchPairs[i].away;
     const mId = `match-${uuidv4().substring(0, 8)}`;
-    const venue = venues[(matchNum - 1) % venues.length];
+    const venue = 'AUK Sports Zone'; // Use fixed venue for auto-generated fixtures
     const matchDate = new Date(Date.now() + matchNum * 86400000 * 2).toISOString().replace('T', ' ').substring(0, 19);
 
     db.prepare(`
@@ -190,97 +190,72 @@ export function generateFixtures(tournamentId: string, opts: FixtureOptions = {}
   }
 
   return { created: matchPairs.length, matches: getMatches(tournamentId) };
-  
-  //   const run = db.transaction(() => {
-  //     if (mode === 'replace_all') {
-  //       const all = db.prepare('SELECT id FROM matches WHERE tournament_id = ?').all(tournamentId) as { id: string }[];
-  //       for (const m of all) purgeMatchData(m.id);
-  //       db.prepare('DELETE FROM matches WHERE tournament_id = ?').run(tournamentId);
-
-  //       // No matches left, so every standings row must read zero.
-  //       db.prepare(`
-  //         UPDATE points_table
-  //         SET played = 0, won = 0, lost = 0, tied = 0, no_result = 0, points = 0, nrr = 0,
-  //             runs_scored = 0, overs_faced = 0, runs_conceded = 0, overs_bowled = 0
-  //         WHERE tournament_id = ?
-  //       `).run(tournamentId);
-  //     } else {
-  //       const stale = db.prepare(
-  //         "SELECT id FROM matches WHERE tournament_id = ? AND status = 'upcoming'"
-  //       ).all(tournamentId) as { id: string }[];
-  //       // An 'upcoming' match can still own rows if it was reset, so purge first.
-  //       for (const m of stale) purgeMatchData(m.id);
-  //       db.prepare("DELETE FROM matches WHERE tournament_id = ? AND status = 'upcoming'").run(tournamentId);
-  //     }
-
-  //     const highest = db.prepare(
-  //       'SELECT MAX(match_number) AS n FROM matches WHERE tournament_id = ?'
-  //     ).get(tournamentId) as any;
-
-  //     let matchNumber = (highest?.n || 0) + 1;
-  //     let created = 0;
-
-  //     for (let round = 1; round <= rounds; round++) {
-  //       for (let i = 0; i < franchises.length; i++) {
-  //         for (let j = i + 1; j < franchises.length; j++) {
-  //           // Even rounds reverse the tie so each side hosts once.
-  //           const [home, away] = round % 2 === 1
-  //             ? [franchises[i], franchises[j]]
-  //             : [franchises[j], franchises[i]];
-
-  //           const date = new Date(start.getTime() + created * intervalDays * 86400000);
-  //           insertFixture(
-  //             tournamentId,
-  //             matchNumber++,
-  //             rounds > 1 ? `${stage} — Round ${round}` : stage,
-  //             home.id,
-  //             away.id,
-  //             venues[created % venues.length],
-  //             toSqlDate(date)
-  //           );
-  //           created += 1;
-  //         }
-  //       }
-  //     }
-
-  //     return created;
-  //   });
-
-  //   const created = run();
-  //   return { created, matches: getMatches(tournamentId) };
-  // }
-
-  // /** Adds a single fixture by hand, for a rematch or a knockout tie. */
-  // export function addManualFixture(
-  //   tournamentId: string,
-  //   data: { homeTeamId: string; awayTeamId: string; venue?: string; scheduledTime?: string; stage?: string }
-  // ) {
-  //   const { homeTeamId, awayTeamId } = data;
-
-  //   if (!homeTeamId || !awayTeamId) throw new Error('Both teams are required.');
-  //   if (homeTeamId === awayTeamId) throw new Error('A team cannot play itself.');
-
-  //   const valid = db.prepare(
-  //     'SELECT id FROM franchises WHERE tournament_id = ? AND id IN (?, ?)'
-  //   ).all(tournamentId, homeTeamId, awayTeamId) as any[];
-  //   if (valid.length !== 2) throw new Error('Both teams must belong to this tournament.');
-
-  //   const highest = db.prepare(
-  //     'SELECT MAX(match_number) AS n FROM matches WHERE tournament_id = ?'
-  //   ).get(tournamentId) as any;
-
-  //   insertFixture(
-  //     tournamentId,
-  //     (highest?.n || 0) + 1,
-  //     (data.stage || 'Group Stage').trim() || 'Group Stage',
-  //     homeTeamId,
-  //     awayTeamId,
-  //     data.venue?.trim() || DEFAULT_VENUES[0],
-  //     data.scheduledTime || toSqlDate(new Date())
-  //   );
-
-  return { created: matchPairs.length, matches: getMatches(tournamentId) };
 }
+
+/** Adds a single fixture by hand, for a rematch or a knockout tie. */
+export function addManualFixture(
+  tournamentId: string,
+  data: { homeTeamId: string; awayTeamId: string; venue?: string; scheduledTime?: string; stage?: string }
+) {
+  const { homeTeamId, awayTeamId } = data;
+
+  if (!homeTeamId || !awayTeamId) throw new Error('Both teams are required.');
+  if (homeTeamId === awayTeamId) throw new Error('A team cannot play itself.');
+
+  const valid = db.prepare(
+    'SELECT id FROM franchises WHERE tournament_id = ? AND id IN (?, ?)'
+  ).all(tournamentId, homeTeamId, awayTeamId) as any[];
+  if (valid.length !== 2) throw new Error('Both teams must belong to this tournament.');
+
+  const existing = db.prepare(
+    'SELECT id FROM matches WHERE tournament_id = ? AND home_team_id = ? AND away_team_id = ?'
+  ).get(tournamentId, homeTeamId, awayTeamId);
+
+  if (existing) {
+    throw new Error('This exact fixture (same home and away team) already exists in the schedule.');
+  }
+
+  const highest = db.prepare(
+    'SELECT MAX(match_number) AS n FROM matches WHERE tournament_id = ?'
+  ).get(tournamentId) as any;
+
+  insertFixture(
+    tournamentId,
+    (highest?.n || 0) + 1,
+    (data.stage || 'Group Stage').trim() || 'Group Stage',
+    homeTeamId,
+    awayTeamId,
+    data.venue?.trim() || 'AUK Sports Zone',
+    data.scheduledTime || toSqlDate(new Date())
+  );
+
+  return getMatches(tournamentId);
+}
+
+/** Bulk deletes all fixtures for a tournament. */
+export function deleteAllFixtures(tournamentId: string) {
+  const all = db.prepare('SELECT id FROM matches WHERE tournament_id = ?').all(tournamentId) as { id: string }[];
+  
+  const run = db.transaction(() => {
+    for (const m of all) {
+      revertMatchFromStandings(m.id);
+      purgeMatchData(m.id);
+    }
+    db.prepare('DELETE FROM matches WHERE tournament_id = ?').run(tournamentId);
+    
+    // Clear the points table since no matches exist
+    db.prepare(`
+      UPDATE points_table
+      SET played = 0, won = 0, lost = 0, tied = 0, no_result = 0, points = 0, nrr = 0,
+          runs_scored = 0, overs_faced = 0, runs_conceded = 0, overs_bowled = 0
+      WHERE tournament_id = ?
+    `).run(tournamentId);
+  });
+
+  run();
+  return getMatches(tournamentId);
+}
+
 
 /** Removes one fixture, reversing its standings contribution if it was played. */
 export function deleteFixture(matchId: string) {

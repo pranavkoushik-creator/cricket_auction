@@ -117,7 +117,7 @@ export const LiveMatchBroadcastView: React.FC<{ publicMode?: boolean }> = ({ pub
               }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            {isConnected ? 'On Air' : 'Reconnecting'}
+            {isConnected ? 'LIVE' : 'Reconnecting'}
           </span>
         </div>
       </div>

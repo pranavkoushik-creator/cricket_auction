@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import {
   getMatches, getMatchById, generateFixtures, addMatchEvent, completeMatch, getStandings,
-  addManualFixture, deleteFixture
+  addManualFixture, deleteFixture, deleteAllFixtures
 } from '../services/matchService';
 import {
   getLiveMatchState,
@@ -113,6 +113,16 @@ router.post('/fixtures/manual', authorize('Super Admin'), (req: Request, res: Re
   try {
     const { tournamentId, homeTeamId, awayTeamId, venue, scheduledTime, stage } = req.body;
     res.json(addManualFixture(tournamentId || 'tour-ipl-2026', { homeTeamId, awayTeamId, venue, scheduledTime, stage }));
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/** Removes all fixtures and clears standings. */
+router.delete('/fixtures/all', authorize('Super Admin'), (req: Request, res: Response) => {
+  try {
+    const tournamentId = (req.query.tournamentId as string) || 'tour-ipl-2026';
+    res.json(deleteAllFixtures(tournamentId));
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

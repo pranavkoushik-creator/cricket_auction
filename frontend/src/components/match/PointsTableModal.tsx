@@ -9,11 +9,7 @@ import { ConsoleModal } from './ConsoleModal';
  * match engine maintains. Refetched whenever it is opened so it reflects the
  * result of whatever was just scored.
  */
-export const PointsTableModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  tournamentId: string;
-}> = ({ isOpen, onClose, tournamentId }) => {
+export const PointsTable: React.FC<{ tournamentId: string }> = ({ tournamentId }) => {
   const [rows, setRows] = useState<PointsTableEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,20 +23,14 @@ export const PointsTableModal: React.FC<{
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (isOpen) load(); }, [isOpen, tournamentId]);
-
-  const played = rows.reduce((n, r) => n + r.played, 0);
+  useEffect(() => { load(); }, [tournamentId]);
 
   return (
-    <ConsoleModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Points Table"
-      subtitle={played === 0 ? 'No matches completed yet' : `${played / 2 | 0} match${played / 2 === 1 ? '' : 'es'} counted`}
-      icon={<Trophy className="w-4 h-4 shrink-0" />}
-      wide
-    >
-      <div className="flex justify-end mb-3">
+    <div className="flex flex-col w-full max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-cricket-gold" /> Points Table
+        </h3>
         <button
           onClick={load}
           disabled={loading}
@@ -54,7 +44,7 @@ export const PointsTableModal: React.FC<{
         <p className="text-xs font-bold text-red-400 mb-3">{error}</p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-cricket-border/50">
+      <div className="overflow-x-auto rounded-xl border border-cricket-border/50 bg-cricket-card">
         <table className="w-full text-xs min-w-[560px]">
           <thead>
             <tr className="text-[9px] uppercase text-gray-500 border-b border-cricket-border/50 bg-gray-900/40">
@@ -102,11 +92,28 @@ export const PointsTableModal: React.FC<{
           </tbody>
         </table>
       </div>
-
-      <p className="text-[10px] text-gray-500 font-semibold mt-3">
-        Two points per win. Net run rate is runs scored per over minus runs conceded per over,
-        with a side bowled out charged the full quota.
+      <p className="text-[10px] text-gray-500 font-semibold mt-3 text-center">
+        Two points per win. Net run rate is runs scored per over minus runs conceded per over.
       </p>
+    </div>
+  );
+};
+
+export const PointsTableModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  tournamentId: string;
+}> = ({ isOpen, onClose, tournamentId }) => {
+  return (
+    <ConsoleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Tournament Standings"
+      subtitle="Points Table"
+      icon={<Trophy className="w-4 h-4 shrink-0" />}
+      wide
+    >
+      <PointsTable tournamentId={tournamentId} />
     </ConsoleModal>
   );
 };

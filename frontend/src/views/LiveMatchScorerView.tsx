@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CalendarRange, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Trophy, Undo2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CalendarRange, CheckCircle2, PlayCircle, Radio, Repeat, RotateCcw, Settings2, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMatchSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
@@ -233,27 +233,36 @@ export const LiveMatchScorerView: React.FC = () => {
         <h2 className="font-broadcast text-xl text-white">SAKHA MATCH CONTROL CONSOLE</h2>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setShowPointsTable(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-300 border border-yellow-500/40 text-[11px] font-black transition"
-          >
-            <Trophy className="w-3.5 h-3.5" /> Points Table
-          </button>
+          {matches.length > 0 && (
+            <select
+              value={selectedId}
+              onChange={e => setSelectedId(e.target.value)}
+              className="bg-gray-900 text-[11px] font-bold text-gray-200 border border-cricket-border/60 rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500 max-w-[250px] truncate"
+            >
+              {matches.map(m => (
+                <option key={m.id} value={m.id}>
+                  #{m.match_number} {m.home_team_name} v {m.away_team_name}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setShowFixtures(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/40 text-[11px] font-black transition"
           >
             <CalendarRange className="w-3.5 h-3.5" /> Fixtures
           </button>
-          <span
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${isConnected
-              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-              : 'bg-red-500/15 text-red-300 border-red-500/40'
-              }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            {isConnected ? 'Broadcasting' : 'Reconnecting'}
-          </span>
+          {matches.length > 0 && (
+            <span
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${isConnected
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                : 'bg-red-500/15 text-red-300 border-red-500/40'
+                }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+              {isConnected ? 'Broadcasting' : 'Reconnecting'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -268,10 +277,6 @@ export const LiveMatchScorerView: React.FC = () => {
         tournamentId={currentTournamentId}
         onChanged={loadFixtures}
       />
-
-      {matches.length > 0 && (
-        <MatchPickerBar matches={matches} selectedId={selectedId} onSelect={setSelectedId} />
-      )}
 
       {(matchError || notice) && (
         <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-2.5 flex items-center gap-2">
@@ -546,7 +551,7 @@ export const LiveMatchScorerView: React.FC = () => {
                             The run in progress is void and is not counted.
                           </p>
                         </div>
-                        
+
                         <Select
                           label="Fielder (Who made the throw?)"
                           value={dismissalFielderId}

@@ -19,7 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
     { id: 'auction-bidding', label: 'Live Franchise Bidding', icon: Shield, roles: ['Franchise Owner'] },
     { id: 'franchises', label: currentRole === 'Franchise Owner' ? 'My Squad & Purse Ledger' : 'Franchise Management', icon: Shield, roles: ['Super Admin', 'Franchise Owner'] },
     { id: 'players-approval', label: 'Player Approvals', icon: UserCheck, roles: ['Super Admin'] },
-    { id: 'match-scorer', label: 'Live Match Scorer & Fixtures', icon: Activity, roles: ['Super Admin'] },
+    { id: 'match-scorer', label: 'Live Points Table', icon: Activity, roles: ['Super Admin'] },
     { id: 'match-control', label: 'Match Control Console', icon: Gamepad2, roles: ['Super Admin'] },
     { id: 'match-live', label: 'Live Match Centre', icon: Tv, roles: ['Super Admin', 'Franchise Owner', 'Player'] },
     { id: 'player-analytics', label: 'Player Analytics & History', icon: LineChart, roles: ['Super Admin', 'Franchise Owner'] },
@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
   ];
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-cricket-border/50 px-4 lg:px-8 py-3">
+    <header className="relative z-50 glass-panel border-b border-cricket-border/50 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Brand Logo & Tournament Selector */}
         <div className="flex items-center space-x-3">
@@ -129,8 +129,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenR
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${isActive
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm font-bold'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm font-bold'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
                   }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-500'}`} />

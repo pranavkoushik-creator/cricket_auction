@@ -131,6 +131,11 @@ export const FixtureManagerModal: React.FC<{
     setConfirmDelete(null);
   };
 
+  const removeAll = () => {
+    run(() => apiRequest(`/matches/fixtures/all?tournamentId=${tournamentId}`, { method: 'DELETE' }), 'All fixtures deleted and schedule cleared.');
+    setConfirmWipe(false);
+  };
+
   const label = 'text-[9px] font-black uppercase tracking-[0.15em] text-gray-500';
   const input = 'mt-1 w-full bg-cricket-card text-xs text-gray-200 border border-cricket-border rounded-lg px-2.5 py-2 focus:outline-none focus:border-blue-500';
 
@@ -290,8 +295,22 @@ export const FixtureManagerModal: React.FC<{
 
       {/* ---------------- Current schedule ---------------- */}
       <div className="mt-3 rounded-xl border border-cricket-border/50 overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-cricket-border/50 bg-gray-900/40">
+        <div className="px-4 py-2.5 border-b border-cricket-border/50 bg-gray-900/40 flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Current Schedule</p>
+          {fixtures.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete all fixtures? This will wipe the points table.')) {
+                  removeAll();
+                }
+              }}
+              disabled={busy}
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-red-400 hover:text-red-300 transition disabled:opacity-50"
+            >
+              <Trash2 className="w-3 h-3" />
+              Delete All
+            </button>
+          )}
         </div>
         <div className="max-h-[300px] overflow-y-auto">
           {fixtures.length === 0 && (
@@ -303,7 +322,7 @@ export const FixtureManagerModal: React.FC<{
                 <span className="font-black text-gray-500 text-xs tabular-nums w-8 shrink-0">#{f.match_number}</span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-white truncate">
-                    {f.home_team_short} v {f.away_team_short}
+                    {f.home_team_name} v {f.away_team_name}
                   </p>
                   <p className="text-[10px] text-gray-500 font-semibold truncate">
                     {f.stage}{f.venue ? ` · ${f.venue}` : ''}
