@@ -101,6 +101,7 @@ export const LiveMatchScorerView: React.FC = () => {
   // Ball-entry modifiers
   const [extraType, setExtraType] = useState<ExtraType | ''>('');
   const [dismissalType, setDismissalType] = useState<DismissalType>('bowled');
+  const [dismissalFielderId, setDismissalFielderId] = useState('');
   // Run-out detail: runs banked before the dismissal, who was short, and whether
   // the batsmen had crossed on the run that was not completed.
   const [runOutRuns, setRunOutRuns] = useState(0);
@@ -214,6 +215,7 @@ export const LiveMatchScorerView: React.FC = () => {
       isWicket: true,
       dismissalType,
       extraType: extraType || null,
+      dismissalFielderId: dismissalFielderId || undefined,
       ...(isRunOut
         ? { dismissedPlayerId: runOutBatterId || undefined, batsmenCrossed: runOutCrossed }
         : {})
@@ -222,6 +224,7 @@ export const LiveMatchScorerView: React.FC = () => {
     setRunOutRuns(0);
     setRunOutCrossed(false);
     setRunOutBatterId('');
+    setDismissalFielderId('');
   };
 
   return (
@@ -503,6 +506,20 @@ export const LiveMatchScorerView: React.FC = () => {
                       options={DISMISSALS}
                     />
 
+                    {(dismissalType === 'caught' || dismissalType === 'stumped') && (
+                      <div className="rounded-xl border border-cricket-border/40 p-3 mt-2">
+                        <Select
+                          label={`Fielder (Who ${dismissalType === 'caught' ? 'took the catch' : 'made the stumping'}?)`}
+                          value={dismissalFielderId}
+                          onChange={setDismissalFielderId}
+                          options={[
+                            { value: '', label: '— Unknown / Not Listed —' },
+                            ...bowlingSquad.map(p => ({ value: p.id, label: p.name }))
+                          ]}
+                        />
+                      </div>
+                    )}
+
                     {/* A run out is the only dismissal where runs can already be
                         banked and where either batsman may be the one out. */}
                     {isRunOut && (
@@ -529,6 +546,16 @@ export const LiveMatchScorerView: React.FC = () => {
                             The run in progress is void and is not counted.
                           </p>
                         </div>
+                        
+                        <Select
+                          label="Fielder (Who made the throw?)"
+                          value={dismissalFielderId}
+                          onChange={setDismissalFielderId}
+                          options={[
+                            { value: '', label: '— Unknown / Not Listed —' },
+                            ...bowlingSquad.map(p => ({ value: p.id, label: p.name }))
+                          ]}
+                        />
 
                         <div>
                           <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-500">

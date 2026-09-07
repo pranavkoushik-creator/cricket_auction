@@ -388,7 +388,7 @@ const ballTone = (b: OverBall): string => {
 const BallChip: React.FC<{ ball: OverBall; animate?: boolean }> = ({ ball, animate }) => {
   const label = ball.label || '';
   const len = label.length;
-  const textSize = len > 3 ? 'text-[8px]' : len === 3 ? 'text-[9px]' : 'text-[11px]';
+  const textSize = len > 3 ? 'text-[10px]' : len === 3 ? 'text-xs' : 'text-sm';
   return (
     <span
       className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black tracking-tighter leading-none shrink-0 tabular-nums px-0.5 text-center ${textSize} ${ballTone(ball)} ${animate ? 'bc-ball-pop' : ''}`}

@@ -275,6 +275,7 @@ export function initDatabase() {
       status TEXT DEFAULT 'did_not_bat', -- did_not_bat, batting, out, not_out
       dismissal_type TEXT, -- bowled, caught, lbw, run_out, stumped, hit_wicket
       dismissal_bowler_id TEXT,
+      dismissal_fielder_id TEXT,
       fow_score INTEGER, -- team score when this batter fell
       fow_ball INTEGER,  -- legal ball count when this batter fell
       FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
@@ -344,6 +345,11 @@ export function initDatabase() {
   }
   try {
     db.exec("ALTER TABLE matches ADD COLUMN overs_limit INTEGER DEFAULT 20");
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec("ALTER TABLE match_batting ADD COLUMN dismissal_fielder_id TEXT");
   } catch (e) {
     // Column already exists
   }
