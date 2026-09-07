@@ -1,0 +1,514 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap">
+  <style>
+    body { margin: 0; background: #0B0F19; color: #F3F4F6;
+           font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    a { color: #3B82F6; } a:hover { color: #60A5FA; }
+    .bc { font-family: 'Outfit', sans-serif; font-style: italic; font-weight: 900; }
+    .num { font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; }
+    table { border-collapse: collapse; width: 100%; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; background: #0B0F19; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 128px; box-sizing: border-box; background: rgba(21,28,44,0.75); border-bottom: 1px solid rgba(42,53,77,0.5); padding: 12px 32px; display: flex; flex-direction: column;">
+    <div style="height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <img src="sakha_logo.png" alt="Sakha" style="height: 48px; width: auto; object-fit: contain; background: #ffffff; padding: 4px 10px; border-radius: 8px;">
+        <div>
+          <p class="bc" style="margin: 0; font-size: 18px; color: #ffffff; letter-spacing: -0.01em;">SAKHA SPORTS LEAGUE</p>
+          <p style="margin: 2px 0 0; font-size: 12px; font-weight: 500; color: #9CA3AF;">Role-Based Sports Tournament &amp; Auction Platform</p>
+        </div>
+        <div style="padding-left: 16px; border-left: 1px solid #1F2937; margin-left: 4px;">
+          <div style="background: #151C2C; border: 1px solid #2A354D; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #E5E7EB; display: flex; align-items: center; gap: 10px;">
+            <span>Sakha Premier League 2026</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px; background: rgba(17,24,39,0.8); border: 1px solid #1F2937; border-radius: 12px; padding: 6px 12px;">
+          <div style="width: 28px; height: 28px; border-radius: 999px; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #FACC15; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Y</div>
+          <div>
+            <p style="margin: 0; font-size: 12px; font-weight: 800; color: #ffffff;">Yashas Kumar</p>
+            <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #FCA5A5; background: rgba(239,68,68,0.15); padding: 1px 6px; border-radius: 4px;">Super Admin</span>
+          </div>
+        </div>
+        <div style="padding: 7px 12px; border-radius: 12px; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #FDE047; font-size: 12px; font-weight: 700;">Rules of the Auction</div>
+        <div style="padding: 7px 12px; border-radius: 12px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93C5FD; font-size: 12px; font-weight: 700;">Reset Password</div>
+        <div style="padding: 7px 10px; border-radius: 12px; background: rgba(69,10,10,0.4); border: 1px solid rgba(153,27,27,0.4); color: #F87171; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+          Logout
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; border-top: 1px solid rgba(31,41,55,0.6); padding-top: 8px; display: flex; align-items: center; gap: 4px; overflow: hidden; position: relative;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+        Overview
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path></svg>
+        Operator Console
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>
+        Franchise Management
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+        Player Approvals
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        Live Match Scorer &amp; Fixtures
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"></line><line x1="8" x2="8" y1="9" y2="13"></line><line x1="15" x2="15.01" y1="12" y2="12"></line><line x1="18" x2="18.01" y1="10" y2="10"></line><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.544-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"></path></svg>
+        Match Control Console
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; background: rgba(37,99,235,0.2); border: 1px solid rgba(59,130,246,0.3); color: #60A5FA; font-size: 12px; font-weight: 700; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"></rect><path d="m17 2-5 5-5-5"></path></svg>
+        Live Match Centre
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+        Player Analytics &amp; History
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 8px; color: #9CA3AF; font-size: 12px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        Spectator Live Ticker
+      </div>
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 64px; background: linear-gradient(90deg, rgba(21,28,44,0) 0%, rgba(21,28,44,0.95) 100%);"></div>
+    </div>
+  </div>
+
+  <div style="flex: 1; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+    <div style="height: 168px; box-sizing: border-box; border-radius: 16px; border: 1px solid rgba(42,53,77,0.6); background: rgba(21,28,44,0.75); overflow: hidden; display: flex; flex-direction: column;">
+
+      <div style="height: 32px; background: linear-gradient(135deg, #FFB800 0%, #D49A00 100%); color: #0B0F19; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+          <span style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;">Match 12 · League Stage</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700;">
+          <span style="display: flex; align-items: center; gap: 5px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            Sakha Turf Arena, Bengaluru
+          </span>
+          <span style="padding: 2px 9px; border-radius: 999px; background: rgba(0,0,0,0.25); text-transform: uppercase; letter-spacing: 0.06em;">20 Overs</span>
+          <span style="padding: 2px 9px; border-radius: 999px; background: rgba(0,0,0,0.25); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 5px;">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: #EF4444;"></span>Live
+          </span>
+          <span style="padding: 2px 9px; border-radius: 999px; background: rgba(0,0,0,0.25); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 5px;">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: #10B981;"></span>On Air
+          </span>
+        </div>
+      </div>
+
+      <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 26px; background: linear-gradient(100deg, rgba(255,184,0,0.25) 0%, rgba(21,28,44,0) 38%, rgba(21,28,44,0) 62%, rgba(59,130,246,0.25) 100%);">
+
+        <div style="width: 322px; display: flex; align-items: center; gap: 13px;">
+          <div style="width: 52px; height: 52px; border-radius: 999px; background: #FFB800; border: 2px solid #0B0F19; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 12px; font-weight: 900; color: #0B0F19;">MYM</span>
+          </div>
+          <div style="min-width: 0;">
+            <p class="bc" style="margin: 0; font-size: 21px; color: #ffffff; line-height: 1.05;">Mysore Mavericks</p>
+            <div style="display: flex; align-items: center; gap: 7px; margin-top: 3px;">
+              <span style="font-size: 11px; font-weight: 800; color: #D1D5DB;">MYM</span>
+              <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #0B0F19; background: #FFB800; padding: 2px 7px; border-radius: 4px;">Batting</span>
+            </div>
+            <p style="margin: 3px 0 0; font-size: 9px; color: #6B7280; display: flex; align-items: center; gap: 4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              Owner: Ratikanta Mohapatra
+            </p>
+          </div>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+          <p class="lbl" style="margin: 0; color: #9CA3AF;">2nd Innings · Chasing 177</p>
+          <div style="display: flex; align-items: flex-end; gap: 14px;">
+            <p class="bc num" style="margin: 0; font-size: 62px; color: #ffffff; line-height: 0.9; text-shadow: 0 4px 20px rgba(0,0,0,0.6);">142<span style="color: #4B5563;">/</span>4</p>
+            <div style="padding-bottom: 7px;">
+              <p class="bc num" style="margin: 0; font-size: 21px; color: #D1D5DB; line-height: 1;">14.4<span style="font-size: 13px; color: #6B7280;"> / 20.0</span></p>
+              <p class="lbl" style="margin: 3px 0 0; font-size: 9px; color: #6B7280;">Overs</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; margin-top: 3px;">
+            <span class="num" style="font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 8px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93C5FD;">CRR 9.68</span>
+            <span class="num" style="font-size: 12px; font-weight: 900; padding: 4px 12px; border-radius: 8px; background: #FFB800; border: 1px solid #FDE047; color: #0B0F19; letter-spacing: 0.02em;">NEED 35 FROM 32</span>
+            <span class="num" style="font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 8px; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #6EE7B7;">RRR 6.56</span>
+            <span class="num" style="font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 8px; background: rgba(55,65,81,0.5); border: 1px solid rgba(75,85,99,0.4); color: #D1D5DB;">EXTRAS 4</span>
+          </div>
+        </div>
+
+        <div style="width: 322px; display: flex; flex-direction: row-reverse; align-items: center; gap: 13px; text-align: right;">
+          <div style="width: 52px; height: 52px; border-radius: 999px; background: #3B82F6; border: 2px solid #1E3A8A; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 12px; font-weight: 900; color: #ffffff;">BLZ</span>
+          </div>
+          <div style="min-width: 0;">
+            <p class="bc" style="margin: 0; font-size: 21px; color: #ffffff; line-height: 1.05;">Bengaluru Blazers</p>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 3px;">
+              <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #D1D5DB; background: rgba(55,65,81,0.6); padding: 2px 7px; border-radius: 4px;">Bowling</span>
+              <span style="font-size: 11px; font-weight: 800; color: #D1D5DB;">BLZ</span>
+            </div>
+            <p style="margin: 3px 0 0; font-size: 9px; color: #6B7280; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              Owner: Sarang Kaliyath
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 3px; background: rgba(0,0,0,0.4);">
+        <div style="width: 73.3%; height: 100%; background: #FFB800;"></div>
+      </div>
+    </div>
+
+    <div style="height: 60px; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; align-items: center; gap: 14px; padding: 0 16px; box-sizing: border-box;">
+
+      <span class="lbl" style="color: #FFB800; flex-shrink: 0;">This Over</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="num" style="width: 32px; height: 32px; border-radius: 999px; border: 2px solid #34D399; background: #059669; color: #ffffff; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center;">1</span>
+        <span class="num" style="width: 32px; height: 32px; border-radius: 999px; border: 2px solid #93C5FD; background: #3B82F6; color: #ffffff; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59,130,246,0.25);">4</span>
+        <span class="num" style="width: 32px; height: 32px; border-radius: 999px; border: 2px solid #374151; background: #1F2937; color: #9CA3AF; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center;">0</span>
+        <span class="num" style="width: 32px; height: 32px; border-radius: 999px; border: 2px solid #FDE047; background: #FFB800; color: #000000; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(255,184,0,0.3);">6</span>
+      </div>
+      <span class="bc num" style="font-size: 14px; color: #ffffff; padding: 3px 9px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">= 11</span>
+
+      <span style="width: 1px; height: 28px; background: rgba(42,53,77,0.8);"></span>
+
+      <span class="lbl" style="color: #6B7280; flex-shrink: 0;">Over 14</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #34D399; background: rgba(5,150,105,0.75); color: #ffffff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">1</span>
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #FDE047; background: rgba(255,184,0,0.85); color: #000000; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">6</span>
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #93C5FD; background: rgba(59,130,246,0.8); color: #ffffff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">4</span>
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #374151; background: #1F2937; color: #9CA3AF; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">0</span>
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #34D399; background: rgba(5,150,105,0.75); color: #ffffff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">2</span>
+        <span class="num" style="width: 28px; height: 28px; border-radius: 999px; border: 2px solid #34D399; background: rgba(5,150,105,0.75); color: #ffffff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">2</span>
+      </div>
+      <span class="bc num" style="font-size: 13px; color: #D1D5DB; padding: 3px 9px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08);">= 15</span>
+
+      <span style="width: 1px; height: 28px; background: rgba(42,53,77,0.8);"></span>
+
+      <span class="lbl" style="color: #6B7280; flex-shrink: 0;">Recent</span>
+      <div style="display: flex; align-items: center; gap: 7px;">
+        <span class="num" style="font-size: 11px; font-weight: 800; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px;">Ov 13 <span style="color: #ffffff; font-weight: 900;">4</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 800; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px;">Ov 12 <span style="color: #ffffff; font-weight: 900;">9</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 800; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px;">Ov 11 <span style="color: #ffffff; font-weight: 900;">12</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 800; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px;">Ov 10 <span style="color: #ffffff; font-weight: 900;">7</span></span>
+      </div>
+
+      <span style="flex: 1;"></span>
+
+      <div style="display: flex; align-items: center; gap: 9px; padding: 5px 12px; border-radius: 10px; background: rgba(255,184,0,0.1); border: 1px solid rgba(255,184,0,0.3);">
+        <span class="lbl" style="color: #FFB800;">Last 5 Ov</span>
+        <span class="bc num" style="font-size: 17px; color: #ffffff;">47<span style="color: #6B7280;">/</span>1</span>
+      </div>
+    </div>
+
+    <div style="flex: 1; display: flex; gap: 16px; min-height: 0;">
+
+      <div style="width: 372px; flex-shrink: 0; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; flex-direction: column; overflow: hidden;">
+        <div style="padding: 9px 14px; border-bottom: 1px solid rgba(42,53,77,0.5); display: flex; align-items: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          <span class="lbl" style="color: #D1D5DB;">At the Crease</span>
+        </div>
+
+        <div style="flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 9px; min-height: 0;">
+
+          <div style="flex: 1; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid transparent; background: linear-gradient(100deg, rgba(255,184,0,0.32) 0%, rgba(11,15,25,0.7) 62%, #0B0F19 100%); box-shadow: 0 0 0 2px #FFB800, 0 0 26px rgba(255,184,0,0.35);">
+            <div style="flex: 1; display: flex; align-items: center; gap: 12px; padding: 0 12px;">
+              <div style="width: 54px; height: 54px; border-radius: 999px; background: rgba(11,15,25,0.6); border: 3px solid #FFB800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span class="bc" style="font-size: 17px; color: #FFB800;">DS</span>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 13px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dushyanth S J</p>
+                <span style="display: inline-block; margin-top: 4px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #0B0F19; background: #FFB800; padding: 2px 7px; border-radius: 4px;">On Strike</span>
+              </div>
+              <p class="bc num" style="margin: 0; font-size: 27px; color: #ffffff; line-height: 1;">62 <span style="font-size: 17px; color: #9CA3AF;">(33)</span></p>
+            </div>
+            <div style="display: flex; align-items: stretch; padding: 5px 0; background: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%); border-top: 1px solid rgba(255,255,255,0.12);">
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">4s</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">6</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">6s</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">3</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">SR</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">187.9</p></div>
+            </div>
+          </div>
+
+          <div style="flex: 1; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(42,53,77,0.6); background: linear-gradient(100deg, rgba(255,184,0,0.22) 0%, rgba(11,15,25,0.7) 62%, #0B0F19 100%);">
+            <div style="flex: 1; display: flex; align-items: center; gap: 12px; padding: 0 12px;">
+              <div style="width: 54px; height: 54px; border-radius: 999px; background: rgba(11,15,25,0.6); border: 3px solid #0B0F19; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span class="bc" style="font-size: 17px; color: #FFB800;">SG</span>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 13px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Suhas Gowda</p>
+                <span style="display: inline-block; margin-top: 4px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #D1D5DB; background: rgba(55,65,81,0.6); padding: 2px 7px; border-radius: 4px;">Non-striker</span>
+              </div>
+              <p class="bc num" style="margin: 0; font-size: 27px; color: #ffffff; line-height: 1;">24 <span style="font-size: 17px; color: #9CA3AF;">(19)</span></p>
+            </div>
+            <div style="display: flex; align-items: stretch; padding: 5px 0; background: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%); border-top: 1px solid rgba(255,255,255,0.12);">
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">4s</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">2</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">6s</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">1</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">SR</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">126.3</p></div>
+            </div>
+          </div>
+
+          <div style="flex: 1; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(42,53,77,0.6); background: linear-gradient(100deg, rgba(59,130,246,0.3) 0%, rgba(11,15,25,0.7) 62%, #0B0F19 100%);">
+            <div style="flex: 1; display: flex; align-items: center; gap: 12px; padding: 0 12px;">
+              <div style="width: 54px; height: 54px; border-radius: 999px; background: rgba(11,15,25,0.6); border: 3px solid #1E3A8A; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span class="bc" style="font-size: 17px; color: #93C5FD;">N</span>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 13px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nithesh</p>
+                <span style="display: inline-block; margin-top: 4px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #FCA5A5; background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.4); padding: 1px 7px; border-radius: 4px;">Bowling</span>
+              </div>
+              <p class="bc num" style="margin: 0; font-size: 27px; color: #ffffff; line-height: 1;">1-33 <span style="font-size: 17px; color: #9CA3AF;">(3.4)</span></p>
+            </div>
+            <div style="display: flex; align-items: stretch; padding: 5px 0; background: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%); border-top: 1px solid rgba(255,255,255,0.12);">
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">Ov</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">3.4</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">Md</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">0</p></div>
+              <span style="width: 1px; background: rgba(255,255,255,0.15); margin: 3px 0;"></span>
+              <div style="flex: 1; text-align: center;"><p class="lbl" style="margin: 0; font-size: 8px; color: #9CA3AF; letter-spacing: 0.12em;">Econ</p><p class="bc num" style="margin: 1px 0 0; font-size: 13px; color: #ffffff;">9.00</p></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 0; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; flex-direction: column; overflow: hidden;">
+        <div style="padding: 9px 14px; border-bottom: 1px solid rgba(42,53,77,0.5); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            <span class="lbl" style="color: #D1D5DB;">Batting · Mysore Mavericks</span>
+          </span>
+          <span class="bc num" style="font-size: 14px; color: #ffffff;">142/4 <span style="font-size: 11px; color: #6B7280;">(14.4)</span></span>
+        </div>
+
+        <div style="flex: 1; padding: 0 4px; min-height: 0;">
+          <table>
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.4);">
+                <th class="lbl" style="text-align: left; padding: 8px 10px; font-size: 9px; color: #6B7280;">Batter</th>
+                <th class="lbl" style="text-align: right; padding: 8px 8px; font-size: 9px; color: #6B7280; width: 44px;">R</th>
+                <th class="lbl" style="text-align: right; padding: 8px 8px; font-size: 9px; color: #6B7280; width: 44px;">B</th>
+                <th class="lbl" style="text-align: right; padding: 8px 8px; font-size: 9px; color: #6B7280; width: 44px;">4s</th>
+                <th class="lbl" style="text-align: right; padding: 8px 8px; font-size: 9px; color: #6B7280; width: 44px;">6s</th>
+                <th class="lbl" style="text-align: right; padding: 8px 12px; font-size: 9px; color: #6B7280; width: 62px;">SR</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 700; color: #6B7280;">Ajey Simha</p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 600; color: #6B7280;">c Hemanth R b Nithesh</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #D1D5DB;">12</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">9</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">2</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">0</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #9CA3AF;">133.3</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 700; color: #6B7280;">Rishav D Raj</p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 600; color: #6B7280;">b Arun Kumar HR</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #D1D5DB;">31</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">18</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">3</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">1</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #9CA3AF;">172.2</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2); background: rgba(255,184,0,0.07);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 800; color: #ffffff;">Dushyanth S J <span style="color: #FFB800;">*</span></p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 700; color: #FFB800;">batting</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #ffffff;">62</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">33</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">6</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">3</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #D1D5DB;">187.9</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 700; color: #6B7280;">Sujan Shetty</p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 600; color: #6B7280;">run out (Sayam D Jain)</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #D1D5DB;">5</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">4</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">0</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">0</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #9CA3AF;">125.0</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 700; color: #6B7280;">Surya H R</p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 600; color: #6B7280;">c Nithesh b Arun Kumar HR</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #D1D5DB;">4</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">5</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">0</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #9CA3AF;">0</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #9CA3AF;">80.0</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                <td style="padding: 8px 10px;">
+                  <p style="margin: 0; font-size: 13px; font-weight: 800; color: #ffffff;">Suhas Gowda</p>
+                  <p style="margin: 1px 0 0; font-size: 10px; font-weight: 700; color: #9CA3AF;">not out</p>
+                </td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 13px; font-weight: 900; color: #ffffff;">24</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">19</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">2</td>
+                <td class="num" style="text-align: right; padding: 8px; font-size: 12px; color: #D1D5DB;">1</td>
+                <td class="num" style="text-align: right; padding: 8px 12px; font-size: 12px; color: #D1D5DB;">126.3</td>
+              </tr>
+              <tr style="border-top: 1px solid rgba(42,53,77,0.6);">
+                <td style="padding: 9px 10px;">
+                  <span class="lbl" style="font-size: 10px; color: #9CA3AF;">Extras</span>
+                  <span class="num" style="font-size: 12px; font-weight: 900; color: #ffffff; margin-left: 6px;">4</span>
+                  <span style="font-size: 10px; font-weight: 600; color: #4B5563; margin-left: 5px;">(wd 3, lb 1)</span>
+                </td>
+                <td colspan="5" style="text-align: right; padding: 9px 12px;">
+                  <span class="lbl" style="font-size: 10px; color: #9CA3AF;">Total</span>
+                  <span class="bc num" style="font-size: 15px; color: #ffffff; margin-left: 8px;">142/4</span>
+                  <span class="num" style="font-size: 11px; font-weight: 700; color: #6B7280; margin-left: 6px;">(14.4 ov · RR 9.68)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="width: 404px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+
+        <div style="flex: 1; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+          <div style="padding: 9px 14px; border-bottom: 1px solid rgba(42,53,77,0.5); display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+            <span class="lbl" style="color: #D1D5DB;">Bowling · Bengaluru Blazers</span>
+          </div>
+          <div style="flex: 1; padding: 0 4px; min-height: 0;">
+            <table>
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(42,53,77,0.4);">
+                  <th class="lbl" style="text-align: left; padding: 8px 10px; font-size: 9px; color: #6B7280;">Bowler</th>
+                  <th class="lbl" style="text-align: right; padding: 8px 6px; font-size: 9px; color: #6B7280; width: 42px;">O</th>
+                  <th class="lbl" style="text-align: right; padding: 8px 6px; font-size: 9px; color: #6B7280; width: 32px;">M</th>
+                  <th class="lbl" style="text-align: right; padding: 8px 6px; font-size: 9px; color: #6B7280; width: 36px;">R</th>
+                  <th class="lbl" style="text-align: right; padding: 8px 6px; font-size: 9px; color: #6B7280; width: 32px;">W</th>
+                  <th class="lbl" style="text-align: right; padding: 8px 12px; font-size: 9px; color: #6B7280; width: 54px;">Econ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid rgba(42,53,77,0.2); background: rgba(239,68,68,0.06);">
+                  <td style="padding: 10px;">
+                    <span style="display: flex; align-items: center; gap: 7px;">
+                      <span style="font-size: 13px; font-weight: 800; color: #ffffff;">Nithesh</span>
+                      <span style="width: 6px; height: 6px; border-radius: 999px; background: #EF4444;"></span>
+                    </span>
+                  </td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #D1D5DB;">3.4</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">33</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 13px; font-weight: 900; color: #ffffff;">1</td>
+                  <td class="num" style="text-align: right; padding: 10px 12px; font-size: 12px; color: #9CA3AF;">9.00</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                  <td style="padding: 10px; font-size: 13px; font-weight: 800; color: #ffffff;">Arun Kumar HR</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #D1D5DB;">3.0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">24</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 13px; font-weight: 900; color: #ffffff;">2</td>
+                  <td class="num" style="text-align: right; padding: 10px 12px; font-size: 12px; color: #9CA3AF;">8.00</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                  <td style="padding: 10px; font-size: 13px; font-weight: 800; color: #ffffff;">Hemanth R</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #D1D5DB;">3.0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">33</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 13px; font-weight: 900; color: #ffffff;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 12px; font-size: 12px; color: #9CA3AF;">11.00</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(42,53,77,0.2);">
+                  <td style="padding: 10px; font-size: 13px; font-weight: 800; color: #ffffff;">Sayam D Jain</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #D1D5DB;">3.0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">27</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 13px; font-weight: 900; color: #ffffff;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 12px; font-size: 12px; color: #9CA3AF;">9.00</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; font-size: 13px; font-weight: 800; color: #ffffff;">Santhosh M</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #D1D5DB;">2.0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 12px; color: #9CA3AF;">24</td>
+                  <td class="num" style="text-align: right; padding: 10px 6px; font-size: 13px; font-weight: 900; color: #ffffff;">0</td>
+                  <td class="num" style="text-align: right; padding: 10px 12px; font-size: 12px; color: #9CA3AF;">12.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="height: 92px; box-sizing: border-box; flex-shrink: 0; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 8px 14px; border-bottom: 1px solid rgba(42,53,77,0.5); display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+            <span class="lbl" style="color: #D1D5DB;">1st Innings</span>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <div style="width: 32px; height: 32px; border-radius: 999px; background: #3B82F6; border: 2px solid #1E3A8A; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span style="font-size: 9px; font-weight: 900; color: #ffffff;">BLZ</span>
+              </div>
+              <div style="min-width: 0;">
+                <p style="margin: 0; font-size: 12px; font-weight: 800; color: #ffffff;">Bengaluru Blazers</p>
+                <p style="margin: 1px 0 0; font-size: 10px; font-weight: 600; color: #6B7280;">Completed · sets 177</p>
+              </div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <p class="bc num" style="margin: 0; font-size: 19px; color: #ffffff; line-height: 1;">176/6</p>
+              <p class="num" style="margin: 2px 0 0; font-size: 10px; font-weight: 700; color: #6B7280;">20.0 ov · RR 8.80</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="height: 63px; flex-shrink: 0; border-radius: 14px; border: 1px solid rgba(42,53,77,0.5); background: rgba(30,41,59,0.5); display: flex; align-items: center; gap: 14px; padding: 0 16px; box-sizing: border-box;">
+      <span class="lbl" style="color: #6B7280; flex-shrink: 0;">Fall of Wickets</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="num" style="font-size: 11px; font-weight: 700; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 5px 11px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;"><span style="color: #F87171; font-weight: 900;">24-1</span> <span style="color: #4B5563;">·</span> Ajey Simha <span style="color: #4B5563;">(2.4)</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 700; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 5px 11px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;"><span style="color: #F87171; font-weight: 900;">71-2</span> <span style="color: #4B5563;">·</span> Rishav D Raj <span style="color: #4B5563;">(7.2)</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 700; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 5px 11px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;"><span style="color: #F87171; font-weight: 900;">84-3</span> <span style="color: #4B5563;">·</span> Sujan Shetty <span style="color: #4B5563;">(9.1)</span></span>
+        <span class="num" style="font-size: 11px; font-weight: 700; color: #D1D5DB; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); padding: 5px 11px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;"><span style="color: #F87171; font-weight: 900;">96-4</span> <span style="color: #4B5563;">·</span> Surya H R <span style="color: #4B5563;">(10.5)</span></span>
+      </div>
+      <span style="flex: 1;"></span>
+      <span style="width: 1px; height: 28px; background: rgba(42,53,77,0.8);"></span>
+      <span class="lbl" style="color: #6B7280; flex-shrink: 0;">Yet to Bat</span>
+      <p style="margin: 0; font-size: 12px; font-weight: 600; color: #9CA3AF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Punith N · Manoj M R · Aswin S Kumar · Nandan</p>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -422,7 +422,9 @@ export const OverTimeline: React.FC<{ state: LiveMatchState }> = ({ state }) => 
   // Tolerate a state frame from before recent_overs existed rather than crashing
   // the whole broadcast on a stale cached payload.
   const thisOver = state.this_over ?? [];
-  const recentOvers = state.recent_overs ?? [];
+  // The server now sends five completed overs for the match centre's ribbon;
+  // this panel keeps showing three so the scorer console is unchanged.
+  const recentOvers = (state.recent_overs ?? []).slice(0, 3);
   const thisOverRuns = thisOver.reduce((sum, b) => sum + b.runs, 0);
 
   return (
@@ -494,16 +496,30 @@ export const MatchStatGrid: React.FC<{ state: LiveMatchState }> = ({ state }) =>
 
 // ============================================================ scorecards
 
-export const BattingScorecard: React.FC<{ batting: BattingCard[] }> = ({ batting }) => {
+/**
+ * `innings`, when given, adds the conventional extras/total footer row and puts
+ * the running score in the panel header. The scorer console omits it and keeps
+ * the plain table it has always had.
+ */
+export const BattingScorecard: React.FC<{ batting: BattingCard[]; innings?: InningsSummary | null }> = ({ batting, innings }) => {
   const shown = batting.filter(b => b.status !== 'did_not_bat');
 
   return (
-    <div className="glass-card rounded-xl border border-cricket-border/50 overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-cricket-border/50 flex items-center gap-2">
-        <Activity className="w-3.5 h-3.5 text-cricket-gold" />
-        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Batting</p>
+    <div className="glass-card rounded-xl border border-cricket-border/50 overflow-hidden flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-cricket-border/50 flex items-center justify-between gap-2 shrink-0">
+        <span className="flex items-center gap-2 min-w-0">
+          <Activity className="w-3.5 h-3.5 text-cricket-gold shrink-0" />
+          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300 truncate">
+            Batting{innings ? ` · ${innings.batting_team.name}` : ''}
+          </p>
+        </span>
+        {innings && (
+          <span className="font-broadcast text-sm text-white tabular-nums shrink-0">
+            {innings.runs}/{innings.wickets} <span className="text-[11px] text-gray-500">({innings.overs})</span>
+          </span>
+        )}
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto min-h-0">
         <table className="w-full text-xs min-w-[420px]">
           <thead>
             <tr className="text-[9px] uppercase text-gray-500 border-b border-cricket-border/40">
@@ -541,6 +557,23 @@ export const BattingScorecard: React.FC<{ batting: BattingCard[] }> = ({ batting
                 <td className="text-right py-2 px-3 text-gray-400 tabular-nums">{b.strike_rate.toFixed(1)}</td>
               </tr>
             ))}
+            {innings && (
+              <tr className="border-t border-cricket-border/60">
+                <td className="py-2.5 px-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Extras</span>
+                  <span className="ml-1.5 font-black text-white tabular-nums">{innings.extras}</span>
+                </td>
+                <td colSpan={5} className="text-right py-2.5 px-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Total</span>
+                  <span className="font-broadcast text-[15px] text-white tabular-nums ml-2">
+                    {innings.runs}/{innings.wickets}
+                  </span>
+                  <span className="text-[11px] font-bold text-gray-500 tabular-nums ml-1.5">
+                    ({innings.overs} ov · RR {innings.run_rate.toFixed(2)})
+                  </span>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -549,12 +582,12 @@ export const BattingScorecard: React.FC<{ batting: BattingCard[] }> = ({ batting
 };
 
 export const BowlingScorecard: React.FC<{ bowling: BowlingCard[] }> = ({ bowling }) => (
-  <div className="glass-card rounded-xl border border-cricket-border/50 overflow-hidden">
-    <div className="px-4 py-2.5 border-b border-cricket-border/50 flex items-center gap-2">
+  <div className="glass-card rounded-xl border border-cricket-border/50 overflow-hidden flex flex-col flex-1 min-h-0">
+    <div className="px-4 py-2.5 border-b border-cricket-border/50 flex items-center gap-2 shrink-0">
       <Flame className="w-3.5 h-3.5 text-red-400" />
       <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">Bowling</p>
     </div>
-    <div className="overflow-x-auto">
+    <div className="overflow-auto min-h-0">
       <table className="w-full text-xs min-w-[380px]">
         <thead>
           <tr className="text-[9px] uppercase text-gray-500 border-b border-cricket-border/40">
@@ -732,6 +765,452 @@ export const MatchPickerBar: React.FC<{
     })}
   </div>
 );
+
+// ============================================================ match centre
+//
+// The spectator match centre is built to fit one screen, so it composes these
+// consolidated panels instead of the tall stack above: ScoreboardBand absorbs
+// MatchHeaderBar + ScorePanel + TargetBanner + MatchStatGrid, CreaseRail is a
+// short-form BroadcastPlayerStrip, and BallRibbon a single-line OverTimeline.
+// The originals stay exactly as they are for the scorer console.
+
+const Chip: React.FC<{ tone: 'blue' | 'green' | 'grey'; children: React.ReactNode }> = ({ tone, children }) => {
+  const tones = {
+    blue: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+    green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    grey: 'bg-gray-700/50 text-gray-300 border-gray-600/40'
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black tabular-nums ${tones[tone]}`}>
+      {children}
+    </span>
+  );
+};
+
+/** Fixture, live score, chase equation and rates in a single band. */
+export const ScoreboardBand: React.FC<{ state: LiveMatchState; isConnected?: boolean }> = ({ state, isConnected }) => {
+  const innings = state.innings;
+  const chasing = !!innings && innings.target != null && innings.status === 'in_progress';
+  const progress = innings ? Math.min(100, (innings.balls / (state.overs_limit * 6)) * 100) : 0;
+
+  const Side: React.FC<{ team: TeamBrand; right?: boolean }> = ({ team, right }) => {
+    const isBatting = !!innings && team.id === innings.batting_team.id;
+    return (
+      <div className={`flex items-center gap-3 min-w-0 basis-0 grow ${right ? 'flex-row-reverse text-right' : ''}`}>
+        <Crest team={team} size="w-12 h-12" />
+        <div className="min-w-0">
+          <p className="font-broadcast text-lg xl:text-xl text-white leading-tight truncate">{team.name}</p>
+          <div className={`flex items-center gap-1.5 mt-0.5 ${right ? 'justify-end' : ''}`}>
+            <span className="text-[11px] font-extrabold text-gray-300">{team.short_name}</span>
+            {innings && (isBatting ? (
+              <span
+                className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
+                style={{ backgroundColor: team.primary_color, color: readableOn(team.primary_color) }}
+              >
+                Batting
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-300 text-[9px] font-black uppercase tracking-wider">
+                Bowling
+              </span>
+            ))}
+          </div>
+          {team.owner_name && (
+            <p className={`text-[9px] text-gray-500 truncate flex items-center gap-1 mt-0.5 ${right ? 'justify-end' : ''}`}>
+              <User className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{team.owner_name}</span>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="glass-panel rounded-2xl border border-cricket-border/60 overflow-hidden shrink-0">
+      <div className="auction-banner-header px-4 py-1.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Trophy className="w-3.5 h-3.5 shrink-0" />
+          <span className="font-black text-xs uppercase tracking-wider truncate">
+            Match {state.match_number} · {state.stage}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] font-bold min-w-0">
+          {state.venue && (
+            <span className="hidden xl:flex items-center gap-1 min-w-0">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{state.venue}</span>
+            </span>
+          )}
+          <span className="px-2 py-0.5 rounded-full bg-black/25 uppercase tracking-wide shrink-0">
+            {state.overs_limit} overs
+          </span>
+          <span className="px-2 py-0.5 rounded-full bg-black/25 uppercase tracking-wide shrink-0 flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${state.status === 'live' ? 'bg-red-500 animate-pulse' : 'bg-gray-600'}`} />
+            {state.status}
+          </span>
+          {isConnected !== undefined && (
+            <span className="px-2 py-0.5 rounded-full bg-black/25 uppercase tracking-wide shrink-0 flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {isConnected ? 'On Air' : 'Reconnecting'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="px-5 py-3 flex items-center justify-between gap-4"
+        style={{
+          background: `linear-gradient(100deg, ${state.home_team.primary_color}40 0%, transparent 38%, transparent 62%, ${state.away_team.primary_color}40 100%)`
+        }}
+      >
+        <Side team={state.home_team} />
+
+        <div className="flex flex-col items-center shrink-0 px-2">
+          {innings ? (
+            <>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">
+                Innings {innings.innings_number}
+                {chasing && <span> · Chasing {innings.target}</span>}
+              </p>
+              <div className="flex items-end gap-3">
+                <p className="font-broadcast text-5xl xl:text-6xl text-white leading-[0.9] tabular-nums drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
+                  {innings.runs}<span className="text-gray-600">/</span>{innings.wickets}
+                </p>
+                <div className="pb-1.5">
+                  <p className="font-broadcast text-lg text-gray-300 tabular-nums leading-none">
+                    {innings.overs}<span className="text-gray-600 text-xs"> / {state.overs_limit}.0</span>
+                  </p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-500 mt-0.5">Overs</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2">
+                <Chip tone="blue">CRR {innings.run_rate.toFixed(2)}</Chip>
+                {chasing && state.runs_required != null && state.balls_remaining != null && (
+                  <span className="px-3 py-1 rounded-lg bg-cricket-gold border border-yellow-300 text-black text-[11px] font-black tabular-nums">
+                    NEED {state.runs_required} FROM {state.balls_remaining}
+                  </span>
+                )}
+                {chasing && state.required_run_rate != null && (
+                  <Chip tone="green">RRR {state.required_run_rate.toFixed(2)}</Chip>
+                )}
+                <Chip tone="grey">EXTRAS {innings.extras}</Chip>
+              </div>
+            </>
+          ) : (
+            <div className="text-center px-6 py-3">
+              <Radio className="w-7 h-7 text-gray-600 mx-auto mb-1.5" />
+              <p className="text-gray-300 font-black text-xs uppercase tracking-wider">Innings has not started</p>
+              <p className="text-gray-600 text-[11px] mt-0.5">The scorer will open the innings shortly.</p>
+            </div>
+          )}
+        </div>
+
+        <Side team={state.away_team} right />
+      </div>
+
+      <div className="h-1 bg-black/40">
+        <div
+          className="h-full transition-all duration-500"
+          style={{ width: `${progress}%`, backgroundColor: innings?.batting_team.primary_color }}
+          title={`${innings?.overs ?? 0} of ${state.overs_limit} overs bowled`}
+        />
+      </div>
+
+      {state.result_summary && (
+        <div className="px-4 py-2 bg-emerald-600/20 border-t border-emerald-500/40 overflow-hidden">
+          <div className="bc-ticker-track">
+            {[0, 1].map(i => (
+              <span key={i} className="font-broadcast text-emerald-300 text-sm px-6">
+                🏆 {state.result_summary}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** This over ball-by-ball, the over before it in full, then run-only pills. */
+export const BallRibbon: React.FC<{ state: LiveMatchState }> = ({ state }) => {
+  const thisOver = state.this_over ?? [];
+  const recentOvers = state.recent_overs ?? [];
+  const [lastOver, ...earlierOvers] = recentOvers;
+
+  const thisOverRuns = thisOver.reduce((sum, b) => sum + b.runs, 0);
+
+  // "Last N overs" counts the over in progress plus the four completed before
+  // it, so it only ever claims a window the server actually sent.
+  const windowOvers = recentOvers.slice(0, 4);
+  const spanCount = windowOvers.length + (thisOver.length > 0 ? 1 : 0);
+  const spanRuns = thisOverRuns + windowOvers.reduce((sum, o) => sum + o.runs, 0);
+  const spanWickets =
+    thisOver.filter(b => b.isWicket).length + windowOvers.reduce((sum, o) => sum + o.wickets, 0);
+
+  if (thisOver.length === 0 && recentOvers.length === 0) {
+    return (
+      <div className="glass-card rounded-xl border border-cricket-border/50 px-4 py-3.5 shrink-0">
+        <p className="text-xs text-gray-600 font-bold text-center">Over-by-over will appear once play begins</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass-card rounded-xl border border-cricket-border/50 px-4 py-2.5 flex items-center gap-3 flex-wrap shrink-0">
+      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-cricket-gold shrink-0">This Over</span>
+      <div className="flex items-center gap-1.5">
+        {thisOver.length === 0
+          ? <span className="text-xs text-gray-600 font-bold">New over about to begin</span>
+          : thisOver.map((b, i) => <BallChip key={i} ball={b} animate={i === thisOver.length - 1} />)}
+      </div>
+      {thisOver.length > 0 && (
+        <span className="font-broadcast text-sm text-white tabular-nums px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">
+          = {thisOverRuns}
+        </span>
+      )}
+
+      {lastOver && (
+        <>
+          <span className="w-px h-7 bg-cricket-border/80 shrink-0" />
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500 shrink-0">
+            Over {lastOver.over_number}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {lastOver.balls.map((b, i) => <BallChip key={i} ball={b} />)}
+          </div>
+          <span className="font-broadcast text-sm text-gray-300 tabular-nums px-2 py-0.5 rounded-lg bg-black/35 border border-white/10">
+            = {lastOver.runs}
+          </span>
+        </>
+      )}
+
+      {earlierOvers.length > 0 && (
+        <>
+          <span className="w-px h-7 bg-cricket-border/80 shrink-0" />
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500 shrink-0">Recent</span>
+          <div className="flex items-center gap-1.5">
+            {earlierOvers.map(o => (
+              <span
+                key={o.over_number}
+                className="activity-event-pill px-2.5 py-1 rounded-lg text-[11px] font-bold text-gray-300 tabular-nums whitespace-nowrap"
+              >
+                Ov {o.over_number} <span className="text-white font-black">{o.runs}</span>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      <span className="flex-1" />
+
+      {spanCount > 1 && (
+        <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-cricket-gold/10 border border-cricket-gold/30 shrink-0">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-cricket-gold">
+            Last {spanCount} Ov
+          </span>
+          <span className="font-broadcast text-base text-white tabular-nums">
+            {spanRuns}<span className="text-gray-500">/</span>{spanWickets}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CreaseRow: React.FC<{
+  team: TeamBrand;
+  role: string;
+  name: string;
+  photo: string | null;
+  figure: React.ReactNode;
+  stats: { label: string; value: string | number }[];
+  highlight?: boolean;
+}> = ({ team, role, name, photo, figure, stats, highlight }) => (
+  <div
+    className={`rounded-xl overflow-hidden flex flex-col flex-1 min-h-0 border ${highlight ? 'border-transparent bc-striker-glow' : 'border-cricket-border/60'
+      }`}
+    style={{ background: `linear-gradient(100deg, ${team.primary_color}45 0%, rgba(11,15,25,0.75) 62%, #0B0F19 100%)` }}
+  >
+    <div className="flex-1 flex items-center gap-3 px-3 py-2 min-h-0">
+      <img
+        src={getPhotoUrl(photo || undefined)}
+        alt={name}
+        loading="lazy"
+        className="w-12 h-12 xl:w-14 xl:h-14 rounded-full object-cover object-[center_30%] border-[3px] shrink-0"
+        style={{ borderColor: highlight ? '#FFB800' : team.secondary_color }}
+      />
+      <div className="flex-1 min-w-0">
+        <p className="font-black text-white text-[13px] uppercase tracking-wide truncate" title={name}>{name}</p>
+        <span
+          className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.12em] ${highlight ? 'bg-cricket-gold text-black' : 'bg-gray-700/60 text-gray-300'
+            }`}
+        >
+          {role}
+        </span>
+      </div>
+      <p className="font-broadcast text-2xl text-white tabular-nums leading-none shrink-0">{figure}</p>
+    </div>
+    <div className="bc-stat-strip flex items-stretch py-1 shrink-0" style={{ backgroundColor: `${team.primary_color}30` }}>
+      {stats.map((s, i) => (
+        <React.Fragment key={s.label}>
+          {i > 0 && <span className="w-px bg-white/15 my-1" />}
+          <StatCell label={s.label} value={s.value} />
+        </React.Fragment>
+      ))}
+    </div>
+  </div>
+);
+
+const EmptyCreaseRow: React.FC<{ role: string; hint: string }> = ({ role, hint }) => (
+  <div className="rounded-xl border border-dashed border-cricket-border/60 bg-gray-900/30 flex-1 min-h-0 flex items-center gap-3 px-3">
+    <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0">
+      <User className="w-6 h-6 text-gray-600" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-500">{role}</p>
+      <p className="text-xs font-bold text-gray-600 mt-0.5">{hint}</p>
+    </div>
+  </div>
+);
+
+/** Both batters and the bowler on, as three short rows rather than tall cards. */
+export const CreaseRail: React.FC<{ state: LiveMatchState }> = ({ state }) => {
+  const battingTeam = state.innings?.batting_team;
+  const bowlingTeam = state.innings?.bowling_team;
+
+  const batterRow = (batter: BattingCard | null, role: string) => {
+    if (!batter || !battingTeam) return <EmptyCreaseRow role={role} hint="Awaiting batter" />;
+    return (
+      <CreaseRow
+        team={battingTeam}
+        role={batter.is_striker ? 'On strike' : role}
+        name={batter.name}
+        photo={batter.photo_url}
+        highlight={batter.is_striker}
+        figure={<>{batter.runs} <span className="text-gray-400 text-base">({batter.balls})</span></>}
+        stats={[
+          { label: '4s', value: batter.fours },
+          { label: '6s', value: batter.sixes },
+          { label: 'SR', value: batter.strike_rate.toFixed(2) }
+        ]}
+      />
+    );
+  };
+
+  return (
+    <div className="glass-card rounded-xl border border-cricket-border/50 flex flex-col min-h-0 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-cricket-border/50 flex items-center gap-2 shrink-0">
+        <Activity className="w-3.5 h-3.5 text-cricket-gold" />
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">At the Crease</p>
+      </div>
+      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-2.5">
+        {batterRow(state.striker, 'Batsman')}
+        {batterRow(state.non_striker, 'Non-striker')}
+        {state.current_bowler && bowlingTeam ? (
+          <CreaseRow
+            team={bowlingTeam}
+            role="Bowling"
+            name={state.current_bowler.name}
+            photo={state.current_bowler.photo_url}
+            figure={
+              <>
+                {state.current_bowler.wickets}-{state.current_bowler.runs}{' '}
+                <span className="text-gray-400 text-base">({state.current_bowler.overs})</span>
+              </>
+            }
+            stats={[
+              { label: 'Ov', value: state.current_bowler.overs },
+              { label: 'Md', value: state.current_bowler.maidens },
+              { label: 'Econ', value: state.current_bowler.economy.toFixed(2) }
+            ]}
+          />
+        ) : (
+          <EmptyCreaseRow role="Bowler" hint="Awaiting next over" />
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** The innings already in the books — what the side at the crease is chasing. */
+export const PriorInningsPanel: React.FC<{ state: LiveMatchState }> = ({ state }) => {
+  const prior = (state.all_innings ?? []).filter(i => i.innings_number !== state.current_innings);
+  if (prior.length === 0) return null;
+
+  return (
+    <div className="glass-card rounded-xl border border-cricket-border/50 overflow-hidden shrink-0">
+      <div className="px-4 py-2 border-b border-cricket-border/50 flex items-center gap-2">
+        <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-300">
+          {prior.length === 1 ? `Innings ${prior[0].innings_number}` : 'Earlier innings'}
+        </p>
+      </div>
+      <div className="divide-y divide-cricket-border/30">
+        {prior.map(i => (
+          <div key={i.innings_number} className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Crest team={i.batting_team} size="w-8 h-8" />
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold text-white truncate">{i.batting_team.name}</p>
+                <p className="text-[10px] text-gray-500 font-semibold">
+                  {i.status === 'completed' ? 'Completed' : 'In progress'}
+                  {i.target != null && <span> · sets {i.target}</span>}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-broadcast text-lg text-white leading-none tabular-nums">{i.runs}/{i.wickets}</p>
+              <p className="text-[10px] text-gray-500 font-bold tabular-nums mt-0.5">
+                {i.overs}/{state.overs_limit}.0 · RR {i.run_rate.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** Fall of wickets and who is still padded up, on one line. */
+export const MatchFooterRibbon: React.FC<{ state: LiveMatchState }> = ({ state }) => {
+  const wickets = state.fall_of_wickets ?? [];
+  const yetToBat = (state.batting ?? []).filter(b => b.status === 'did_not_bat');
+
+  return (
+    <div className="glass-card rounded-xl border border-cricket-border/50 px-4 py-2.5 flex items-center gap-3 flex-wrap shrink-0">
+      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500 shrink-0">Fall of Wickets</span>
+      {wickets.length === 0 ? (
+        <span className="text-xs text-gray-600 font-semibold">No wickets have fallen</span>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          {wickets.map(w => (
+            <span
+              key={w.player_id}
+              className="activity-event-pill px-2.5 py-1 rounded-lg text-[11px] font-bold text-gray-300 tabular-nums whitespace-nowrap shrink-0"
+            >
+              <span className="text-red-400 font-black">{w.score}-{w.order}</span>
+              <span className="text-gray-500 mx-1">·</span>
+              {w.name}
+              <span className="text-gray-600 ml-1">({w.overs})</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {yetToBat.length > 0 && (
+        <>
+          <span className="flex-1" />
+          <span className="w-px h-7 bg-cricket-border/80 shrink-0 hidden xl:block" />
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500 shrink-0">Yet to Bat</span>
+          <p className="text-xs font-semibold text-gray-400 truncate max-w-[36ch] xl:max-w-[46ch]">
+            {yetToBat.map(b => b.name).join(' · ')}
+          </p>
+        </>
+      )}
+    </div>
+  );
+};
 
 export const TargetBanner: React.FC<{ state: LiveMatchState }> = ({ state }) => {
   if (state.runs_required == null || state.balls_remaining == null || state.status !== 'live') return null;

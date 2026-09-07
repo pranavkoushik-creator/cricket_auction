@@ -5,18 +5,13 @@ import { useMatchSocket } from '../context/SocketContext';
 import { apiRequest } from '../utils/api';
 import type { BroadcastMatchListItem, LiveMatchState } from '../types';
 import {
+  BallRibbon,
   BattingScorecard,
   BowlingScorecard,
-  BroadcastPlayerStrip,
-  CommentaryFeed,
-  FallOfWicketsPanel,
-  InningsSummaryPanel,
-  MatchHeaderBar,
-  // MatchPickerBar,
-  MatchStatGrid,
-  OverTimeline,
-  ScorePanel,
-  TargetBanner
+  CreaseRail,
+  MatchFooterRibbon,
+  PriorInningsPanel,
+  ScoreboardBand
 } from '../components/match/MatchBroadcastPanels';
 
 /**
@@ -26,12 +21,17 @@ import {
  * snapshot comes from REST (so a late joiner is never blank), and every
  * subsequent update arrives over the socket.
  *
+ * Laid out to fit a single desktop viewport: on `lg` and wider the whole match
+ * centre is pinned to the window height and each panel scrolls internally, so
+ * the live statistics are never below the fold. Narrower than that it stacks
+ * and the page scrolls normally, because none of this fits a phone at once.
+ *
  * `publicMode` uses the unauthenticated endpoints so the view can also be shown
  * on the pre-login screen, exactly like the auction spectator ticker.
  */
 export const LiveMatchBroadcastView: React.FC<{ publicMode?: boolean }> = ({ publicMode = false }) => {
   const { currentTournamentId, token } = useAuth();
-  const { matchState, matchFeed, isConnected, joinMatch, leaveMatch, watchedMatchId } = useMatchSocket();
+  const { matchState, isConnected, joinMatch, leaveMatch, watchedMatchId } = useMatchSocket();
 
   const [matches, setMatches] = useState<BroadcastMatchListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -105,56 +105,36 @@ export const LiveMatchBroadcastView: React.FC<{ publicMode?: boolean }> = ({ pub
     );
   }
 
+  if (!state) {
+    return (
+      <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
+        <p className="text-gray-400 font-bold text-sm">Loading broadcast…</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <h2 className="font-broadcast text-xl text-white">SAKHA LIVE MATCH CENTRE</h2>
-          <span
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${isConnected
-              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-              : 'bg-red-500/15 text-red-300 border-red-500/40'
-              }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            {isConnected ? 'On Air' : 'Reconnecting'}
-          </span>
+    // Pinned to the viewport from xl up, where the three columns fit side by
+    // side; 11rem covers the sticky navbar plus the main element's padding.
+    // Anything that estimate is out by is absorbed by the scorecards, which
+    // scroll inside their own panels rather than pushing the page taller. Below
+    // xl the columns stack and the page scrolls, because they do not fit.
+    <div className="flex flex-col gap-3 xl:h-[calc(100vh-11rem)] xl:min-h-[640px] xl:overflow-hidden">
+      <ScoreboardBand state={state} isConnected={isConnected} />
+      <BallRibbon state={state} />
+
+      <div className="flex-1 min-h-0 grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)_minmax(0,25rem)]">
+        <CreaseRail state={state} />
+
+        <BattingScorecard batting={state.batting} innings={state.innings} />
+
+        <div className="flex flex-col gap-4 min-h-0 lg:col-span-2 xl:col-span-1">
+          <BowlingScorecard bowling={state.bowling} />
+          <PriorInningsPanel state={state} />
         </div>
       </div>
 
-
-      {!state ? (
-        <div className="glass-panel rounded-2xl border border-cricket-border/50 p-10 text-center">
-          <p className="text-gray-400 font-bold text-sm">Loading broadcast…</p>
-        </div>
-      ) : (
-        <>
-          <MatchHeaderBar state={state} />
-          <TargetBanner state={state} />
-
-          <div className="grid lg:grid-cols-3 gap-4">
-            {/* Left / main broadcast column */}
-            <div className="lg:col-span-2 space-y-4">
-              <ScorePanel state={state} />
-              <BroadcastPlayerStrip state={state} />
-              <OverTimeline state={state} />
-              <MatchStatGrid state={state} />
-              <FallOfWicketsPanel wickets={state.fall_of_wickets} />
-
-              <div className="grid xl:grid-cols-2 gap-4">
-                <BattingScorecard batting={state.batting} />
-                <BowlingScorecard bowling={state.bowling} />
-              </div>
-            </div>
-
-            {/* Right rail */}
-            <div className="space-y-4">
-              <InningsSummaryPanel innings={state.all_innings} oversLimit={state.overs_limit} />
-              <CommentaryFeed feed={matchFeed} fallback={state.recent_events} />
-            </div>
-          </div>
-        </>
-      )}
+      <MatchFooterRibbon state={state} />
     </div>
   );
 };
